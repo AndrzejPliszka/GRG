@@ -178,5 +178,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 5
-  sensitivity: 10
+  sensitivity: 5
+  jumpHeight: 2
   localModel: {fileID: 533247101662430328, guid: 2bcb9e144f8cefa49ad7c965f529be89, type: 3}
