@@ -40,7 +40,7 @@ public class Menu : NetworkBehaviour
         resumeGameButton = GameObject.Find("ResumeGameButton").GetComponent<Button>();
         exitServerButton = GameObject.Find("ExitServerButton").GetComponent<Button>();
 
-        voiceChat = GameObject.Find("NetworkManager").GetComponent<VoiceChat>();
+        voiceChat = GameObject.Find("VoiceChatManager").GetComponent<VoiceChat>();
     }
     void Start()
     {
