@@ -5,13 +5,14 @@ using UnityEngine.EventSystems;
 
 public class Movement : NetworkBehaviour
 {
-    [SerializeField] float speed;
+    [SerializeField] float speed = 5f;
     [SerializeField] float sensitivity = 5f;
     [SerializeField] float reconciliationThreshold;
 
     GameObject playerCamera;
     CharacterController characterController;
 
+    [SerializeField] Vector3 cameraOffset = Vector3.zero;
     float currentCameraXRotation = 0;
     float currentVelocity = 0f;
     float gravity = 9.8f;
@@ -38,10 +39,9 @@ public class Movement : NetworkBehaviour
     private void Start()
     {
         if (!IsOwner) return;
-        playerCamera.transform.position = transform.position;
         // Disable server side model
-        //gameObject.GetComponent<Renderer>().enabled = false; //disable if you want to see server side model
-        if(!IsHost)
+        gameObject.GetComponent<Renderer>().enabled = false; //disable if you want to see server side model
+        if (!IsHost)
             gameObject.GetComponent<CharacterController>().enabled = false; //char contr is disabled to disable its collision (if enabled there would be two collisions in one place)
         else
             gameObject.GetComponent<CharacterController>().excludeLayers = LayerMask.GetMask("LocalObject");  //on host i cannot disable entire component coz it is referenced in script
@@ -49,6 +49,9 @@ public class Movement : NetworkBehaviour
         // Instantiate local model for client-side prediction
         localModel = Instantiate(localModel, transform.position, transform.rotation);
         localCharacterController = localModel.GetComponent<CharacterController>();
+
+        playerCamera.transform.position = transform.position + cameraOffset;
+        playerCamera.transform.parent = localModel.transform;
 
         menuManager.resumeGame(); //lock cursor in place
     }
@@ -98,14 +101,13 @@ public class Movement : NetworkBehaviour
     }
 
     //Function dealing with camera and rotating both player and camera and sending mouse input to server
+    //Note that for some reason rotation is significantly faster on application then in unity editor
     private void HandleRotation() {
         if (menuManager.isGamePaused) { return; }
         float mouseY = Input.GetAxis("Mouse Y");
         float mouseX = Input.GetAxis("Mouse X");
 
-        localModel.transform.Rotate(0, mouseX * sensitivity, 0); //rotate local model "horizontally"
-        playerCamera.transform.position = localModel.transform.position; //set up camera in correct position
-        //rotate camera "vertically"
+        localModel.transform.Rotate(0, mouseX * sensitivity, 0);
         currentCameraXRotation += -mouseY * sensitivity;
         currentCameraXRotation = Mathf.Clamp(currentCameraXRotation, -90f, 90f); //clamp rotation so you cannot do 360 "vertically"
         Vector3 playerCameraRotation = playerCamera.transform.eulerAngles;
