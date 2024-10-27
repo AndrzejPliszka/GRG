@@ -17,8 +17,8 @@ public class Movement : NetworkBehaviour
     float currentVelocity = 0f;
     float gravity = 9.8f;
     [SerializeField] float jumpHeight = 2f;
-    bool isGrounded = false;
-    [SerializeField] GameObject localModel; // Client-side predicted model
+    public bool IsGrounded {get; private set;} //getter-setter, because animator needs this public, but we want this readonly beyond this script
+    [SerializeField] GameObject localPlayerModel; // Client-side predicted player model
     CharacterController localCharacterController; //and his character_Controller
 
     //Manager components (scripts)
@@ -36,22 +36,34 @@ public class Movement : NetworkBehaviour
         characterController = gameObject.GetComponent<CharacterController>();
         menuManager = GameObject.Find("Canvas").GetComponent<Menu>();
     }
+
+    //All things that need to be done on player connection, which are not component assigments; [MAYBE USE FUNCTIONS TO ENCAPSULATE THIS CODE]
     private void Start()
     {
         if (!IsOwner) return;
-        // Disable server side model
-        gameObject.GetComponent<Renderer>().enabled = false; //disable if you want to see server side model
-        if (!IsHost)
-            gameObject.GetComponent<CharacterController>().enabled = false; //char contr is disabled to disable its collision (if enabled there would be two collisions in one place)
+        // Creating local player model
+        //It needs to be first things that Start does, because localPlayerModel is referenced by Animations.cs by name [MAYBE BAD PRACTISE]
+        localPlayerModel = Instantiate(localPlayerModel, transform.position, transform.rotation);
+        localPlayerModel.name = "LocalPlayerModel";
+        localCharacterController = localPlayerModel.GetComponent<CharacterController>();
+
+        //Disable rendering of server-side model
+        if (gameObject.GetComponent<Renderer>())  //if PlayerPrefab has component renderer than disable it
+            gameObject.GetComponent<Renderer>().enabled = false;
+        //if not - one of child objects has (probably) renderer of entire object (if even that is not the case then change model or this code)
         else
-            gameObject.GetComponent<CharacterController>().excludeLayers = LayerMask.GetMask("LocalObject");  //on host i cannot disable entire component coz it is referenced in script
+            foreach (Renderer playerRenderers in gameObject.GetComponentsInChildren<Renderer>())
+                playerRenderers.enabled = false;
 
-        // Instantiate local model for client-side prediction
-        localModel = Instantiate(localModel, transform.position, transform.rotation);
-        localCharacterController = localModel.GetComponent<CharacterController>();
+        //***Disable collision locally for server-side model
+        if (!IsHost) //character controller is disabled to disable its collision (if enabled there would be two collisions in one place, because of localPlayerModel character controller)
+            gameObject.GetComponent<CharacterController>().enabled = false;
+        else
+            gameObject.GetComponent<CharacterController>().excludeLayers = LayerMask.GetMask("LocalObject");  //on host i cannot disable entire component cos it is referenced in ("client side") script
 
+        //Position camera
         playerCamera.transform.position = transform.position + cameraOffset;
-        playerCamera.transform.parent = localModel.transform;
+        playerCamera.transform.parent = localPlayerModel.transform;
 
         menuManager.resumeGame(); //lock cursor in place
     }
@@ -63,7 +75,7 @@ public class Movement : NetworkBehaviour
         HandleMovement();
         HandleRotation();
         HandleGravityAndJumping(false);
-        voiceChat.UpdateVivoxPosition();
+        if(voiceChat) voiceChat.UpdateVivoxPosition();
         ReconciliateServerRpc();
     }
 
@@ -81,7 +93,7 @@ public class Movement : NetworkBehaviour
         }
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            HandleGravityAndJumping(true); //may cause errors coa theoretically player mashing space can invoke more physics updates
+            HandleGravityAndJumping(true); //may cause errors cos theoretically player mashing space can invoke more physics updates
         }
     }
 
@@ -95,24 +107,24 @@ public class Movement : NetworkBehaviour
 
         MovePlayerServerRpc(new Vector3(moveX, 0, moveZ)); //and send it to the server
 
-        // Client-side predicted movement
-        Vector3 moveDirection = CalculateMovement(new Vector3(moveX, 0, moveZ), localModel.transform);
+        // Client side movement
+        Vector3 moveDirection = CalculateMovement(new Vector3(moveX, 0, moveZ), localPlayerModel.transform);
         localCharacterController.Move(moveDirection);
     }
 
-    //Function dealing with camera and rotating both player and camera and sending mouse input to server
-    //Note that for some reason rotation is significantly faster on application then in unity editor
+    //Function dealing with camera, rotation of both player and camera and sending mouse input to server
+    //Note: for some reason rotation is significantly faster on application then in unity editor
     private void HandleRotation() {
         if (menuManager.isGamePaused) { return; }
         float mouseY = Input.GetAxis("Mouse Y");
         float mouseX = Input.GetAxis("Mouse X");
 
-        localModel.transform.Rotate(0, mouseX * sensitivity, 0);
+        localPlayerModel.transform.Rotate(0, mouseX * sensitivity, 0);
         currentCameraXRotation += -mouseY * sensitivity;
         currentCameraXRotation = Mathf.Clamp(currentCameraXRotation, -90f, 90f); //clamp rotation so you cannot do 360 "vertically"
         Vector3 playerCameraRotation = playerCamera.transform.eulerAngles;
         playerCameraRotation.z = 0;
-        playerCameraRotation.y = localModel.transform.eulerAngles.y; //make camera correctly rotated "horizontally"
+        playerCameraRotation.y = localPlayerModel.transform.eulerAngles.y;  //make camera correctly rotated "horizontally"
         playerCameraRotation.x = currentCameraXRotation;
         playerCamera.transform.eulerAngles = playerCameraRotation;
 
@@ -123,9 +135,9 @@ public class Movement : NetworkBehaviour
     private void HandleGravityAndJumping(bool pressedSpace)
     {
         Vector3 jumpVector;
-        jumpVector = CalculateGravity(pressedSpace, localModel.transform);
+        jumpVector = CalculateGravity(pressedSpace, localPlayerModel.transform);
         localCharacterController.Move(jumpVector * Time.fixedDeltaTime);
-        if(!IsHost) isGrounded = localCharacterController.isGrounded; //setting isGrounded after moving fixes undefined behaviour of characterController.isGrounded
+        if(!IsHost) IsGrounded = localCharacterController.isGrounded; //setting isGrounded after moving fixes undefined behaviour of characterController.isGrounded
         HandleGravityAndJumpingServerRpc(pressedSpace);
     }
 
@@ -135,21 +147,22 @@ public class Movement : NetworkBehaviour
     private Vector3 CalculateMovement(Vector3 inputVector, Transform rotationTransform)
     {
         Vector3 clampedInput = new Vector3(Mathf.Clamp(inputVector.x, -1, 1), 0, Mathf.Clamp(inputVector.z, -1, 1)); //clamp because we don't trust client
+        if (clampedInput.magnitude > 1) clampedInput = clampedInput.normalized;   //make walking diagonally not faster than walking normally
         Vector3 moveVector = (clampedInput.x * rotationTransform.forward + clampedInput.z * rotationTransform.right) * speed * Time.fixedDeltaTime;
         return moveVector;
     }
 
     //calculates downward vector, dependent on gravity, didTryJump should be true if you want object to jump, but it will jump only if touching ground
-    //transformOfObject is only used to make Host not modify velocity when this function is called second time with localModel *[SO THIS ARGUMENT IS PROBABLY REDUNDANT]
+    //transformOfObject is only used to make Host not modify velocity when this function is called second time with localPlayerModel *[SO THIS ARGUMENT IS PROBABLY REDUNDANT]
     private Vector3 CalculateGravity(bool didTryJump, Transform transformOfObject)
     {
-        if (!IsHost || transformOfObject == localModel.transform || !IsOwner) //if host modify this only one time on fixedUpdate and on localModel, because it is called first and host has authority anyways (!isOwner so host updates velocity for other clients)
+        if (!IsHost || transformOfObject == localPlayerModel.transform || !IsOwner) //if host modify this only one time on fixedUpdate and on localPlayerModel, because it is called first and host has authority anyways (!isOwner so host updates velocity for other clients)
             currentVelocity -= gravity * Time.fixedDeltaTime;
-        if (isGrounded)
+        if (IsGrounded)
         {
             currentVelocity = -2f; //small negative value so it is attracted to ground
         }
-        if (didTryJump && isGrounded)
+        if (didTryJump && IsGrounded)
         {
             currentVelocity = Mathf.Sqrt(jumpHeight * gravity);
         }
@@ -167,39 +180,39 @@ public class Movement : NetworkBehaviour
         finalMovementVector += finalMove; //finalMovementVector used for reconsiliation
 
     }
-    //Rotates player on server (only "horizontally", because "vertical" movement is only registered by camera")
+    //Rotates player on server (only "horizontaly", because "vertical" movement is only registered by camera)
     [Rpc(SendTo.Server)]
     private void RotatePlayerServerRpc(float mouseX)
     {
         transform.Rotate(0, mouseX * sensitivity, 0);
     }
 
-    //Same as HandleGravityAndJumping() but works on server and therefore modifies "real" objects and not localModel
+    //Handle all physics and also jumping but works on server and therefore modifies "real" objects and not localPlayerModel
     [Rpc(SendTo.Server)]
     private void HandleGravityAndJumpingServerRpc(bool pressedSpace)
     {
         Vector3 moveVector;
         moveVector = CalculateGravity(pressedSpace, transform);
         characterController.Move(moveVector  * Time.fixedDeltaTime);
-        isGrounded = characterController.isGrounded;
+        IsGrounded = characterController.isGrounded;
         finalMovementVector += moveVector; //finalMovementVector used for reconsiliation
     }
-    //Theoretically this function is redundant, but without it I would have to call reconciliation from HandleGravityAndJumpingServerRpc, and that's retarded
+    //Theoretically this function is redundant, but without it I would have to call reconciliation from HandleGravityAndJumpingServerRpc(), and that's retarded
     [Rpc(SendTo.Server)]
     private void ReconciliateServerRpc()
     {
         ReconciliatePositionRpc(finalMovementVector);
     }
 
-    //This function corrects position of localModel, so it alligns with real position sent from server (note that normal desync during walking is ~ 1 unit)
-    //If currentMovementVector is anything than (0, 0, 0), do not reconciliate (that would tamper with player movement) unless desync is extreme
+    //This function corrects position of localPlayerModel, so it alligns with real position sent from server (note that normal desync during walking is ~ 1 unit)
+    //If currentMovementVector is anything than (0, 0, 0) *[so is moving or in the air], do not reconciliate (that would tamper with player movement), unless desync is extreme
     //It is Rpc, so I can give "up to date" movement vector from server, and move character without stuttering
-    //[PROBLEM: if desync is extreme this will not move localModel through walls, which makes that this method doesn't remove desync on some conditions]
+    //[PROBLEM: if desync is extreme this will not move localPlayerModel through walls, which makes that this method doesn't remove desync on some conditions]
     [Rpc(SendTo.Owner)]
     private void ReconciliatePositionRpc(Vector3 currentMovementVector)
     {
         Vector3 serverPosition = transform.position;
-        float distance = Vector3.Distance(localModel.transform.position, serverPosition);
+        float distance = Vector3.Distance(localPlayerModel.transform.position, serverPosition);
         //if player moves do not fix position (unless desync is extreme)
         if (currentMovementVector != Vector3.zero && distance < 3)
         {
@@ -209,7 +222,7 @@ public class Movement : NetworkBehaviour
         if (distance > reconciliationThreshold)
         {
             // Smoothly move the client model towards the server's position
-            localCharacterController.Move(Vector3.Lerp(localModel.transform.position, serverPosition, Time.fixedDeltaTime*10) - localModel.transform.position);
+            localCharacterController.Move(Vector3.Lerp(localPlayerModel.transform.position, serverPosition, Time.fixedDeltaTime*10) - localPlayerModel.transform.position);
         }
     }
     

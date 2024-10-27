@@ -2177,7 +2177,7 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.3
+  near clip plane: 0.05
   far clip plane: 1000
   field of view: 60
   orthographic: 0
@@ -2834,7 +2834,7 @@ MonoBehaviour:
   NetworkConfig:
     ProtocolVersion: 0
     NetworkTransport: {fileID: 1573393178}
-    PlayerPrefab: {fileID: 4439297929391180731, guid: 28382bab65bd31b4abbb907a455b6742, type: 3}
+    PlayerPrefab: {fileID: 4635584588995661503, guid: f74ecaeb5b383674e836ea75bbc6c895, type: 3}
     Prefabs:
       NetworkPrefabsLists:
       - {fileID: 11400000, guid: aa13b957af088eb43979aee140a7ea86, type: 2}
@@ -3078,7 +3078,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1905604866}
   - component: {fileID: 1905604864}
-  - component: {fileID: 1905604865}
   m_Layer: 0
   m_Name: VoiceChatManager
   m_TagString: Untagged
@@ -3107,18 +3106,6 @@ MonoBehaviour:
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
---- !u!114 &1905604865
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1905604863}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6209f92339bd792408afc2620f47b753, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!4 &1905604866
 Transform:
   m_ObjectHideFlags: 0
