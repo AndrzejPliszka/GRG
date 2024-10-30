@@ -9,6 +9,7 @@ using UnityEngine.SceneManagement;
 //this is only because of logout
 using Unity.Services.Vivox;
 using Unity.Services.Authentication;
+using Unity.Collections;
 
 
 public class Menu : NetworkBehaviour
@@ -22,11 +23,13 @@ public class Menu : NetworkBehaviour
     Button clientButton;
     Button hostButton;
     TMP_InputField ipInputField;
+    TMP_InputField nicknameField;
 
     Button resumeGameButton;
     Button exitServerButton;
 
     VoiceChat voiceChat;
+    public FixedString32Bytes Nickname { get; private set; }
     private void Awake()
     {
         mainMenu = GameObject.Find("MainMenu");
@@ -36,6 +39,7 @@ public class Menu : NetworkBehaviour
         clientButton = GameObject.Find("ClientButton").GetComponent<Button>();
         hostButton = GameObject.Find("HostButton").GetComponent<Button>();
         ipInputField = GameObject.Find("IPInputField").GetComponent<TMP_InputField>();
+        nicknameField = GameObject.Find("NicknameField").GetComponent<TMP_InputField>();
 
         resumeGameButton = GameObject.Find("ResumeGameButton").GetComponent<Button>();
         exitServerButton = GameObject.Find("ExitServerButton").GetComponent<Button>();
@@ -45,8 +49,8 @@ public class Menu : NetworkBehaviour
     void Start()
     {
         serverButton.onClick.AddListener(() => {
-            NetworkManager.Singleton.StartServer();
             HideStartingMenu();
+            NetworkManager.Singleton.StartServer();
         });
         clientButton.onClick.AddListener(async () => {
             HideStartingMenu();
@@ -68,6 +72,10 @@ public class Menu : NetworkBehaviour
                 "0.0.0.0"
         );
         });
+        nicknameField.onValueChanged.AddListener((string inputValue) => {
+            Nickname = inputValue;
+        });
+
         resumeGameButton.onClick.AddListener(() =>
         {
             resumeGame();

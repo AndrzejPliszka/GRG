@@ -13,11 +13,12 @@ public class Movement : NetworkBehaviour
     CharacterController characterController;
 
     [SerializeField] Vector3 cameraOffset = Vector3.zero;
+    [SerializeField] Vector3 startingPosition = new Vector3(0, 1, 0);
     float currentCameraXRotation = 0;
     float currentVelocity = 0f;
     float gravity = 9.8f;
     [SerializeField] float jumpHeight = 2f;
-    public bool IsGrounded {get; private set;} //getter-setter, because animator needs this public, but we want this readonly beyond this script
+    public bool IsGrounded {get; private set;} //getter-setter, because animator needs this to be public, but we want this readonly beyond this script
     [SerializeField] GameObject localPlayerModel; // Client-side predicted player model
     CharacterController localCharacterController; //and his character_Controller
 
@@ -37,14 +38,23 @@ public class Movement : NetworkBehaviour
         menuManager = GameObject.Find("Canvas").GetComponent<Menu>();
     }
 
+
     //All things that need to be done on player connection, which are not component assigments; [MAYBE USE FUNCTIONS TO ENCAPSULATE THIS CODE]
     private void Start()
     {
+        if (IsServer) //here will be movement set done on server, because only it can manage positions
+        {
+            characterController.enabled = false; //temporary disabling characterController because otherwise it will move from (0, 0, 0) on .Move()
+            transform.position = startingPosition;
+            characterController.enabled = true;
+        }
+
         if (!IsOwner) return;
         // Creating local player model
         //It needs to be first things that Start does, because localPlayerModel is referenced by Animations.cs by name [MAYBE BAD PRACTISE]
         localPlayerModel = Instantiate(localPlayerModel, transform.position, transform.rotation);
         localPlayerModel.name = "LocalPlayerModel";
+        localPlayerModel.transform.position = startingPosition;
         localCharacterController = localPlayerModel.GetComponent<CharacterController>();
 
         //Disable rendering of server-side model
@@ -54,7 +64,7 @@ public class Movement : NetworkBehaviour
         else
             foreach (Renderer playerRenderers in gameObject.GetComponentsInChildren<Renderer>())
                 playerRenderers.enabled = false;
-
+        
         //***Disable collision locally for server-side model
         if (!IsHost) //character controller is disabled to disable its collision (if enabled there would be two collisions in one place, because of localPlayerModel character controller)
             gameObject.GetComponent<CharacterController>().enabled = false;
