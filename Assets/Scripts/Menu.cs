@@ -78,7 +78,7 @@ public class Menu : NetworkBehaviour
 
         resumeGameButton.onClick.AddListener(() =>
         {
-            resumeGame();
+            ResumeGame();
         });
         exitServerButton.onClick.AddListener(QuitServer);
         pauseMenu.SetActive(false);
@@ -97,7 +97,7 @@ public class Menu : NetworkBehaviour
             await voiceChat.LogoutFromVivox();
         Debug.Log("Successfully logout from Vivox");
     }
-    public void resumeGame()
+    public void ResumeGame()
     {
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
@@ -105,7 +105,7 @@ public class Menu : NetworkBehaviour
         pauseMenu.SetActive(false);
 
     }
-    public void pauseGame()
+    public void PauseGame()
     {
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;

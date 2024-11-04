@@ -3,7 +3,7 @@ using Unity.Netcode;
 using UnityEngine;
 
 [RequireComponent(typeof(Animator))]
-[RequireComponent (typeof(Movement))]
+[RequireComponent(typeof(Movement))]
 public class Animations : NetworkBehaviour
 {
     Animator playerAnimator;

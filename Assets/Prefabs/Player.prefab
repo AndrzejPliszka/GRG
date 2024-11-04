@@ -52,6 +52,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: ccc32afbec3e558419c47ae31cf9a5aa, type: 3}
+      propertyPath: m_TagString
+      value: Player
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -80,6 +84,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ccc32afbec3e558419c47ae31cf9a5aa, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5057463084683190869}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ccc32afbec3e558419c47ae31cf9a5aa, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 628017136034103441}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ccc32afbec3e558419c47ae31cf9a5aa, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -5647826904980089932}
   m_SourcePrefab: {fileID: 100100000, guid: ccc32afbec3e558419c47ae31cf9a5aa, type: 3}
 --- !u!1 &4635584588995661503 stripped
 GameObject:
@@ -179,7 +189,8 @@ MonoBehaviour:
   speed: 5
   sensitivity: 5
   reconciliationThreshold: 0
-  cameraOffset: {x: 0, y: 0.9, z: 0.2}
+  <CameraOffset>k__BackingField: {x: 0, y: 0.9, z: 0.2}
+  startingPosition: {x: 0, y: 1, z: 0}
   jumpHeight: 2
   localPlayerModel: {fileID: 8116827039790958487, guid: 719e5dcc23b23bc43aec4ca8af7d580c, type: 3}
 --- !u!95 &-624391764889253703
@@ -241,3 +252,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aaeae0adf7769ce4288f563e93d1ff2c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &628017136034103441
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4635584588995661503}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f1828377457ba440a0b704a71c3485b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!136 &-5647826904980089932
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4635584588995661503}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.2
+  m_Height: 1.8
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}

@@ -7,11 +7,11 @@ using UnityEngine;
 
 public class PlayerData : NetworkBehaviour
 {
-    NetworkVariable<FixedString32Bytes> nickname = new();
+    public NetworkVariable<FixedString32Bytes> Nickname { get;  private set; } = new();
     Menu menuScript;
     private void Start()
     {
-        if(!IsOwner)
+        if(!IsOwner) { return; }
         ChangeNicknameServerRpc(GameObject.Find("Canvas").GetComponent<Menu>().Nickname);
     }
     //[WARNING !] This is unsafe, because it makes that nickname is de facto Owner controlled and can be changed any time by client by calling this method
@@ -19,6 +19,7 @@ public class PlayerData : NetworkBehaviour
     [Rpc(SendTo.Server)]
     private void ChangeNicknameServerRpc(FixedString32Bytes setNickname)
     {
-        nickname.Value = setNickname;
+        Nickname.Value = setNickname;
+        Debug.Log(Nickname.Value);
     }
 }

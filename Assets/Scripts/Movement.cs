@@ -12,8 +12,9 @@ public class Movement : NetworkBehaviour
     GameObject playerCamera;
     CharacterController characterController;
 
-    [SerializeField] Vector3 cameraOffset = Vector3.zero;
-    [SerializeField] Vector3 startingPosition = new Vector3(0, 1, 0);
+    [field: SerializeField] 
+    public Vector3 CameraOffset { get; private set; } = Vector3.zero; //getter setter, because objectInteraction needs this
+    [SerializeField] Vector3 startingPosition = new Vector3(0, 1, 0);  
     float currentCameraXRotation = 0;
     float currentVelocity = 0f;
     float gravity = 9.8f;
@@ -54,8 +55,10 @@ public class Movement : NetworkBehaviour
         //It needs to be first things that Start does, because localPlayerModel is referenced by Animations.cs by name [MAYBE BAD PRACTISE]
         localPlayerModel = Instantiate(localPlayerModel, transform.position, transform.rotation);
         localPlayerModel.name = "LocalPlayerModel";
-        localPlayerModel.transform.position = startingPosition;
         localCharacterController = localPlayerModel.GetComponent<CharacterController>();
+        localCharacterController.enabled = false;  // move character controller into starting position (without disabling character controller, it may warp character to previous position)
+        localPlayerModel.transform.position = startingPosition;
+        localCharacterController.enabled = true;
 
         //Disable rendering of server-side model
         if (gameObject.GetComponent<Renderer>())  //if PlayerPrefab has component renderer than disable it
@@ -72,10 +75,10 @@ public class Movement : NetworkBehaviour
             gameObject.GetComponent<CharacterController>().excludeLayers = LayerMask.GetMask("LocalObject");  //on host i cannot disable entire component cos it is referenced in ("client side") script
 
         //Position camera
-        playerCamera.transform.position = transform.position + cameraOffset;
+        playerCamera.transform.position = transform.position + CameraOffset;
         playerCamera.transform.parent = localPlayerModel.transform;
 
-        menuManager.resumeGame(); //lock cursor in place
+        menuManager.ResumeGame(); //lock cursor in place
     }
 
     //all things that need to contact server regulary
@@ -97,9 +100,9 @@ public class Movement : NetworkBehaviour
         if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.V)) //v to test pause menu in unity editor
         {
             if (menuManager.isGamePaused)
-                menuManager.resumeGame();
+                menuManager.ResumeGame();
             else
-                menuManager.pauseGame();
+                menuManager.PauseGame();
         }
         if (Input.GetKeyDown(KeyCode.Space))
         {
