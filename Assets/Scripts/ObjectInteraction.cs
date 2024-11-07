@@ -11,47 +11,91 @@ using UnityEngine.UIElements;
 public class ObjectInteraction : NetworkBehaviour
 {
     Vector3 cameraOffset;
+    public GameObject testGameObject; //[TRANSFER OBJECT SPAWNING ON SERVER START TO GAME MANAGER!!!] !!!!
     void Start()
     {
         cameraOffset = gameObject.GetComponent<Movement>().CameraOffset;
+        //[TRANSFER OBJECT SPAWNING ON SERVER START TO GAME MANAGER!!!] !!!!
+        if (IsServer && IsOwner)
+        {
+            GameObject testObject = Instantiate(testGameObject, new Vector3(0, 5, 0), new Quaternion());
+            testObject.GetComponent<NetworkObject>().Spawn();
+        }
     }
 
-    // Update is called once per frame
     void Update()
     {
         if(!IsOwner) {  return; }
         float cameraXRotation = GameObject.Find("Camera").transform.rotation.eulerAngles.x;
-        GetObjectInFrontOfCameraServerRpc(GameObject.Find("Camera").transform.rotation.eulerAngles.x);
+        UpdateLookedAtObjectTextServerRpc(cameraXRotation); //This can be on update function, because it only displays data and doesn't change it in any way.
+        if (Input.GetKeyDown(KeyCode.E)) //E is interaction key (for now only for picking up items)
+            InteractWithObjectServerRpc(cameraXRotation);
     }
 
-    //This script will detect any object which is in front of camera. It cannot return this object, because it is serverRpc.
-    //CHANGE NAME TO BE MORE DESCRIPTIVE!
+    //This function will update text which tells player what is he looking at. It needs X Camera Rotation from client ( in "Vector3 form")
     [Rpc(SendTo.Server)]
-    void GetObjectInFrontOfCameraServerRpc(float cameraXRotation)
+    void UpdateLookedAtObjectTextServerRpc(float cameraXRotation)
     {
+        GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
+        if (targetObject == null || targetObject.tag == null)
+        {
+            DisplayTextOnScreenClientRpc("");
+            return;
+        }
+            
+        switch (targetObject.tag)
+        {
+            case "Player":
+                DisplayTextOnScreenClientRpc(targetObject.GetComponent<PlayerData>().Nickname.Value);
+                break;
+            case "Item":
+                DisplayTextOnScreenClientRpc(targetObject.GetComponent<ItemData>().itemProperties.Value.itemType.ToString());
+                break;
+            default:
+                DisplayTextOnScreenClientRpc("");
+                break;
+        };
+    }
+
+    //This function will detect what object is in front of you and interact with this object (it takes cameraXRotation which is in euler angles form) 
+    [Rpc(SendTo.Server)]
+    void InteractWithObjectServerRpc(float cameraXRotation)
+    {
+        GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
+        if (targetObject == null) { return; }
+        string targetObjectTag = targetObject.tag;
+        switch (targetObjectTag)
+        {
+            case "Item":
+                //Hide item on taking object so it does nothing
+                bool didAddToInventory = transform.GetComponent<PlayerData>().AddItemToInventory(targetObject);
+                if (didAddToInventory)
+                {
+                    Destroy(targetObject);
+                }
+                break;
+        }
+        
+
+    }
+
+    //[On Client this function returns null] This function casts a ray in front of camera and returns gameObject which got hit by it
+    //based on rotation and position of transform.player, cameraOffset (which is variable in this class) and parameter cameraXRotation (which is in degrees in "Vector3 form")
+    GameObject GetObjectInFrontOfCamera(float cameraXRotation)
+    {
+        if (!IsServer) { return null; } //We do not trust client, remember?
         Quaternion verticalRotation = Quaternion.Euler(cameraXRotation, transform.rotation.eulerAngles.y, 0);
         Vector3 rayDirection = verticalRotation * Vector3.forward; //Changing quaternion into vector3, because Ray takes Vector3
         Vector3 cameraPosition = transform.position + new Vector3(0, cameraOffset.y) + transform.rotation * new Vector3(0, 0, cameraOffset.z);
-        Ray ray = new Ray(cameraPosition, rayDirection);
+        Ray ray = new(cameraPosition, rayDirection);
         Debug.DrawRay(cameraPosition, rayDirection * 100f, Color.red, 0.5f);
         LayerMask layersToDetect = ~LayerMask.GetMask("LocalObject"); // ~ negates bytes, which makes that layersToDetect is all masks except LocalObject (only relevant on host)
         if (Physics.Raycast(ray, out RaycastHit hit, 10, layersToDetect))
-        {
-            string hitObjectTag = hit.collider.gameObject.tag;
-            switch(hitObjectTag)
-            {
-                case "Player":
-                    DisplayTextOnScreenClientRpc(hit.collider.gameObject.GetComponent<PlayerData>().Nickname.Value);
-                    break;
-                default:
-                    DisplayTextOnScreenClientRpc("");
-                    break;
-            };
+        { 
+            return hit.collider.gameObject;
         }
         else
-        {
-            DisplayTextOnScreenClientRpc("");
-        }
+            return null;
     }
 
     [Rpc(SendTo.Owner)]

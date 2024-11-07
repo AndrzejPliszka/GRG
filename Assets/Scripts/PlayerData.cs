@@ -5,10 +5,12 @@ using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
+#nullable enable //I need to enable this, because I need be able to have null in inventory array if there is no items in it
 public class PlayerData : NetworkBehaviour
 {
     public NetworkVariable<FixedString32Bytes> Nickname { get;  private set; } = new();
-    Menu menuScript;
+    //This thing just creates network variable array of three things type ItemProperties called inventory (? means that array can store null value, apart ItemProperties)
+    public NetworkVariable<ItemData.ItemProperties>?[] Inventory { get; private set; } = new NetworkVariable<ItemData.ItemProperties>[3];
     private void Start()
     {
         if(!IsOwner) { return; }
@@ -21,5 +23,14 @@ public class PlayerData : NetworkBehaviour
     {
         Nickname.Value = setNickname;
         Debug.Log(Nickname.Value);
+    }
+
+    //returns true if adding item to inventory succeded
+    public bool AddItemToInventory(GameObject item)
+    {
+        if (!IsServer) { return false; }
+        Inventory[0] = item.GetComponent<ItemData>().itemProperties;
+        Debug.Log(Inventory[0]);
+        return true;
     }
 }
