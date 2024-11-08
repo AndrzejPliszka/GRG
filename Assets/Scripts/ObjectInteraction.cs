@@ -8,12 +8,16 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
 [RequireComponent(typeof(Movement))]
+[RequireComponent(typeof(PlayerData))]
 public class ObjectInteraction : NetworkBehaviour
 {
     Vector3 cameraOffset;
+    PlayerData playerData;
     public GameObject testGameObject; //[TRANSFER OBJECT SPAWNING ON SERVER START TO GAME MANAGER!!!] !!!!
+    
     void Start()
     {
+        playerData = GetComponent<PlayerData>();
         cameraOffset = gameObject.GetComponent<Movement>().CameraOffset;
         //[TRANSFER OBJECT SPAWNING ON SERVER START TO GAME MANAGER!!!] !!!!
         if (IsServer && IsOwner)
@@ -30,6 +34,8 @@ public class ObjectInteraction : NetworkBehaviour
         UpdateLookedAtObjectTextServerRpc(cameraXRotation); //This can be on update function, because it only displays data and doesn't change it in any way.
         if (Input.GetKeyDown(KeyCode.E)) //E is interaction key (for now only for picking up items)
             InteractWithObjectServerRpc(cameraXRotation);
+        if (Input.GetKeyDown(KeyCode.Q)) //Q is dropping items key
+            DropItemServerRpc(0);
     }
 
     //This function will update text which tells player what is he looking at. It needs X Camera Rotation from client ( in "Vector3 form")
@@ -83,7 +89,8 @@ public class ObjectInteraction : NetworkBehaviour
     //based on rotation and position of transform.player, cameraOffset (which is variable in this class) and parameter cameraXRotation (which is in degrees in "Vector3 form")
     GameObject GetObjectInFrontOfCamera(float cameraXRotation)
     {
-        if (!IsServer) { return null; } //We do not trust client, remember?
+        if (!IsServer) throw new Exception("Don't call GetObjectInFrontOfCamera on client!"); //We do not trust client, remember?
+
         Quaternion verticalRotation = Quaternion.Euler(cameraXRotation, transform.rotation.eulerAngles.y, 0);
         Vector3 rayDirection = verticalRotation * Vector3.forward; //Changing quaternion into vector3, because Ray takes Vector3
         Vector3 cameraPosition = transform.position + new Vector3(0, cameraOffset.y) + transform.rotation * new Vector3(0, 0, cameraOffset.z);
@@ -102,5 +109,21 @@ public class ObjectInteraction : NetworkBehaviour
     public void DisplayTextOnScreenClientRpc(FixedString32Bytes stringToDisplay)
     {
         GameObject.Find("CenterText").GetComponent<TMP_Text>().text = stringToDisplay.ToString();
+    }
+
+    //tries to remove item in itemSlot index of Inventory and spawn Item with same properties as those dropped, returns null if nothing happenes
+    [Rpc(SendTo.Server)]
+    public void DropItemServerRpc(int itemSlot)
+    {
+        if (playerData.IsItemInSlot(itemSlot))
+        {
+            ItemData.ItemProperties itemProperties = playerData.RemoveItemFromInventory(itemSlot);
+            GameObject newItem = Instantiate(testGameObject, transform.position + transform.forward, new Quaternion());
+            newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;
+            newItem.GetComponent<NetworkObject>().Spawn();
+        }
+        else {
+            return;
+        }
     }
 }

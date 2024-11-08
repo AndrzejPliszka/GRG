@@ -16,6 +16,7 @@ public class PlayerData : NetworkBehaviour
         if(!IsOwner) { return; }
         ChangeNicknameServerRpc(GameObject.Find("Canvas").GetComponent<Menu>().Nickname);
     }
+
     //[WARNING !] This is unsafe, because it makes that nickname is de facto Owner controlled and can be changed any time by client by calling this method
     //It is that way, because otherwise nickname would need to be send to server on player join and server would need to assign it only one time and I don't really know how to do this and this will be assigned by client anyways, so I don't care
     [Rpc(SendTo.Server)]
@@ -25,12 +26,33 @@ public class PlayerData : NetworkBehaviour
         Debug.Log(Nickname.Value);
     }
 
-    //returns true if adding item to inventory succeded
+    //tries to add ItemData.itemProperties of GameObject to inventory and returns true if adding it to inventory succeded
     public bool AddItemToInventory(GameObject item)
     {
         if (!IsServer) { return false; }
+        //TO DO: MAKE ADDING TO INVENTORY LOGIC
         Inventory[0] = item.GetComponent<ItemData>().itemProperties;
         Debug.Log(Inventory[0]);
         return true;
+    }
+    //returns true if Inventory[inventorySlot] is not null
+    public bool IsItemInSlot(int inventorySlot)
+    {
+        if (Inventory[inventorySlot] is not null)
+            return true;
+        else return false;
+    } 
+
+    //Removes item in specified inventory slot and returnes it (so it can be spawned as an gameObject)
+    public ItemData.ItemProperties RemoveItemFromInventory(int inventorySlot)
+    {
+        if (!IsServer) throw new Exception("Trying to remove item from inventory as a client");
+        if (Inventory[inventorySlot] is NetworkVariable<ItemData.ItemProperties> item) //I check it this way (instead not null) to not have nullable warning
+        {
+            Inventory[inventorySlot] = null; //deleting item from inventory
+            return item.Value; //returnng item so it can be spawned on scene as gameObject
+        }
+        else
+            throw new Exception("Trying to remove item from item slot, where there is no item [remember Inventory indexing starts at 0]");
     }
 }
