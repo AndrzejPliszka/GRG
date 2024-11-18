@@ -14,11 +14,13 @@ public class Movement : NetworkBehaviour
 
     [field: SerializeField] 
     public Vector3 CameraOffset { get; private set; } = Vector3.zero; //getter setter, because objectInteraction needs this
-    [SerializeField] Vector3 startingPosition = new Vector3(0, 1, 0);  
+    [SerializeField] Vector3 startingPosition = new(0, 1, 0);  
     float currentCameraXRotation = 0;
     float currentVelocity = 0f;
-    float gravity = 9.8f;
+    const float yVelocityOnGround = -2f; //y velocity that is applied when standing on the ground (cannot be zero, because characterController.OnGround doesn't work properly without it)
+    const float gravity = 9.8f;
     [SerializeField] float jumpHeight = 2f;
+    [SerializeField] bool renderOrginalModel = false; //Set true while debugging
     public bool IsGrounded {get; private set;} //getter-setter, because animator needs this to be public, but we want this readonly beyond this script
     [SerializeField] GameObject localPlayerModel; // Client-side predicted player model
     CharacterController localCharacterController; //and his character_Controller
@@ -56,18 +58,19 @@ public class Movement : NetworkBehaviour
         localPlayerModel = Instantiate(localPlayerModel, transform.position, transform.rotation);
         localPlayerModel.name = "LocalPlayerModel";
         localCharacterController = localPlayerModel.GetComponent<CharacterController>();
-        localCharacterController.enabled = false;  // move character controller into starting position (without disabling character controller, it may warp character to previous position)
+        localCharacterController.enabled = false;  // move character controller into starting position (without disabling character controller, it may warp character to previous position on update)
         localPlayerModel.transform.position = startingPosition;
         localCharacterController.enabled = true;
 
         //Disable rendering of server-side model
-        if (gameObject.GetComponent<Renderer>())  //if PlayerPrefab has component renderer than disable it
-            gameObject.GetComponent<Renderer>().enabled = false;
-        //if not - one of child objects has (probably) renderer of entire object (if even that is not the case then change model or this code)
-        else
-            foreach (Renderer playerRenderers in gameObject.GetComponentsInChildren<Renderer>())
-                playerRenderers.enabled = false;
-        
+        if (!renderOrginalModel) { 
+            if (gameObject.GetComponent<Renderer>())  //if PlayerPrefab has component renderer than disable it
+                gameObject.GetComponent<Renderer>().enabled = false;
+            //if not - one of child objects has (probably) renderer of entire object (if even that is not the case then change model or this code)
+            else
+                foreach (Renderer playerRenderers in gameObject.GetComponentsInChildren<Renderer>())
+                    playerRenderers.enabled = false;
+        }
         //***Disable collision locally for server-side model
         if (!IsHost) //character controller is disabled to disable its collision (if enabled there would be two collisions in one place, because of localPlayerModel character controller)
             gameObject.GetComponent<CharacterController>().enabled = false;
@@ -159,9 +162,9 @@ public class Movement : NetworkBehaviour
     //transform.forward and transform.right need to be based on some frame of refrence, and rotationTransform is precisly this reference
     private Vector3 CalculateMovement(Vector3 inputVector, Transform rotationTransform)
     {
-        Vector3 clampedInput = new Vector3(Mathf.Clamp(inputVector.x, -1, 1), 0, Mathf.Clamp(inputVector.z, -1, 1)); //clamp because we don't trust client
+        Vector3 clampedInput = new(Mathf.Clamp(inputVector.x, -1, 1), 0, Mathf.Clamp(inputVector.z, -1, 1)); //clamp because we don't trust client
         if (clampedInput.magnitude > 1) clampedInput = clampedInput.normalized;   //make walking diagonally not faster than walking normally
-        Vector3 moveVector = (clampedInput.x * rotationTransform.forward + clampedInput.z * rotationTransform.right) * speed * Time.fixedDeltaTime;
+        Vector3 moveVector = speed * Time.fixedDeltaTime * (clampedInput.x * rotationTransform.forward + clampedInput.z * rotationTransform.right);
         return moveVector;
     }
 
@@ -173,14 +176,14 @@ public class Movement : NetworkBehaviour
             currentVelocity -= gravity * Time.fixedDeltaTime;
         if (IsGrounded)
         {
-            currentVelocity = -2f; //small negative value so it is attracted to ground
+            currentVelocity = yVelocityOnGround; //small negative value so it is always attracted to ground (and ensures that characterController.isOnGround works fine)
         }
         if (didTryJump && IsGrounded)
         {
             currentVelocity = Mathf.Sqrt(jumpHeight * gravity);
         }
         // Zastosowanie grawitacji
-        Vector3 moveVector = new Vector3(0, currentVelocity, 0);
+        Vector3 moveVector = new(0, currentVelocity, 0);
         return moveVector;
     }
     //Moves player on the server
@@ -210,32 +213,38 @@ public class Movement : NetworkBehaviour
         IsGrounded = characterController.isGrounded;
         finalMovementVector += moveVector; //finalMovementVector used for reconsiliation
     }
-    //Theoretically this function is redundant, but without it I would have to call reconciliation from HandleGravityAndJumpingServerRpc(), and that's retarded
+    //This function calls ReconciliatePositionRpc on owner and resets finalMovementVector
     [Rpc(SendTo.Server)]
     private void ReconciliateServerRpc()
     {
-        ReconciliatePositionRpc(finalMovementVector);
+        ReconciliatePositionRpc(transform.position, finalMovementVector);
+        finalMovementVector = Vector3.zero;
     }
 
     //This function corrects position of localPlayerModel, so it alligns with real position sent from server (note that normal desync during walking is ~ 1 unit)
     //If currentMovementVector is anything than (0, 0, 0) *[so is moving or in the air], do not reconciliate (that would tamper with player movement), unless desync is extreme
-    //It is Rpc, so I can give "up to date" movement vector from server, and move character without stuttering
-    //[PROBLEM: if desync is extreme this will not move localPlayerModel through walls, which makes that this method doesn't remove desync on some conditions]
+    //It is Rpc, so I can give "up to date" movement vector from server and position, and move character without stuttering
     [Rpc(SendTo.Owner)]
-    private void ReconciliatePositionRpc(Vector3 currentMovementVector)
+    private void ReconciliatePositionRpc(Vector3 serverPosition, Vector3 currentMovementVector)
     {
-        Vector3 serverPosition = transform.position;
+        //variables to 
+
         float distance = Vector3.Distance(localPlayerModel.transform.position, serverPosition);
-        //if player moves do not fix position (unless desync is extreme)
-        if (currentMovementVector != Vector3.zero && distance < 3)
+        //if player moves and desync is small do not fix position
+        if (currentMovementVector != new Vector3(0, yVelocityOnGround, 0) && distance < 3)
         {
             return;
         }
 
-        if (distance > reconciliationThreshold)
+        //fixing position
+        localCharacterController.Move(Vector3.Lerp(localPlayerModel.transform.position, serverPosition, Time.fixedDeltaTime*10) - localPlayerModel.transform.position);
+
+        //if desync is extreme localPlayerModel to correct postiion
+        if(distance > 10)
         {
-            // Smoothly move the client model towards the server's position
-            localCharacterController.Move(Vector3.Lerp(localPlayerModel.transform.position, serverPosition, Time.fixedDeltaTime*10) - localPlayerModel.transform.position);
+            localCharacterController.enabled = false;
+            localPlayerModel.transform.position = serverPosition;
+            localCharacterController.enabled = true;
         }
     }
     
