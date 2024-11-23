@@ -5,15 +5,30 @@ using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
-#nullable enable //I need to enable this, because I need be able to have null in inventory array if there is no items in it
 public class PlayerData : NetworkBehaviour
 {
     public NetworkVariable<FixedString32Bytes> Nickname { get;  private set; } = new();
-    //This thing just creates network variable array of three things type ItemProperties called inventory (? means that array can store null value, apart ItemProperties)
-    public NetworkVariable<ItemData.ItemProperties>?[] Inventory { get; private set; } = new NetworkVariable<ItemData.ItemProperties>[3];
+
+    public NetworkList<ItemData.ItemProperties> Inventory { get; private set; }
+
+    public void Awake()
+    {
+        //we need to do this before connection (so before Start()/OnNetworkSpawn()), but not on declaration, because there will be memory leak
+        Inventory = new NetworkList<ItemData.ItemProperties>();
+    }
+
     private void Start()
     {
-        if(!IsOwner) { return; }
+        if (IsServer)
+        {
+            for (int i = 0; i < 3; i++) //we want to have 3 inventory slots in the beginning
+            {
+                Inventory.Add(new ItemData.ItemProperties());
+            }
+            Inventory[0] = new ItemData.ItemProperties { itemRarity=ItemData.ItemRarity.Wood, itemType = ItemData.ItemType.Sample};
+        }
+        //Reset inventory on server
+        if (!IsOwner) { return; }
         ChangeNicknameServerRpc(GameObject.Find("Canvas").GetComponent<Menu>().Nickname);
     }
 
@@ -23,34 +38,29 @@ public class PlayerData : NetworkBehaviour
     private void ChangeNicknameServerRpc(FixedString32Bytes setNickname)
     {
         Nickname.Value = setNickname;
-        Debug.Log(Nickname.Value);
     }
 
     //tries to add ItemData.itemProperties of GameObject to inventory and returns true if adding it to inventory succeded
     public bool AddItemToInventory(GameObject item)
     {
-        if (!IsServer) { return false; }
+        if (!IsServer) throw new Exception("Trying to add item to inventory as a client");
         //TO DO: MAKE ADDING TO INVENTORY LOGIC
-        Inventory[0] = item.GetComponent<ItemData>().itemProperties;
-        Debug.Log(Inventory[0]);
+        ItemData itemData = item.GetComponent<ItemData>();
+        Debug.Log(itemData.itemProperties.Value);
+        Inventory[0] = itemData.itemProperties.Value;
         return true;
     }
-    //returns true if Inventory[inventorySlot] is not null
-    public bool IsItemInSlot(int inventorySlot)
-    {
-        if (Inventory[inventorySlot] is not null)
-            return true;
-        else return false;
-    } 
 
     //Removes item in specified inventory slot and returnes it (so it can be spawned as an gameObject)
     public ItemData.ItemProperties RemoveItemFromInventory(int inventorySlot)
     {
         if (!IsServer) throw new Exception("Trying to remove item from inventory as a client");
-        if (Inventory[inventorySlot] is NetworkVariable<ItemData.ItemProperties> item) //I check it this way (instead not null) to not have nullable warning
+        if (Inventory[inventorySlot].itemType != ItemData.ItemType.Null)
         {
-            Inventory[inventorySlot] = null; //deleting item from inventory
-            return item.Value; //returnng item so it can be spawned on scene as gameObject
+            ItemData.ItemProperties item = Inventory[inventorySlot];
+            Debug.Log(IsSpawned);
+            Inventory[inventorySlot] = new ItemData.ItemProperties { itemType = ItemData.ItemType.Null }; //deleting item from inventory
+            return item; //returnng item so it can be spawned on scene as gameObject
         }
         else
             throw new Exception("Trying to remove item from item slot, where there is no item [remember Inventory indexing starts at 0]");

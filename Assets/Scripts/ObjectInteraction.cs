@@ -14,7 +14,11 @@ public class ObjectInteraction : NetworkBehaviour
     Vector3 cameraOffset;
     PlayerData playerData;
     public GameObject testGameObject; //[TRANSFER OBJECT SPAWNING ON SERVER START TO GAME MANAGER!!!] !!!!
-    
+
+    //References to scriptable objects
+    [SerializeField]
+    ItemPrefabs itemPrefabsData;
+
     void Start()
     {
         playerData = GetComponent<PlayerData>();
@@ -43,7 +47,7 @@ public class ObjectInteraction : NetworkBehaviour
     void UpdateLookedAtObjectTextServerRpc(float cameraXRotation)
     {
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
-        if (targetObject == null || targetObject.tag == null)
+        if (targetObject == null || string.IsNullOrEmpty(targetObject.tag))
         {
             DisplayTextOnScreenClientRpc("");
             return;
@@ -73,10 +77,16 @@ public class ObjectInteraction : NetworkBehaviour
         switch (targetObjectTag)
         {
             case "Item":
-                //Hide item on taking object so it does nothing
+                //Add object to inventory (if it wasn't added store it in var)
                 bool didAddToInventory = transform.GetComponent<PlayerData>().AddItemToInventory(targetObject);
+                ItemData itemData = targetObject.GetComponent<ItemData>();
                 if (didAddToInventory)
                 {
+                    //If it was added instantiate item model which will be held in hand and destroy original object
+                    GameObject holdedItem = Instantiate(itemPrefabsData.GetDataOfItemType(itemData.itemProperties.Value.itemType).holdedItemPrefab, transform);
+                    holdedItem.GetComponent<NetworkObject>().Spawn();
+                    //holdedItem.name = "HoldedItem";
+                    targetObject.GetComponent<NetworkObject>().Despawn();
                     Destroy(targetObject);
                 }
                 break;
@@ -85,7 +95,7 @@ public class ObjectInteraction : NetworkBehaviour
 
     }
 
-    //[On Client this function returns null] This function casts a ray in front of camera and returns gameObject which got hit by it
+    //This function casts a ray in front of camera and returns gameObject which got hit by it
     //based on rotation and position of transform.player, cameraOffset (which is variable in this class) and parameter cameraXRotation (which is in degrees in "Vector3 form")
     GameObject GetObjectInFrontOfCamera(float cameraXRotation)
     {
@@ -115,12 +125,14 @@ public class ObjectInteraction : NetworkBehaviour
     [Rpc(SendTo.Server)]
     public void DropItemServerRpc(int itemSlot)
     {
-        if (playerData.IsItemInSlot(itemSlot))
+        if (playerData.Inventory[0].itemType != ItemData.ItemType.Null)
         {
             ItemData.ItemProperties itemProperties = playerData.RemoveItemFromInventory(itemSlot);
-            GameObject newItem = Instantiate(testGameObject, transform.position + transform.forward, new Quaternion());
-            newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;
+
+            GameObject itemPrefab = itemPrefabsData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
+            GameObject newItem = Instantiate(itemPrefab, transform.position + transform.forward, new Quaternion());
             newItem.GetComponent<NetworkObject>().Spawn();
+            newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;
         }
         else {
             return;

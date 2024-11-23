@@ -266,6 +266,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   testGameObject: {fileID: 6536572878300957431, guid: 9f2c4212b298233448b29e235083d392, type: 3}
+  itemPrefabsData: {fileID: 11400000, guid: 1366c90a8136cb948b0666a6271ef310, type: 2}
 --- !u!136 &-5647826904980089932
 CapsuleCollider:
   m_ObjectHideFlags: 0
