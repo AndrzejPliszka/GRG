@@ -11,6 +11,8 @@ public class PlayerData : NetworkBehaviour
 
     public NetworkList<ItemData.ItemProperties> Inventory { get; private set; }
 
+    public NetworkVariable<int> CurrentItemSlot { get; private set; } = new(0);
+
     public void Awake()
     {
         //we need to do this before connection (so before Start()/OnNetworkSpawn()), but not on declaration, because there will be memory leak
@@ -41,13 +43,11 @@ public class PlayerData : NetworkBehaviour
     }
 
     //tries to add ItemData.itemProperties of GameObject to inventory and returns true if adding it to inventory succeded
-    public bool AddItemToInventory(GameObject item)
+    public bool AddItemToInventory(ItemData.ItemProperties itemData)
     {
         if (!IsServer) throw new Exception("Trying to add item to inventory as a client");
         //TO DO: MAKE ADDING TO INVENTORY LOGIC
-        ItemData itemData = item.GetComponent<ItemData>();
-        Debug.Log(itemData.itemProperties.Value);
-        Inventory[0] = itemData.itemProperties.Value;
+        Inventory[0] = itemData;
         return true;
     }
 
@@ -58,7 +58,6 @@ public class PlayerData : NetworkBehaviour
         if (Inventory[inventorySlot].itemType != ItemData.ItemType.Null)
         {
             ItemData.ItemProperties item = Inventory[inventorySlot];
-            Debug.Log(IsSpawned);
             Inventory[inventorySlot] = new ItemData.ItemProperties { itemType = ItemData.ItemType.Null }; //deleting item from inventory
             return item; //returnng item so it can be spawned on scene as gameObject
         }

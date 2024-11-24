@@ -7,6 +7,7 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
+using UnityEngine.XR;
 [RequireComponent(typeof(Movement))]
 [RequireComponent(typeof(PlayerData))]
 public class ObjectInteraction : NetworkBehaviour
@@ -18,6 +19,12 @@ public class ObjectInteraction : NetworkBehaviour
     //References to scriptable objects
     [SerializeField]
     ItemPrefabs itemPrefabsData;
+    //Held items will be moved according to movement of this object
+    [SerializeField]
+    Transform rightHand;
+    //How is right hand in localPlayerModel named
+    [SerializeField]
+    string localRightHandPath = "hand.R";
 
     void Start()
     {
@@ -33,66 +40,13 @@ public class ObjectInteraction : NetworkBehaviour
 
     void Update()
     {
-        if(!IsOwner) {  return; }
+        if (!IsOwner) {  return; }
         float cameraXRotation = GameObject.Find("Camera").transform.rotation.eulerAngles.x;
         UpdateLookedAtObjectTextServerRpc(cameraXRotation); //This can be on update function, because it only displays data and doesn't change it in any way.
         if (Input.GetKeyDown(KeyCode.E)) //E is interaction key (for now only for picking up items)
             InteractWithObjectServerRpc(cameraXRotation);
         if (Input.GetKeyDown(KeyCode.Q)) //Q is dropping items key
             DropItemServerRpc(0);
-    }
-
-    //This function will update text which tells player what is he looking at. It needs X Camera Rotation from client ( in "Vector3 form")
-    [Rpc(SendTo.Server)]
-    void UpdateLookedAtObjectTextServerRpc(float cameraXRotation)
-    {
-        GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
-        if (targetObject == null || string.IsNullOrEmpty(targetObject.tag))
-        {
-            DisplayTextOnScreenClientRpc("");
-            return;
-        }
-            
-        switch (targetObject.tag)
-        {
-            case "Player":
-                DisplayTextOnScreenClientRpc(targetObject.GetComponent<PlayerData>().Nickname.Value);
-                break;
-            case "Item":
-                DisplayTextOnScreenClientRpc(targetObject.GetComponent<ItemData>().itemProperties.Value.itemType.ToString());
-                break;
-            default:
-                DisplayTextOnScreenClientRpc("");
-                break;
-        };
-    }
-
-    //This function will detect what object is in front of you and interact with this object (it takes cameraXRotation which is in euler angles form) 
-    [Rpc(SendTo.Server)]
-    void InteractWithObjectServerRpc(float cameraXRotation)
-    {
-        GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
-        if (targetObject == null) { return; }
-        string targetObjectTag = targetObject.tag;
-        switch (targetObjectTag)
-        {
-            case "Item":
-                //Add object to inventory (if it wasn't added store it in var)
-                bool didAddToInventory = transform.GetComponent<PlayerData>().AddItemToInventory(targetObject);
-                ItemData itemData = targetObject.GetComponent<ItemData>();
-                if (didAddToInventory)
-                {
-                    //If it was added instantiate item model which will be held in hand and destroy original object
-                    GameObject holdedItem = Instantiate(itemPrefabsData.GetDataOfItemType(itemData.itemProperties.Value.itemType).holdedItemPrefab, transform);
-                    holdedItem.GetComponent<NetworkObject>().Spawn();
-                    //holdedItem.name = "HoldedItem";
-                    targetObject.GetComponent<NetworkObject>().Despawn();
-                    Destroy(targetObject);
-                }
-                break;
-        }
-        
-
     }
 
     //This function casts a ray in front of camera and returns gameObject which got hit by it
@@ -121,6 +75,84 @@ public class ObjectInteraction : NetworkBehaviour
         GameObject.Find("CenterText").GetComponent<TMP_Text>().text = stringToDisplay.ToString();
     }
 
+    //This function changes model that is held in hand
+    [Rpc(SendTo.ClientsAndHost)]
+    public void ChangeHeldItemClientRpc(ItemData.ItemType itemTypeToHold)
+    {
+        Transform parentObject;
+        //If it is owner, we want to modify localPlayerModel, instead of Player (because localPlayerModel is what owner sees)
+        if (IsOwner)
+        {
+            parentObject = transform.GetComponent<Movement>().LocalPlayerModel.transform.Find(localRightHandPath);
+        }
+        else
+        {
+            parentObject = rightHand;
+        }
+            
+        //Remove held item if it existed
+        if (parentObject.Find("HeldItem"))
+            Destroy(parentObject.Find("HeldItem").gameObject);
+        //Do not spawn anything when there is no item
+        if (itemTypeToHold == ItemData.ItemType.Null)
+            return;
+        //Spawn object in hand
+        GameObject heldItem = Instantiate(itemPrefabsData.GetDataOfItemType(itemTypeToHold).holdedItemPrefab, parentObject);
+        heldItem.name = "HeldItem"; 
+    }
+
+    //This function will update text which tells player what is he looking at. It needs X Camera Rotation from client ( in "Vector3 form")
+    [Rpc(SendTo.Server)]
+    void UpdateLookedAtObjectTextServerRpc(float cameraXRotation)
+    {
+        GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
+        if (targetObject == null || string.IsNullOrEmpty(targetObject.tag))
+        {
+            DisplayTextOnScreenClientRpc("");
+            return;
+        }
+
+        switch (targetObject.tag)
+        {
+            case "Player":
+                DisplayTextOnScreenClientRpc(targetObject.GetComponent<PlayerData>().Nickname.Value);
+                break;
+            case "Item":
+                DisplayTextOnScreenClientRpc(targetObject.GetComponent<ItemData>().itemProperties.Value.itemType.ToString());
+                break;
+            default:
+                DisplayTextOnScreenClientRpc("");
+                break;
+        };
+    }
+
+    //This function will detect what object is in front of you and interact with this object (it takes cameraXRotation which is in euler angles form) 
+    [Rpc(SendTo.Server)]
+    void InteractWithObjectServerRpc(float cameraXRotation)
+    {
+        GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
+        if (targetObject == null) { return; }
+        string targetObjectTag = targetObject.tag;
+        switch (targetObjectTag)
+        {
+            case "Item":
+                //Add object to inventory (and if it wasn't added do not despawn item)
+                bool didAddToInventory = transform.GetComponent<PlayerData>().AddItemToInventory(targetObject.GetComponent<ItemData>().itemProperties.Value);
+                ItemData itemData = targetObject.GetComponent<ItemData>();
+                if (didAddToInventory)
+                {
+                    //Instantiate item model which will be held in hand
+                    ChangeHeldItemClientRpc(itemData.itemProperties.Value.itemType);
+                    //And destroy original object
+                    targetObject.GetComponent<NetworkObject>().Despawn();
+                    Destroy(targetObject);
+                }
+                break;
+        }
+
+
+    }
+
     //tries to remove item in itemSlot index of Inventory and spawn Item with same properties as those dropped, returns null if nothing happenes
     [Rpc(SendTo.Server)]
     public void DropItemServerRpc(int itemSlot)
@@ -128,6 +160,9 @@ public class ObjectInteraction : NetworkBehaviour
         if (playerData.Inventory[0].itemType != ItemData.ItemType.Null)
         {
             ItemData.ItemProperties itemProperties = playerData.RemoveItemFromInventory(itemSlot);
+
+            //Remove held item
+            ChangeHeldItemClientRpc(ItemData.ItemType.Null);
 
             GameObject itemPrefab = itemPrefabsData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
             GameObject newItem = Instantiate(itemPrefab, transform.position + transform.forward, new Quaternion());

@@ -13,7 +13,7 @@ public class Animations : NetworkBehaviour
     {
         playerAnimator = GetComponent<Animator>();
         playerMovement = GetComponent<Movement>();
-        if (GameObject.Find("LocalPlayerModel")) localPlayerModelAnimator = GameObject.Find("LocalPlayerModel").GetComponent<Animator>();
+        if (playerMovement.LocalPlayerModel) localPlayerModelAnimator = playerMovement.LocalPlayerModel.GetComponent<Animator>();
         //Workaround for some weird problem (animation would start playing, but stop immediately if I didn't include these two lines) 
         playerAnimator.Rebind();
         playerAnimator.Update(0f);
