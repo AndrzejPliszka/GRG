@@ -139,7 +139,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1566467498
+  GlobalObjectIdHash: 3068023499
   InScenePlacedSourceGlobalObjectIdHash: 0
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -271,9 +271,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   testGameObject: {fileID: 6536572878300957431, guid: 9f2c4212b298233448b29e235083d392, type: 3}
-  itemPrefabsData: {fileID: 11400000, guid: 1366c90a8136cb948b0666a6271ef310, type: 2}
   rightHand: {fileID: 4022174330282023745}
   localRightHandPath: rig/metarig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R
+  itemPrefabsData: {fileID: 11400000, guid: 1366c90a8136cb948b0666a6271ef310, type: 2}
+  itemMaterialData: {fileID: 11400000, guid: b7ec39857340da74082c38c82f8a4628, type: 2}
 --- !u!136 &-5647826904980089932
 CapsuleCollider:
   m_ObjectHideFlags: 0

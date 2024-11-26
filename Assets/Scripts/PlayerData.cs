@@ -11,7 +11,7 @@ public class PlayerData : NetworkBehaviour
 
     public NetworkList<ItemData.ItemProperties> Inventory { get; private set; }
 
-    public NetworkVariable<int> CurrentItemSlot { get; private set; } = new(0);
+    public NetworkVariable<int> SelectedInventorySlot { get; private set; } = new(1);
 
     public void Awake()
     {
@@ -23,17 +23,19 @@ public class PlayerData : NetworkBehaviour
     {
         if (IsServer)
         {
+            //this line is temporary
+
+
             for (int i = 0; i < 3; i++) //we want to have 3 inventory slots in the beginning
             {
                 Inventory.Add(new ItemData.ItemProperties());
             }
-            Inventory[0] = new ItemData.ItemProperties { itemRarity=ItemData.ItemRarity.Wood, itemType = ItemData.ItemType.Sample};
+            AddItemToInventory(new ItemData.ItemProperties { itemTier=ItemData.ItemTier.Wood, itemType = ItemData.ItemType.Sample});
         }
         //Reset inventory on server
         if (!IsOwner) { return; }
         ChangeNicknameServerRpc(GameObject.Find("Canvas").GetComponent<Menu>().Nickname);
     }
-
     //[WARNING !] This is unsafe, because it makes that nickname is de facto Owner controlled and can be changed any time by client by calling this method
     //It is that way, because otherwise nickname would need to be send to server on player join and server would need to assign it only one time and I don't really know how to do this and this will be assigned by client anyways, so I don't care
     [Rpc(SendTo.Server)]
@@ -47,21 +49,46 @@ public class PlayerData : NetworkBehaviour
     {
         if (!IsServer) throw new Exception("Trying to add item to inventory as a client");
         //TO DO: MAKE ADDING TO INVENTORY LOGIC
-        Inventory[0] = itemData;
-        return true;
+        if (Inventory[SelectedInventorySlot.Value].itemType == ItemData.ItemType.Null)
+        {
+            Inventory[SelectedInventorySlot.Value] = itemData;
+            return true;
+        }
+        else {
+            for (int i = 0; i < Inventory.Count; i++) {
+                if (Inventory[i].itemType == ItemData.ItemType.Null)
+                {
+                    Inventory[i] = itemData;
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     //Removes item in specified inventory slot and returnes it (so it can be spawned as an gameObject)
-    public ItemData.ItemProperties RemoveItemFromInventory(int inventorySlot)
+    public ItemData.ItemProperties RemoveItemFromInventory()
     {
         if (!IsServer) throw new Exception("Trying to remove item from inventory as a client");
-        if (Inventory[inventorySlot].itemType != ItemData.ItemType.Null)
+        if (Inventory[SelectedInventorySlot.Value].itemType != ItemData.ItemType.Null)
         {
-            ItemData.ItemProperties item = Inventory[inventorySlot];
-            Inventory[inventorySlot] = new ItemData.ItemProperties { itemType = ItemData.ItemType.Null }; //deleting item from inventory
+            ItemData.ItemProperties item = Inventory[SelectedInventorySlot.Value];
+            Inventory[SelectedInventorySlot.Value] = new ItemData.ItemProperties { itemType = ItemData.ItemType.Null }; //deleting item from inventory
             return item; //returnng item so it can be spawned on scene as gameObject
         }
         else
             throw new Exception("Trying to remove item from item slot, where there is no item [remember Inventory indexing starts at 0]");
+    }
+
+    [Rpc(SendTo.Server)]
+    public void ChangeSelectedInventorySlotServerRpc(int targetSlot)
+    {
+        if (!IsServer) throw new Exception("Trying to change target slot as a client");
+        //Validation
+        if(targetSlot >  Inventory.Count - 1)
+            targetSlot = Inventory.Count - 1;
+        else if(targetSlot < 0) targetSlot = 0;
+
+        SelectedInventorySlot.Value = targetSlot;
     }
 }

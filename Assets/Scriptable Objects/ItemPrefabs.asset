@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   items:
   - itemType: 1
-    droppedItemPrefab: {fileID: 6536572878300957431, guid: 9f2c4212b298233448b29e235083d392, type: 3}
+    droppedItemPrefab: {fileID: 2585112410317210390, guid: 98febdb4bf19cf74d8ba9341ecea230a, type: 3}
     holdedItemPrefab: {fileID: 6536572878300957431, guid: 56e5e30c49dc70f44974a78adc7058d3, type: 3}

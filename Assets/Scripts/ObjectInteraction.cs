@@ -16,9 +16,6 @@ public class ObjectInteraction : NetworkBehaviour
     PlayerData playerData;
     public GameObject testGameObject; //[TRANSFER OBJECT SPAWNING ON SERVER START TO GAME MANAGER!!!] !!!!
 
-    //References to scriptable objects
-    [SerializeField]
-    ItemPrefabs itemPrefabsData;
     //Held items will be moved according to movement of this object
     [SerializeField]
     Transform rightHand;
@@ -26,9 +23,19 @@ public class ObjectInteraction : NetworkBehaviour
     [SerializeField]
     string localRightHandPath = "hand.R";
 
-    void Start()
+    //References to scriptable objects
+    [SerializeField]
+    ItemPrefabs itemPrefabsData;
+    [SerializeField]
+    ItemMaterials itemMaterialData;
+
+
+    private void Awake()
     {
         playerData = GetComponent<PlayerData>();
+    }
+    void Start()
+    {
         cameraOffset = gameObject.GetComponent<Movement>().CameraOffset;
         //[TRANSFER OBJECT SPAWNING ON SERVER START TO GAME MANAGER!!!] !!!!
         if (IsServer && IsOwner)
@@ -36,6 +43,12 @@ public class ObjectInteraction : NetworkBehaviour
             GameObject testObject = Instantiate(testGameObject, new Vector3(0, 5, 0), new Quaternion());
             testObject.GetComponent<NetworkObject>().Spawn();
         }
+        if (IsOwner)
+        {
+            //subscribe DisplayInventoryClientRpc, so it is called every time Inventory changes
+            playerData.Inventory.OnListChanged += DisplayInventory;
+        }
+        
     }
 
     void Update()
@@ -46,7 +59,21 @@ public class ObjectInteraction : NetworkBehaviour
         if (Input.GetKeyDown(KeyCode.E)) //E is interaction key (for now only for picking up items)
             InteractWithObjectServerRpc(cameraXRotation);
         if (Input.GetKeyDown(KeyCode.Q)) //Q is dropping items key
-            DropItemServerRpc(0);
+            DropItemServerRpc();
+        if (Input.GetKeyDown(KeyCode.Alpha1)) {
+            playerData.ChangeSelectedInventorySlotServerRpc(0);
+            ChangeHeldItemClientRpc(playerData.Inventory[0]);
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            playerData.ChangeSelectedInventorySlotServerRpc(1);
+            ChangeHeldItemClientRpc(playerData.Inventory[1]);
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha3))
+        {
+            playerData.ChangeSelectedInventorySlotServerRpc(2);
+            ChangeHeldItemClientRpc(playerData.Inventory[2]);
+        }
     }
 
     //This function casts a ray in front of camera and returns gameObject which got hit by it
@@ -69,38 +96,46 @@ public class ObjectInteraction : NetworkBehaviour
             return null;
     }
 
+    //MOVE TWO METHODS BELOW TO DIFFERENT SCRIPT DEDICATED TO PLAYER INTERFACE !!!!!!!!!!!!!
     [Rpc(SendTo.Owner)]
     public void DisplayTextOnScreenClientRpc(FixedString32Bytes stringToDisplay)
     {
         GameObject.Find("CenterText").GetComponent<TMP_Text>().text = stringToDisplay.ToString();
     }
 
+    public void DisplayInventory(NetworkListEvent<ItemData.ItemProperties> e)
+    {
+        GameObject.Find("InventoryText").GetComponent<TMP_Text>().text = "";
+        for (int i = 0; i < playerData.Inventory.Count; i++) {
+            GameObject.Find("InventoryText").GetComponent<TMP_Text>().text += playerData.Inventory[i].itemType.ToString() + " " + playerData.Inventory[i].itemTier.ToString() + "\n";
+        }
+    }
+    //MOVE TWO METHODS ABOVE TO DIFFERENT SCRIPT DEDICATED TO PLAYER INTERFACE !!!!!!!!!!!!!
+
+
+
     //This function changes model that is held in hand
     [Rpc(SendTo.ClientsAndHost)]
-    public void ChangeHeldItemClientRpc(ItemData.ItemType itemTypeToHold)
+    public void ChangeHeldItemClientRpc(ItemData.ItemProperties itemToHold)
     {
         Transform parentObject;
         //If it is owner, we want to modify localPlayerModel, instead of Player (because localPlayerModel is what owner sees)
         if (IsOwner)
-        {
             parentObject = transform.GetComponent<Movement>().LocalPlayerModel.transform.Find(localRightHandPath);
-        }
         else
-        {
             parentObject = rightHand;
-        }
             
         //Remove held item if it existed
         if (parentObject.Find("HeldItem"))
             Destroy(parentObject.Find("HeldItem").gameObject);
         //Do not spawn anything when there is no item
-        if (itemTypeToHold == ItemData.ItemType.Null)
+        if (itemToHold.itemType == ItemData.ItemType.Null)
             return;
         //Spawn object in hand
-        GameObject heldItem = Instantiate(itemPrefabsData.GetDataOfItemType(itemTypeToHold).holdedItemPrefab, parentObject);
+        GameObject heldItem = Instantiate(itemPrefabsData.GetDataOfItemType(itemToHold.itemType).holdedItemPrefab, parentObject);
+        ItemData.RetextureItem(heldItem, itemToHold.itemTier, itemMaterialData);
         heldItem.name = "HeldItem"; 
     }
-
     //This function will update text which tells player what is he looking at. It needs X Camera Rotation from client ( in "Vector3 form")
     [Rpc(SendTo.Server)]
     void UpdateLookedAtObjectTextServerRpc(float cameraXRotation)
@@ -142,7 +177,7 @@ public class ObjectInteraction : NetworkBehaviour
                 if (didAddToInventory)
                 {
                     //Instantiate item model which will be held in hand
-                    ChangeHeldItemClientRpc(itemData.itemProperties.Value.itemType);
+                    ChangeHeldItemClientRpc(itemData.itemProperties.Value);
                     //And destroy original object
                     targetObject.GetComponent<NetworkObject>().Despawn();
                     Destroy(targetObject);
@@ -153,16 +188,16 @@ public class ObjectInteraction : NetworkBehaviour
 
     }
 
-    //tries to remove item in itemSlot index of Inventory and spawn Item with same properties as those dropped, returns null if nothing happenes
+    //tries to remove currently holded item in Inventory and spawn Item with same properties as those dropped
     [Rpc(SendTo.Server)]
-    public void DropItemServerRpc(int itemSlot)
+    public void DropItemServerRpc()
     {
-        if (playerData.Inventory[0].itemType != ItemData.ItemType.Null)
+        if (playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType != ItemData.ItemType.Null)
         {
-            ItemData.ItemProperties itemProperties = playerData.RemoveItemFromInventory(itemSlot);
+            ItemData.ItemProperties itemProperties = playerData.RemoveItemFromInventory();
 
             //Remove held item
-            ChangeHeldItemClientRpc(ItemData.ItemType.Null);
+            ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
 
             GameObject itemPrefab = itemPrefabsData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
             GameObject newItem = Instantiate(itemPrefab, transform.position + transform.forward, new Quaternion());
