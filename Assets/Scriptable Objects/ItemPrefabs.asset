@@ -14,5 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   items:
   - itemType: 1
-    droppedItemPrefab: {fileID: 2585112410317210390, guid: 98febdb4bf19cf74d8ba9341ecea230a, type: 3}
-    holdedItemPrefab: {fileID: 6536572878300957431, guid: 56e5e30c49dc70f44974a78adc7058d3, type: 3}
+    droppedItemPrefab: {fileID: 1621911239377777344, guid: 9f7a6cee7b6dced40a036b0daade8c5e, type: 3}
+    holdedItemPrefab: {fileID: 1621911239377777344, guid: bef8d226d42b7a549b13569857fa9e7f, type: 3}
+  - itemType: 2
+    droppedItemPrefab: {fileID: 6379032543920588007, guid: 77dd004a4c4b4b84fa2547a673645d19, type: 3}
+    holdedItemPrefab: {fileID: 6379032543920588007, guid: 9ac0422a80b62f84cbde74b21e6e06c6, type: 3}
+  - itemType: 3
+    droppedItemPrefab: {fileID: 3476134845051206931, guid: 48b021a454c4bad4abafcdea782df940, type: 3}
+    holdedItemPrefab: {fileID: 3476134845051206931, guid: bb122ca79dc1d9c4384c3836a8ae97ef, type: 3}

@@ -14,7 +14,6 @@ public class ObjectInteraction : NetworkBehaviour
 {
     Vector3 cameraOffset;
     PlayerData playerData;
-    public GameObject testGameObject; //[TRANSFER OBJECT SPAWNING ON SERVER START TO GAME MANAGER!!!] !!!!
 
     //Held items will be moved according to movement of this object
     [SerializeField]
@@ -33,22 +32,12 @@ public class ObjectInteraction : NetworkBehaviour
     private void Awake()
     {
         playerData = GetComponent<PlayerData>();
+        //subscribe DisplayInventoryClientRpc, so it is called every time Inventory changes
+        playerData.Inventory.OnListChanged += DisplayInventory;
     }
     void Start()
     {
-        cameraOffset = gameObject.GetComponent<Movement>().CameraOffset;
-        //[TRANSFER OBJECT SPAWNING ON SERVER START TO GAME MANAGER!!!] !!!!
-        if (IsServer && IsOwner)
-        {
-            GameObject testObject = Instantiate(testGameObject, new Vector3(0, 5, 0), new Quaternion());
-            testObject.GetComponent<NetworkObject>().Spawn();
-        }
-        if (IsOwner)
-        {
-            //subscribe DisplayInventoryClientRpc, so it is called every time Inventory changes
-            playerData.Inventory.OnListChanged += DisplayInventory;
-        }
-        
+        cameraOffset = gameObject.GetComponent<Movement>().CameraOffset;        
     }
 
     void Update()
@@ -100,11 +89,13 @@ public class ObjectInteraction : NetworkBehaviour
     [Rpc(SendTo.Owner)]
     public void DisplayTextOnScreenClientRpc(FixedString32Bytes stringToDisplay)
     {
+        if (!IsOwner) return;
         GameObject.Find("CenterText").GetComponent<TMP_Text>().text = stringToDisplay.ToString();
     }
 
     public void DisplayInventory(NetworkListEvent<ItemData.ItemProperties> e)
     {
+        if(!IsOwner) return;
         GameObject.Find("InventoryText").GetComponent<TMP_Text>().text = "";
         for (int i = 0; i < playerData.Inventory.Count; i++) {
             GameObject.Find("InventoryText").GetComponent<TMP_Text>().text += playerData.Inventory[i].itemType.ToString() + " " + playerData.Inventory[i].itemTier.ToString() + "\n";
@@ -132,6 +123,7 @@ public class ObjectInteraction : NetworkBehaviour
         if (itemToHold.itemType == ItemData.ItemType.Null)
             return;
         //Spawn object in hand
+        Debug.Log(parentObject);
         GameObject heldItem = Instantiate(itemPrefabsData.GetDataOfItemType(itemToHold.itemType).holdedItemPrefab, parentObject);
         ItemData.RetextureItem(heldItem, itemToHold.itemTier, itemMaterialData);
         heldItem.name = "HeldItem"; 
@@ -176,8 +168,8 @@ public class ObjectInteraction : NetworkBehaviour
                 ItemData itemData = targetObject.GetComponent<ItemData>();
                 if (didAddToInventory)
                 {
-                    //Instantiate item model which will be held in hand
-                    ChangeHeldItemClientRpc(itemData.itemProperties.Value);
+                    //Instantiate item model which will be held in hand (it is needed for cases when player doesn't hold anything and picks up item)
+                    ChangeHeldItemClientRpc(playerData.Inventory[playerData.SelectedInventorySlot.Value]);
                     //And destroy original object
                     targetObject.GetComponent<NetworkObject>().Despawn();
                     Destroy(targetObject);

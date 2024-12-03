@@ -11,7 +11,9 @@ public class PlayerData : NetworkBehaviour
 
     public NetworkList<ItemData.ItemProperties> Inventory { get; private set; }
 
-    public NetworkVariable<int> SelectedInventorySlot { get; private set; } = new(1);
+    public NetworkVariable<int> SelectedInventorySlot { get; private set; } = new(0);
+
+    public NetworkVariable<int> Hunger { get; private set; } = new(100);
 
     public void Awake()
     {
@@ -30,7 +32,9 @@ public class PlayerData : NetworkBehaviour
             {
                 Inventory.Add(new ItemData.ItemProperties());
             }
-            AddItemToInventory(new ItemData.ItemProperties { itemTier=ItemData.ItemTier.Wood, itemType = ItemData.ItemType.Sample});
+            AddItemToInventory(new ItemData.ItemProperties { itemTier=ItemData.ItemTier.Wood, itemType = ItemData.ItemType.Sword});
+            AddItemToInventory(new ItemData.ItemProperties { itemTier = ItemData.ItemTier.Wood, itemType = ItemData.ItemType.Axe });
+            AddItemToInventory(new ItemData.ItemProperties { itemTier = ItemData.ItemTier.Wood, itemType = ItemData.ItemType.Medkit });
         }
         //Reset inventory on server
         if (!IsOwner) { return; }

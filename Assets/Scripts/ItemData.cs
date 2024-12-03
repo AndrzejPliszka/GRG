@@ -12,7 +12,9 @@ public class ItemData : NetworkBehaviour
     public enum ItemType
     {
         Null, //this type is used to denote no item in inventory (I use this instead of list with varying size, because with this I can store items dynamically in different item slots)
-        Sample
+        Sword,
+        Axe,
+        Medkit
     }
 
     public enum ItemTier
@@ -53,15 +55,6 @@ public class ItemData : NetworkBehaviour
     }
     private void Start()
     {
-        if (IsServer)
-        {
-            //Assign sample data (this will be normally assigned by item spawning script)
-            itemProperties.Value = new ItemProperties
-            {
-                itemType = ItemType.Sample,
-                itemTier = ItemTier.Wood,
-            };
-        }
         RetextureItem(transform.gameObject, itemProperties.Value.itemTier, itemMaterials);
     }
 
