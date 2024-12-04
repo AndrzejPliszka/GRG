@@ -25,6 +25,7 @@ public class PlayerData : NetworkBehaviour
     {
         if (IsServer)
         {
+            //move to game manager or player manager??
             StartCoroutine(ReduceHunger());
 
 
@@ -61,7 +62,6 @@ public class PlayerData : NetworkBehaviour
     public bool AddItemToInventory(ItemData.ItemProperties itemData)
     {
         if (!IsServer) throw new Exception("Trying to add item to inventory as a client");
-        //TO DO: MAKE ADDING TO INVENTORY LOGIC
         if (Inventory[SelectedInventorySlot.Value].itemType == ItemData.ItemType.Null)
         {
             Inventory[SelectedInventorySlot.Value] = itemData;
@@ -93,10 +93,10 @@ public class PlayerData : NetworkBehaviour
             throw new Exception("Trying to remove item from item slot, where there is no item [remember Inventory indexing starts at 0]");
     }
 
+    //This method is needed because we cannot directly change selectedInventorySlots in other script
     [Rpc(SendTo.Server)]
     public void ChangeSelectedInventorySlotServerRpc(int targetSlot)
     {
-        if (!IsServer) throw new Exception("Trying to change target slot as a client");
         //Validation
         if(targetSlot >  Inventory.Count - 1)
             targetSlot = Inventory.Count - 1;

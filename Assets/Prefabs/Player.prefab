@@ -90,6 +90,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ccc32afbec3e558419c47ae31cf9a5aa, type: 3}
       insertIndex: -1
       addedObject: {fileID: -5647826904980089932}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ccc32afbec3e558419c47ae31cf9a5aa, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1479745517137566766}
   m_SourcePrefab: {fileID: 100100000, guid: ccc32afbec3e558419c47ae31cf9a5aa, type: 3}
 --- !u!4 &4022174330282023745 stripped
 Transform:
@@ -139,7 +142,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 3068023499
+  GlobalObjectIdHash: 1566467498
   InScenePlacedSourceGlobalObjectIdHash: 0
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -270,7 +273,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2f1828377457ba440a0b704a71c3485b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  testGameObject: {fileID: 6536572878300957431, guid: 9f2c4212b298233448b29e235083d392, type: 3}
   rightHand: {fileID: 4022174330282023745}
   localRightHandPath: rig/metarig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R
   itemPrefabsData: {fileID: 11400000, guid: 1366c90a8136cb948b0666a6271ef310, type: 2}
@@ -298,3 +300,15 @@ CapsuleCollider:
   m_Height: 1.8
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1479745517137566766
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4635584588995661503}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e39b2d515b794c14aabc24968bc2d056, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

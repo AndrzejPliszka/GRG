@@ -32,8 +32,6 @@ public class ObjectInteraction : NetworkBehaviour
     {
         playerData = GetComponent<PlayerData>();
         //subscribe DisplayInventoryClientRpc, so it is called every time Inventory changes
-        playerData.Inventory.OnListChanged += DisplayInventory;
-        playerData.Hunger.OnValueChanged += ModifyHungerBar;
     }
     void Start()
     {
@@ -44,7 +42,6 @@ public class ObjectInteraction : NetworkBehaviour
     {
         if (!IsOwner) {  return; }
         float cameraXRotation = GameObject.Find("Camera").transform.rotation.eulerAngles.x;
-        UpdateLookedAtObjectTextServerRpc(cameraXRotation); //This can be on update function, because it only displays data and doesn't change it in any way.
         if (Input.GetKeyDown(KeyCode.E)) //E is interaction key (for now only for picking up items)
             InteractWithObjectServerRpc(cameraXRotation);
         if (Input.GetKeyDown(KeyCode.Q)) //Q is dropping items key
@@ -67,7 +64,7 @@ public class ObjectInteraction : NetworkBehaviour
 
     //This function casts a ray in front of camera and returns gameObject which got hit by it
     //based on rotation and position of transform.player, cameraOffset (which is variable in this class) and parameter cameraXRotation (which is in degrees in "Vector3 form")
-    GameObject GetObjectInFrontOfCamera(float cameraXRotation)
+    public GameObject GetObjectInFrontOfCamera(float cameraXRotation)
     {
         if (!IsServer) throw new Exception("Don't call GetObjectInFrontOfCamera on client!"); //We do not trust client, remember?
 
@@ -84,32 +81,6 @@ public class ObjectInteraction : NetworkBehaviour
         else
             return null;
     }
-
-    //MOVE THREE METHODS BELOW TO DIFFERENT SCRIPT DEDICATED TO PLAYER INTERFACE !!!!!!!!!!!!!
-    [Rpc(SendTo.Owner)]
-    public void DisplayTextOnScreenClientRpc(FixedString32Bytes stringToDisplay)
-    {
-        if (!IsOwner) return;
-        GameObject.Find("CenterText").GetComponent<TMP_Text>().text = stringToDisplay.ToString();
-    }
-
-    public void DisplayInventory(NetworkListEvent<ItemData.ItemProperties> e)
-    {
-        if(!IsOwner) return;
-        GameObject.Find("InventoryText").GetComponent<TMP_Text>().text = "";
-        for (int i = 0; i < playerData.Inventory.Count; i++) {
-            GameObject.Find("InventoryText").GetComponent<TMP_Text>().text += playerData.Inventory[i].itemType.ToString() + " " + playerData.Inventory[i].itemTier.ToString() + "\n";
-        }
-    }
-
-    public void ModifyHungerBar(int oldHungerValue, int newHungerValue)
-    {
-        if (!IsOwner) return;
-        GameObject.Find("HungerBar").GetComponent<Slider>().value = newHungerValue;
-
-    }
-    //MOVE THREE METHODS ABOVE TO DIFFERENT SCRIPT DEDICATED TO PLAYER INTERFACE !!!!!!!!!!!!!
-
 
 
     //This function changes model that is held in hand
@@ -130,34 +101,9 @@ public class ObjectInteraction : NetworkBehaviour
         if (itemToHold.itemType == ItemData.ItemType.Null)
             return;
         //Spawn object in hand
-        Debug.Log(parentObject);
         GameObject heldItem = Instantiate(itemPrefabsData.GetDataOfItemType(itemToHold.itemType).holdedItemPrefab, parentObject);
         ItemData.RetextureItem(heldItem, itemToHold.itemTier, itemMaterialData);
         heldItem.name = "HeldItem"; 
-    }
-    //This function will update text which tells player what is he looking at. It needs X Camera Rotation from client ( in "Vector3 form")
-    [Rpc(SendTo.Server)]
-    void UpdateLookedAtObjectTextServerRpc(float cameraXRotation)
-    {
-        GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
-        if (targetObject == null || string.IsNullOrEmpty(targetObject.tag))
-        {
-            DisplayTextOnScreenClientRpc("");
-            return;
-        }
-
-        switch (targetObject.tag)
-        {
-            case "Player":
-                DisplayTextOnScreenClientRpc(targetObject.GetComponent<PlayerData>().Nickname.Value);
-                break;
-            case "Item":
-                DisplayTextOnScreenClientRpc(targetObject.GetComponent<ItemData>().itemProperties.Value.itemType.ToString());
-                break;
-            default:
-                DisplayTextOnScreenClientRpc("");
-                break;
-        };
     }
 
     //This function will detect what object is in front of you and interact with this object (it takes cameraXRotation which is in euler angles form) 
