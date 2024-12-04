@@ -25,7 +25,7 @@ public class PlayerData : NetworkBehaviour
     {
         if (IsServer)
         {
-            //this line is temporary
+            StartCoroutine(ReduceHunger());
 
 
             for (int i = 0; i < 3; i++) //we want to have 3 inventory slots in the beginning
@@ -39,6 +39,15 @@ public class PlayerData : NetworkBehaviour
         //Reset inventory on server
         if (!IsOwner) { return; }
         ChangeNicknameServerRpc(GameObject.Find("Canvas").GetComponent<Menu>().Nickname);
+    }
+
+    private IEnumerator ReduceHunger()
+    {
+        while (Hunger.Value > -10)
+        {
+            Hunger.Value--;
+            yield return new WaitForSeconds(10f);
+        }
     }
     //[WARNING !] This is unsafe, because it makes that nickname is de facto Owner controlled and can be changed any time by client by calling this method
     //It is that way, because otherwise nickname would need to be send to server on player join and server would need to assign it only one time and I don't really know how to do this and this will be assigned by client anyways, so I don't care

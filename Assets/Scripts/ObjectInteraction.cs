@@ -6,7 +6,6 @@ using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.UIElements;
 using UnityEngine.XR;
 [RequireComponent(typeof(Movement))]
 [RequireComponent(typeof(PlayerData))]
@@ -34,6 +33,7 @@ public class ObjectInteraction : NetworkBehaviour
         playerData = GetComponent<PlayerData>();
         //subscribe DisplayInventoryClientRpc, so it is called every time Inventory changes
         playerData.Inventory.OnListChanged += DisplayInventory;
+        playerData.Hunger.OnValueChanged += ModifyHungerBar;
     }
     void Start()
     {
@@ -85,7 +85,7 @@ public class ObjectInteraction : NetworkBehaviour
             return null;
     }
 
-    //MOVE TWO METHODS BELOW TO DIFFERENT SCRIPT DEDICATED TO PLAYER INTERFACE !!!!!!!!!!!!!
+    //MOVE THREE METHODS BELOW TO DIFFERENT SCRIPT DEDICATED TO PLAYER INTERFACE !!!!!!!!!!!!!
     [Rpc(SendTo.Owner)]
     public void DisplayTextOnScreenClientRpc(FixedString32Bytes stringToDisplay)
     {
@@ -101,7 +101,14 @@ public class ObjectInteraction : NetworkBehaviour
             GameObject.Find("InventoryText").GetComponent<TMP_Text>().text += playerData.Inventory[i].itemType.ToString() + " " + playerData.Inventory[i].itemTier.ToString() + "\n";
         }
     }
-    //MOVE TWO METHODS ABOVE TO DIFFERENT SCRIPT DEDICATED TO PLAYER INTERFACE !!!!!!!!!!!!!
+
+    public void ModifyHungerBar(int oldHungerValue, int newHungerValue)
+    {
+        if (!IsOwner) return;
+        GameObject.Find("HungerBar").GetComponent<Slider>().value = newHungerValue;
+
+    }
+    //MOVE THREE METHODS ABOVE TO DIFFERENT SCRIPT DEDICATED TO PLAYER INTERFACE !!!!!!!!!!!!!
 
 
 
