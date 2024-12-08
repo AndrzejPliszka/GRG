@@ -135,7 +135,7 @@ public class ObjectInteraction : NetworkBehaviour
         {
             case ItemData.ItemType.Medkit:
                 playerData.ChangeHealth(30);
-                playerData.RemoveItemFromInventory();
+                playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
                 ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
                 break;
         }
@@ -149,7 +149,7 @@ public class ObjectInteraction : NetworkBehaviour
     {
         if (playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType != ItemData.ItemType.Null)
         {
-            ItemData.ItemProperties itemProperties = playerData.RemoveItemFromInventory();
+            ItemData.ItemProperties itemProperties = playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
 
             //Remove held item
             ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });

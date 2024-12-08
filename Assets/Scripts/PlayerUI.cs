@@ -12,7 +12,7 @@ public class PlayerUI : NetworkBehaviour
 {
     ObjectInteraction objectInteraction;
     // Start is called before the first frame update
-    void Start()
+    public override void OnNetworkSpawn()
     {
         objectInteraction = GetComponent<ObjectInteraction>();
         PlayerData playerData = GetComponent<PlayerData>();
@@ -32,6 +32,7 @@ public class PlayerUI : NetworkBehaviour
     [Rpc(SendTo.Server)]
     void UpdateLookedAtObjectTextServerRpc(float cameraXRotation)
     {
+        Debug.Log("To sie robi na serwerze" + gameObject.GetComponent<PlayerData>().Inventory[0].itemType.ToString());
         GameObject targetObject = objectInteraction.GetObjectInFrontOfCamera(cameraXRotation);
         if (targetObject == null || string.IsNullOrEmpty(targetObject.tag))
         {
@@ -39,14 +40,32 @@ public class PlayerUI : NetworkBehaviour
             return;
         }
 
-        GameObject.Find("CenterText").GetComponent<TMP_Text>().text = targetObject.tag switch
+         switch (targetObject.tag)
         {
-            "Player" => targetObject.GetComponent<PlayerData>().Nickname.Value.ToString(),
-            "Item" => targetObject.GetComponent<ItemData>().itemProperties.Value.itemType.ToString(),
-            _ => "",
+            case "Player":
+                UpdateLookedAtPlayerTextOwnerRpc(targetObject.GetComponent<PlayerData>().Nickname.Value);
+                break;
+            case "Item":
+                UpdateLookedAtItemTextOwnerRpc(targetObject.GetComponent<ItemData>().itemProperties.Value);
+                break;
+            default:
+                ResetLookedAtTextOwnerRpc();
+                break;
         };
         ;
     }
+    //These short functions exists because they need to be sent to the owner as RPC and thus cannot be in ServerRpc above
+    [Rpc(SendTo.Owner)]
+    void UpdateLookedAtPlayerTextOwnerRpc(FixedString32Bytes nickname) {
+        GameObject.Find("CenterText").GetComponent<TMP_Text>().text = nickname.ToString(); }
+
+    [Rpc(SendTo.Owner)]
+    void UpdateLookedAtItemTextOwnerRpc(ItemData.ItemProperties itemProperties) {
+        GameObject.Find("CenterText").GetComponent<TMP_Text>().text = itemProperties.itemType.ToString(); }
+
+    [Rpc(SendTo.Owner)]
+    void ResetLookedAtTextOwnerRpc() {
+        GameObject.Find("CenterText").GetComponent<TMP_Text>().text = ""; }
 
     public void DisplayInventory(NetworkListEvent<ItemData.ItemProperties> e)
     {

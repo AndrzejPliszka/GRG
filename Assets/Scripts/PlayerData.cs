@@ -76,13 +76,13 @@ public class PlayerData : NetworkBehaviour
 
     //Removes item in current inventory slot and returnes it (so it can be spawned as an gameObject)
     //[REFACTOR THIS FUNCTION TO HAVE PROPERTY FROM WHICH SLOT TO REMOVE ITEM!!!]
-    public ItemData.ItemProperties RemoveItemFromInventory()
+    public ItemData.ItemProperties RemoveItemFromInventory(int targetSlot)
     {
         if (!IsServer) throw new Exception("Trying to remove item from inventory as a client");
-        if (Inventory[SelectedInventorySlot.Value].itemType != ItemData.ItemType.Null)
+        if (Inventory[targetSlot].itemType != ItemData.ItemType.Null)
         {
-            ItemData.ItemProperties item = Inventory[SelectedInventorySlot.Value];
-            Inventory[SelectedInventorySlot.Value] = new ItemData.ItemProperties { itemType = ItemData.ItemType.Null }; //deleting item from inventory
+            ItemData.ItemProperties item = Inventory[targetSlot];
+            Inventory[targetSlot] = new ItemData.ItemProperties { itemType = ItemData.ItemType.Null }; //deleting item from inventory
             return item; //returnng item so it can be spawned on scene as gameObject
         }
         else
