@@ -113,12 +113,13 @@ public class ObjectInteraction : NetworkBehaviour
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
         if (targetObject == null) { return; }
         string targetObjectTag = targetObject.tag;
+        //first see if is looking at interactive object
         switch (targetObjectTag)
         {
             case "Item":
                 //Add object to inventory (and if it wasn't added do not despawn item)
-                bool didAddToInventory = transform.GetComponent<PlayerData>().AddItemToInventory(targetObject.GetComponent<ItemData>().itemProperties.Value);
                 ItemData itemData = targetObject.GetComponent<ItemData>();
+                bool didAddToInventory = transform.GetComponent<PlayerData>().AddItemToInventory(itemData.itemProperties.Value);
                 if (didAddToInventory)
                 {
                     //Instantiate item model which will be held in hand (it is needed for cases when player doesn't hold anything and picks up item)
@@ -127,6 +128,15 @@ public class ObjectInteraction : NetworkBehaviour
                     targetObject.GetComponent<NetworkObject>().Despawn();
                     Destroy(targetObject);
                 }
+                return;
+        }
+        //if is not looking at interactive object, check if has interactible item in hand
+        switch (playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType)
+        {
+            case ItemData.ItemType.Medkit:
+                playerData.ChangeHealth(30);
+                playerData.RemoveItemFromInventory();
+                ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
                 break;
         }
 

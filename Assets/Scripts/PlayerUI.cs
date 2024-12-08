@@ -18,6 +18,7 @@ public class PlayerUI : NetworkBehaviour
         PlayerData playerData = GetComponent<PlayerData>();
         playerData.Inventory.OnListChanged += DisplayInventory;
         playerData.Hunger.OnValueChanged += ModifyHungerBar;
+        playerData.Health.OnValueChanged += ModifyHealthBar;
     }
 
 
@@ -59,7 +60,13 @@ public class PlayerUI : NetworkBehaviour
     {
         if (!IsOwner) return;
         GameObject.Find("HungerBar").GetComponent<Slider>().value = newHungerValue;
-
+        GameObject.Find("HungerBarText").GetComponent<TMP_Text>().text = newHungerValue.ToString();
     }
 
+    public void ModifyHealthBar(int oldHealthValue, int newHealthValue)
+    {
+        if (!IsOwner) return;
+        GameObject.Find("HealthBar").GetComponent<Slider>().value = newHealthValue;
+        GameObject.Find("HealthBarText").GetComponent<TMP_Text>().text = newHealthValue.ToString();
+    }
 }

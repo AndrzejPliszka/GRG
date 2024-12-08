@@ -15,6 +15,8 @@ public class PlayerData : NetworkBehaviour
 
     public NetworkVariable<int> Hunger { get; private set; } = new(100);
 
+    public NetworkVariable<int> Health { get; private set; } = new(100);
+
     public void Awake()
     {
         //we need to do this before connection (so before Start()/OnNetworkSpawn()), but not on declaration, because there will be memory leak
@@ -28,6 +30,7 @@ public class PlayerData : NetworkBehaviour
             //move to game manager or player manager??
             StartCoroutine(ReduceHunger());
 
+            ChangeHealth(-50);
 
             for (int i = 0; i < 3; i++) //we want to have 3 inventory slots in the beginning
             {
@@ -42,14 +45,6 @@ public class PlayerData : NetworkBehaviour
         ChangeNicknameServerRpc(GameObject.Find("Canvas").GetComponent<Menu>().Nickname);
     }
 
-    private IEnumerator ReduceHunger()
-    {
-        while (Hunger.Value > -10)
-        {
-            Hunger.Value--;
-            yield return new WaitForSeconds(10f);
-        }
-    }
     //[WARNING !] This is unsafe, because it makes that nickname is de facto Owner controlled and can be changed any time by client by calling this method
     //It is that way, because otherwise nickname would need to be send to server on player join and server would need to assign it only one time and I don't really know how to do this and this will be assigned by client anyways, so I don't care
     [Rpc(SendTo.Server)]
@@ -79,7 +74,8 @@ public class PlayerData : NetworkBehaviour
         return false;
     }
 
-    //Removes item in specified inventory slot and returnes it (so it can be spawned as an gameObject)
+    //Removes item in current inventory slot and returnes it (so it can be spawned as an gameObject)
+    //[REFACTOR THIS FUNCTION TO HAVE PROPERTY FROM WHICH SLOT TO REMOVE ITEM!!!]
     public ItemData.ItemProperties RemoveItemFromInventory()
     {
         if (!IsServer) throw new Exception("Trying to remove item from inventory as a client");
@@ -103,5 +99,28 @@ public class PlayerData : NetworkBehaviour
         else if(targetSlot < 0) targetSlot = 0;
 
         SelectedInventorySlot.Value = targetSlot;
+    }
+
+
+    //Because this code returns IEnuerator it is executed asynchronously, which makes sense, because hunger only decreases every couple seconds
+    private IEnumerator ReduceHunger()
+    {
+        if (!IsServer) { throw new Exception("Trying to modify hunger on client!"); };
+        while (Hunger.Value > 0)
+        {
+            Hunger.Value--;
+            yield return new WaitForSeconds(10f); //amount of time program waits before continuing
+        }
+    }
+
+    //This function is setter for Health. If called on client it gives error, so it is perfectly safe!
+    public void ChangeHealth(int amountToIncrease)
+    {
+        if (!IsServer) { throw new Exception("Trying to modify health on client!"); };
+        Health.Value += amountToIncrease;
+        if (Health.Value < 0)
+            Health.Value = 0;
+        else if (Health.Value > 100)
+            Health.Value = 100;
     }
 }
