@@ -16,9 +16,15 @@ MonoBehaviour:
   - itemType: 1
     droppedItemPrefab: {fileID: 1621911239377777344, guid: 9f7a6cee7b6dced40a036b0daade8c5e, type: 3}
     holdedItemPrefab: {fileID: 1621911239377777344, guid: bef8d226d42b7a549b13569857fa9e7f, type: 3}
+    staticItemSprite: {fileID: 21300000, guid: cf3affc2478ae2146a001fb1ee2a26e5, type: 3}
+    coloredItemSprite: {fileID: 21300000, guid: 5a93e5fc8f4328a49aed6d9f5c9326ce, type: 3}
   - itemType: 2
     droppedItemPrefab: {fileID: 6379032543920588007, guid: 77dd004a4c4b4b84fa2547a673645d19, type: 3}
     holdedItemPrefab: {fileID: 6379032543920588007, guid: 9ac0422a80b62f84cbde74b21e6e06c6, type: 3}
+    staticItemSprite: {fileID: 21300000, guid: edcb1b2d0d49fe84eb70a685290e3872, type: 3}
+    coloredItemSprite: {fileID: 21300000, guid: 826f3925035971e42b375b7e27c4b89b, type: 3}
   - itemType: 3
     droppedItemPrefab: {fileID: 3476134845051206931, guid: 48b021a454c4bad4abafcdea782df940, type: 3}
     holdedItemPrefab: {fileID: 3476134845051206931, guid: bb122ca79dc1d9c4384c3836a8ae97ef, type: 3}
+    staticItemSprite: {fileID: 21300000, guid: 3dc8765526d7ef248a8fdb42d40d4180, type: 3}
+    coloredItemSprite: {fileID: 21300000, guid: 95bb6d6b1d1de4144b55446ead214fb6, type: 3}

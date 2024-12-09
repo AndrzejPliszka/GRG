@@ -142,7 +142,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1566467498
+  GlobalObjectIdHash: 3068023499
   InScenePlacedSourceGlobalObjectIdHash: 0
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -312,3 +312,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e39b2d515b794c14aabc24968bc2d056, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  unusedInventorySlot: {fileID: 21300000, guid: 849e6b76ff9e28445bb397eca0bb58a6, type: 3}
+  usedInventorySlot: {fileID: 21300000, guid: 5a623d959f72348418f6ad7c25b80586, type: 3}
+  itemPrefabs: {fileID: 11400000, guid: 1366c90a8136cb948b0666a6271ef310, type: 2}
+  itemMaterials: {fileID: 11400000, guid: b7ec39857340da74082c38c82f8a4628, type: 2}

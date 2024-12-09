@@ -12,15 +12,20 @@ public class PlayerUI : NetworkBehaviour
 {
     ObjectInteraction objectInteraction;
     // Start is called before the first frame update
+    [SerializeField] Sprite unusedInventorySlot;
+    [SerializeField] Sprite usedInventorySlot;
+
+    [SerializeField] ItemPrefabs itemPrefabs; //[TO DO: Change name to be actually descriptive]
+    [SerializeField] ItemMaterials itemMaterials;
     public override void OnNetworkSpawn()
     {
         objectInteraction = GetComponent<ObjectInteraction>();
         PlayerData playerData = GetComponent<PlayerData>();
+        playerData.SelectedInventorySlot.OnValueChanged += ChangeInventorySlot;
         playerData.Inventory.OnListChanged += DisplayInventory;
         playerData.Hunger.OnValueChanged += ModifyHungerBar;
         playerData.Health.OnValueChanged += ModifyHealthBar;
     }
-
 
     private void Update()
     {
@@ -32,7 +37,6 @@ public class PlayerUI : NetworkBehaviour
     [Rpc(SendTo.Server)]
     void UpdateLookedAtObjectTextServerRpc(float cameraXRotation)
     {
-        Debug.Log("To sie robi na serwerze" + gameObject.GetComponent<PlayerData>().Inventory[0].itemType.ToString());
         GameObject targetObject = objectInteraction.GetObjectInFrontOfCamera(cameraXRotation);
         if (targetObject == null || string.IsNullOrEmpty(targetObject.tag))
         {
@@ -71,8 +75,29 @@ public class PlayerUI : NetworkBehaviour
     {
         if (!IsOwner) return;
         //Inventory slots are numbered 1, 2, 3, but Inventory is 0-indexed, e.Value is changed element, e.Index is it's index
-        GameObject.Find($"InventorySlot{e.Index+1}").GetComponent<TMP_Text>().text = e.Value.itemType.ToString() + " " + e.Value.itemTier.ToString();
-        
+        GameObject inventorySlot = GameObject.Find($"InventorySlot{e.Index + 1}");
+        Image staticItemImage = inventorySlot.transform.Find("StaticItemImage").GetComponent<Image>();
+        Image coloredItemImage = inventorySlot.transform.Find("ColoredItemImage").GetComponent<Image>();
+        if (e.Value.itemType != ItemData.ItemType.Null)
+        {
+            staticItemImage.enabled = true;
+            staticItemImage.sprite = itemPrefabs.GetDataOfItemType(e.Value.itemType).staticItemSprite;
+
+            coloredItemImage.enabled = true;
+            coloredItemImage.sprite = itemPrefabs.GetDataOfItemType(e.Value.itemType).coloredItemSprite;
+            coloredItemImage.color = itemMaterials.GetDataOfItemTier(e.Value.itemTier).UIColor;
+        }
+        else
+        {
+            staticItemImage.enabled = false;
+            coloredItemImage.enabled = false;
+        }
+    }
+    public void ChangeInventorySlot(int oldInventorySlot, int newInventorySlot) {
+        if(!IsOwner) return;
+        //Inventory slots on scene are named 1, 2, 3 etc, but in code they are 0 indexed!
+        GameObject.Find($"InventorySlot{oldInventorySlot + 1}").GetComponent<Image>().sprite = unusedInventorySlot;
+        GameObject.Find($"InventorySlot{newInventorySlot + 1}").GetComponent<Image>().sprite = usedInventorySlot;
     }
 
     public void ModifyHungerBar(int oldHungerValue, int newHungerValue)

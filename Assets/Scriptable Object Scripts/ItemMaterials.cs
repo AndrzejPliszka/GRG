@@ -8,6 +8,7 @@ public class MaterialEntry
 {
     public ItemTier itemTier;
     public Material itemMaterial;
+    public Color UIColor;
 }
 
 [CreateAssetMenu(fileName = "ItemMaterials", menuName = "ScriptableObjects/ItemMaterials", order = 1)]
