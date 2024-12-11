@@ -195,6 +195,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 5
+  runningModifier: 2
   sensitivity: 5
   reconciliationThreshold: 0
   <CameraOffset>k__BackingField: {x: 0, y: 0.9, z: 0.2}

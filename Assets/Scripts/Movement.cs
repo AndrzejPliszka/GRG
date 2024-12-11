@@ -6,6 +6,7 @@ using UnityEngine.EventSystems;
 public class Movement : NetworkBehaviour
 {
     [SerializeField] float speed = 5f;
+    [SerializeField] float runningModifier = 1.5f;
     [SerializeField] float sensitivity = 5f;
     [SerializeField] float reconciliationThreshold;
 
@@ -22,6 +23,7 @@ public class Movement : NetworkBehaviour
     [SerializeField] float jumpHeight = 2f;
     [SerializeField] bool renderOrginalModel = false; //Set true while debugging
     public bool IsGrounded {get; private set;} //getter-setter, because animator needs this to be public, but we want this readonly beyond this script
+    public bool IsRunning { get; private set; }
     [field: SerializeField] public GameObject LocalPlayerModel { get; private set; } // Client-side predicted player model
     CharacterController localCharacterController; //and his character_Controller
 
@@ -111,6 +113,18 @@ public class Movement : NetworkBehaviour
         {
             HandleGravityAndJumping(true); //may cause errors cos theoretically player mashing space can invoke more physics updates
         }
+
+        if (Input.GetKeyDown(KeyCode.LeftShift))
+        {
+            IsRunning = true;
+            SetIsRunningServerRpc(true);
+        }
+        else if (Input.GetKeyUp(KeyCode.LeftShift))
+        {
+            IsRunning = false;
+            SetIsRunningServerRpc(false);
+        }
+           
     }
 
     //Function moving local player and sending keyboard inputs to server
@@ -164,7 +178,9 @@ public class Movement : NetworkBehaviour
     {
         Vector3 clampedInput = new(Mathf.Clamp(inputVector.x, -1, 1), 0, Mathf.Clamp(inputVector.z, -1, 1)); //clamp because we don't trust client
         if (clampedInput.magnitude > 1) clampedInput = clampedInput.normalized;   //make walking diagonally not faster than walking normally
-        Vector3 moveVector = speed * Time.fixedDeltaTime * (clampedInput.x * rotationTransform.forward + clampedInput.z * rotationTransform.right);
+        Vector3 moveVector = speed* Time.fixedDeltaTime * (clampedInput.x * rotationTransform.forward + clampedInput.z * rotationTransform.right); ;
+        if (IsRunning)
+            moveVector *= runningModifier;
         return moveVector;
     }
 
@@ -213,6 +229,12 @@ public class Movement : NetworkBehaviour
         IsGrounded = characterController.isGrounded;
         finalMovementVector += moveVector; //finalMovementVector used for reconsiliation
     }
+
+    [Rpc(SendTo.Server)]
+    private void SetIsRunningServerRpc(bool setIsRunning)
+    {
+        IsRunning = setIsRunning;
+    }
     //This function calls ReconciliatePositionRpc on owner and resets finalMovementVector
     [Rpc(SendTo.Server)]
     private void ReconciliateServerRpc()
@@ -246,6 +268,6 @@ public class Movement : NetworkBehaviour
             LocalPlayerModel.transform.position = serverPosition;
             localCharacterController.enabled = true;
         }
-    }
+    }    
     
 }

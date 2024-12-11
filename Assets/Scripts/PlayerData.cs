@@ -17,6 +17,12 @@ public class PlayerData : NetworkBehaviour
 
     public NetworkVariable<int> Health { get; private set; } = new(100);
 
+    //Variables that hold things related to managing data above
+    bool DecreaseHungerFaster = false;
+
+
+    Coroutine reduceHungerCoroutine;
+
     public void Awake()
     {
         //we need to do this before connection (so before Start()/OnNetworkSpawn()), but not on declaration, because there will be memory leak
@@ -28,7 +34,7 @@ public class PlayerData : NetworkBehaviour
         if (IsServer)
         {
             //move to game manager or player manager??
-            StartCoroutine(ReduceHunger());
+            reduceHungerCoroutine = StartCoroutine(ReduceHunger());
 
             ChangeHealth(-50);
 
@@ -45,6 +51,17 @@ public class PlayerData : NetworkBehaviour
         ChangeNicknameServerRpc(GameObject.Find("Canvas").GetComponent<Menu>().Nickname);
     }
 
+    private void Update()
+    {
+        if (!IsServer) { return; }
+
+        //If running decrease hunger faster
+        if (gameObject.GetComponent<Movement>() && gameObject.GetComponent<Movement>().IsRunning) //Movement may not be attached to gameObject so remember to check
+            DecreaseHungerFaster = true;
+        else
+            DecreaseHungerFaster = false;
+            
+    }
     //[WARNING !] This is unsafe, because it makes that nickname is de facto Owner controlled and can be changed any time by client by calling this method
     //It is that way, because otherwise nickname would need to be send to server on player join and server would need to assign it only one time and I don't really know how to do this and this will be assigned by client anyways, so I don't care
     [Rpc(SendTo.Server)]
@@ -101,15 +118,26 @@ public class PlayerData : NetworkBehaviour
         SelectedInventorySlot.Value = targetSlot;
     }
 
-
     //Because this code returns IEnuerator it is executed asynchronously, which makes sense, because hunger only decreases every couple seconds
     private IEnumerator ReduceHunger()
     {
         if (!IsServer) { throw new Exception("Trying to modify hunger on client!"); };
+        int currentHungerTick = 0;
+        int TicksPerSecond = 30;
+        int TicksToDecreaseHunger = 300;
         while (Hunger.Value > 0)
         {
-            Hunger.Value--;
-            yield return new WaitForSeconds(10f); //amount of time program waits before continuing
+            Debug.Log(currentHungerTick);
+            currentHungerTick++;
+
+            if (DecreaseHungerFaster)
+                currentHungerTick += 2;
+
+            if (currentHungerTick >= TicksToDecreaseHunger) {
+                Hunger.Value--;
+                currentHungerTick = 0;
+            }
+            yield return new WaitForSeconds((float)1/TicksPerSecond); //amount of time program waits before continuing
         }
     }
 

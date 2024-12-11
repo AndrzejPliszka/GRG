@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using TMPro;
 using Unity.Collections;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR;
@@ -27,6 +28,10 @@ public class ObjectInteraction : NetworkBehaviour
     [SerializeField]
     ItemMaterials itemMaterialData;
 
+    //serverSideVariable
+    float attackingCooldown = 0;
+
+    public event Action OnPunch; //event used in Animations to play animation of punching
 
     private void Awake()
     {
@@ -44,8 +49,10 @@ public class ObjectInteraction : NetworkBehaviour
         float cameraXRotation = GameObject.Find("Camera").transform.rotation.eulerAngles.x;
         if (Input.GetKeyDown(KeyCode.E)) //E is interaction key (for now only for picking up items)
             InteractWithObjectServerRpc(cameraXRotation);
+
         if (Input.GetKeyDown(KeyCode.Q)) //Q is dropping items key
             DropItemServerRpc();
+
         if (Input.GetKeyDown(KeyCode.Alpha1)) {
             playerData.ChangeSelectedInventorySlotServerRpc(0);
             ChangeHeldItemClientRpc(playerData.Inventory[0]);
@@ -60,6 +67,9 @@ public class ObjectInteraction : NetworkBehaviour
             playerData.ChangeSelectedInventorySlotServerRpc(2);
             ChangeHeldItemClientRpc(playerData.Inventory[2]);
         }
+
+        if (Input.GetMouseButtonDown(0))
+            AttackObjectServerRpc(cameraXRotation);
     }
 
     //This function casts a ray in front of camera and returns gameObject which got hit by it
@@ -139,9 +149,30 @@ public class ObjectInteraction : NetworkBehaviour
                 ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
                 break;
         }
-
-
     }
+
+    //Function that does of all things that happen when you press left mouse button
+    [Rpc(SendTo.Server)]
+    void AttackObjectServerRpc(float cameraXRotation)
+    {
+        GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
+        if (targetObject == null) { return; }
+        string targetObjectTag = targetObject.tag;
+        //first see if is looking at interactive object
+        switch (targetObjectTag)
+        {
+            case "Player":
+                if(attackingCooldown <= 0)
+                {
+                    targetObject.GetComponent<PlayerData>().ChangeHealth(-20);
+                    attackingCooldown = 5f;
+                    StartCoroutine(DeacreaseCooldown());
+                    InvokeOnPunchEventOwnerRpc();
+                }
+                break;
+        }
+    }
+
 
     //tries to remove currently holded item in Inventory and spawn Item with same properties as those dropped
     [Rpc(SendTo.Server)]
@@ -161,6 +192,23 @@ public class ObjectInteraction : NetworkBehaviour
         }
         else {
             return;
+        }
+    }
+
+    //This function only exists, because I need to call OnPunch on owner, and only want to do this when server detects punch and no cooldown
+    [Rpc(SendTo.Owner)]
+    void InvokeOnPunchEventOwnerRpc()
+    {
+        OnPunch.Invoke();
+    }
+
+    IEnumerator DeacreaseCooldown()
+    {
+        if (!IsServer) throw new Exception("attackingCooldown is only server side variable! Do not call this method on client!!!!");
+        while (attackingCooldown >= 0)
+        {
+            attackingCooldown -= 0.1f;
+            yield return new WaitForSeconds(0.1f);
         }
     }
 }
