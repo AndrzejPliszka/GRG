@@ -6,6 +6,7 @@ using Unity.Collections;
 using UnityEngine.UI;
 using Unity.Netcode;
 using UnityEngine;
+using System;
 [RequireComponent(typeof(PlayerData))]
 [RequireComponent(typeof(ObjectInteraction))] //this is because we will use function that says what are we looking at
 public class PlayerUI : NetworkBehaviour
@@ -25,6 +26,10 @@ public class PlayerUI : NetworkBehaviour
         playerData.Inventory.OnListChanged += DisplayInventory;
         playerData.Hunger.OnValueChanged += ModifyHungerBar;
         playerData.Health.OnValueChanged += ModifyHealthBar;
+
+        objectInteraction.OnHittingSomething += DisplayHitmarkOwnerRpc;
+        objectInteraction.OnPunch += DisplayCooldownCircleOwnerRpc;
+
     }
 
     private void Update()
@@ -70,6 +75,61 @@ public class PlayerUI : NetworkBehaviour
     [Rpc(SendTo.Owner)]
     void ResetLookedAtTextOwnerRpc() {
         GameObject.Find("CenterText").GetComponent<TMP_Text>().text = ""; }
+
+
+    [Rpc(SendTo.Owner)]
+    void DisplayHitmarkOwnerRpc()
+    {
+        Image image = GameObject.Find("Hitmark").GetComponent<Image>();
+        image.color = new Color(255, 255, 255, 1);
+        image.enabled = true;
+        StartCoroutine(DecreaseVisibilityOfHitmark());
+    }
+
+    [Rpc(SendTo.Owner)]
+    void DisplayCooldownCircleOwnerRpc()
+    {
+        Image image = GameObject.Find("CooldownMarker").GetComponent<Image>();
+        image.enabled = true;
+        StartCoroutine(ChangeCooldownCircle(objectInteraction.AttackingCooldown));
+    }
+
+    IEnumerator ChangeCooldownCircle(float maximumCooldownValue)
+    {
+        Image cooldownImage = GameObject.Find("CooldownMarker").GetComponent<Image>();
+        while (cooldownImage.fillAmount != 0)
+        {
+            cooldownImage.fillAmount = objectInteraction.AttackingCooldown / maximumCooldownValue;
+            yield return new WaitForSeconds(0.01f);
+        }
+        cooldownImage.enabled = false;
+        cooldownImage.fillAmount = 1;
+    }
+    IEnumerator DecreaseVisibilityOfHitmark() {
+        Image image = GameObject.Find("Hitmark").GetComponent<Image>();
+        float fadeDuration = 0.5f; // Czas w sekundach, w którym obrazek stanie siê niewidoczny
+        float timeDifferenceBetweenFades = 0.05f;
+        float fadeTime = 0f;
+        while (image.enabled == true)
+        {
+            // Oblicz zmniejszenie przezroczystoœci na podstawie czasu
+            fadeTime += timeDifferenceBetweenFades;
+            float alpha = Mathf.Clamp01(1 - fadeTime / fadeDuration); // Od 1 do 0
+
+            // Zmieñ kolor obrazu, modyfikuj¹c wartoœæ alfa
+            Color newColor = image.color;
+            newColor.a = alpha;
+            image.color = newColor;
+
+            // Opcjonalnie: wy³¹cz obiekt, gdy stanie siê niewidoczny
+            if (alpha <= 0)
+            {
+                image.enabled = false; // Lub Destroy(gameObject), jeœli chcesz go usun¹æ
+                image.color = new Color(255, 255, 255, 1);
+            }
+            yield return new WaitForSeconds(timeDifferenceBetweenFades);
+        }
+    }
 
     public void DisplayInventory(NetworkListEvent<ItemData.ItemProperties> e)
     {

@@ -18,10 +18,8 @@ public class PlayerData : NetworkBehaviour
     public NetworkVariable<int> Health { get; private set; } = new(100);
 
     //Variables that hold things related to managing data above
-    bool DecreaseHungerFaster = false;
-
-
-    Coroutine reduceHungerCoroutine;
+    bool decreaseHungerFaster = false;
+    bool decreaseHealth = false;
 
     public void Awake()
     {
@@ -34,7 +32,8 @@ public class PlayerData : NetworkBehaviour
         if (IsServer)
         {
             //move to game manager or player manager??
-            reduceHungerCoroutine = StartCoroutine(ReduceHunger());
+            StartCoroutine(ReduceHunger());
+            StartCoroutine(ChangeHealthOverTime());
 
             ChangeHealth(-50);
 
@@ -57,9 +56,14 @@ public class PlayerData : NetworkBehaviour
 
         //If running decrease hunger faster
         if (gameObject.GetComponent<Movement>() && gameObject.GetComponent<Movement>().IsRunning) //Movement may not be attached to gameObject so remember to check
-            DecreaseHungerFaster = true;
+            decreaseHungerFaster = true;
         else
-            DecreaseHungerFaster = false;
+            decreaseHungerFaster = false;
+
+        if (Hunger.Value <= 0)
+            decreaseHealth = true;
+        else
+            decreaseHealth = false;
             
     }
     //[WARNING !] This is unsafe, because it makes that nickname is de facto Owner controlled and can be changed any time by client by calling this method
@@ -127,10 +131,9 @@ public class PlayerData : NetworkBehaviour
         int TicksToDecreaseHunger = 300;
         while (Hunger.Value > 0)
         {
-            Debug.Log(currentHungerTick);
             currentHungerTick++;
 
-            if (DecreaseHungerFaster)
+            if (decreaseHungerFaster)
                 currentHungerTick += 2;
 
             if (currentHungerTick >= TicksToDecreaseHunger) {
@@ -141,6 +144,42 @@ public class PlayerData : NetworkBehaviour
         }
     }
 
+    private IEnumerator ChangeHealthOverTime()
+    {
+        if (!IsServer) { throw new Exception("Trying to modify health on client!"); };
+        int currentHealthTick = 0;
+        int TicksPerSecond = 30;
+        int TicksToDecreaseHealth = 100;
+        while (true)
+        {
+            currentHealthTick++;
+            if (decreaseHealth)
+            {
+                currentHealthTick += 9;
+            }
+            if (currentHealthTick >= TicksToDecreaseHealth)
+            {
+                if (decreaseHealth)
+                {
+                    ChangeHealth(-1);
+                }
+                else
+                    ChangeHealth(1);
+                currentHealthTick = 0;
+            }
+            yield return new WaitForSeconds((float)1 / TicksPerSecond); //amount of time program waits before continuing
+        }
+    }
+
+    public void ChangeHunger(int amountToIncrease)
+    {
+        if (!IsServer) { throw new Exception("Trying to modify hunger on client!"); };
+        Hunger.Value += amountToIncrease;
+        if (Hunger.Value < 0)
+            Hunger.Value = 0;
+        else if (Hunger.Value > 100)
+            Hunger.Value = 100;
+    }
     //This function is setter for Health. If called on client it gives error, so it is perfectly safe!
     public void ChangeHealth(int amountToIncrease)
     {

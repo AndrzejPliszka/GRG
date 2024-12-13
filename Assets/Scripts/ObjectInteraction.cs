@@ -29,9 +29,10 @@ public class ObjectInteraction : NetworkBehaviour
     ItemMaterials itemMaterialData;
 
     //serverSideVariable
-    float attackingCooldown = 0;
+    public float AttackingCooldown { get; private set; }
 
     public event Action OnPunch; //event used in Animations to play animation of punching
+    public event Action OnHittingSomething; //event used in playerUI to display hitmark
 
     private void Awake()
     {
@@ -155,20 +156,23 @@ public class ObjectInteraction : NetworkBehaviour
     [Rpc(SendTo.Server)]
     void AttackObjectServerRpc(float cameraXRotation)
     {
+        if (AttackingCooldown > 0) { return; } //If cooldown not zero then ignore rest of code, because nothing will happen anyways
+
+        //make it possible to punch nothing and punish player for doing that
+        playerData.ChangeHunger(-2); //TO DO: CHECK IF HOLDING SOMETHING BEFORE DOING THIS!
+        AttackingCooldown = 1f;
+        StartCoroutine(DeacreaseCooldown());
+        InvokeOnPunchEventOwnerRpc();
+
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
         if (targetObject == null) { return; }
         string targetObjectTag = targetObject.tag;
-        //first see if is looking at interactive object
+
         switch (targetObjectTag)
         {
             case "Player":
-                if(attackingCooldown <= 0)
-                {
-                    targetObject.GetComponent<PlayerData>().ChangeHealth(-20);
-                    attackingCooldown = 5f;
-                    StartCoroutine(DeacreaseCooldown());
-                    InvokeOnPunchEventOwnerRpc();
-                }
+                targetObject.GetComponent<PlayerData>().ChangeHealth(-20);
+                OnHittingSomething.Invoke();
                 break;
         }
     }
@@ -205,10 +209,10 @@ public class ObjectInteraction : NetworkBehaviour
     IEnumerator DeacreaseCooldown()
     {
         if (!IsServer) throw new Exception("attackingCooldown is only server side variable! Do not call this method on client!!!!");
-        while (attackingCooldown >= 0)
+        while (AttackingCooldown >= 0)
         {
-            attackingCooldown -= 0.1f;
-            yield return new WaitForSeconds(0.1f);
+            AttackingCooldown -= 0.01f;
+            yield return new WaitForSeconds(0.01f);
         }
     }
 }
