@@ -28,10 +28,10 @@ public class ObjectInteraction : NetworkBehaviour
     [SerializeField]
     ItemMaterials itemMaterialData;
 
-    //serverSideVariable
+    //Network variable, because it is changed on server but client also needs to know this to display cooldown accordingly
     public float AttackingCooldown { get; private set; }
 
-    public event Action OnPunch; //event used in Animations to play animation of punching
+    public event Action<float> OnPunch; //event used in Animations to play animation of punching, float is cooldown, so it can be used to display cooldown slider
     public event Action OnHittingSomething; //event used in playerUI to display hitmark
 
     private void Awake()
@@ -161,8 +161,8 @@ public class ObjectInteraction : NetworkBehaviour
         //make it possible to punch nothing and punish player for doing that
         playerData.ChangeHunger(-2); //TO DO: CHECK IF HOLDING SOMETHING BEFORE DOING THIS!
         AttackingCooldown = 1f;
+        InvokeOnPunchEventOwnerRpc(AttackingCooldown);
         StartCoroutine(DeacreaseCooldown());
-        InvokeOnPunchEventOwnerRpc();
 
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
         if (targetObject == null) { return; }
@@ -201,9 +201,9 @@ public class ObjectInteraction : NetworkBehaviour
 
     //This function only exists, because I need to call OnPunch on owner, and only want to do this when server detects punch and no cooldown
     [Rpc(SendTo.Owner)]
-    void InvokeOnPunchEventOwnerRpc()
+    void InvokeOnPunchEventOwnerRpc(float maximumCooldownValue)
     {
-        OnPunch.Invoke();
+        OnPunch.Invoke(maximumCooldownValue); //cooldown float is 0, because it is invoked on owner, to play animations so it doesn't matter
     }
 
     IEnumerator DeacreaseCooldown()

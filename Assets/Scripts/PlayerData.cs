@@ -160,9 +160,7 @@ public class PlayerData : NetworkBehaviour
             if (currentHealthTick >= TicksToDecreaseHealth)
             {
                 if (decreaseHealth)
-                {
                     ChangeHealth(-1);
-                }
                 else
                     ChangeHealth(1);
                 currentHealthTick = 0;

@@ -87,44 +87,45 @@ public class PlayerUI : NetworkBehaviour
     }
 
     [Rpc(SendTo.Owner)]
-    void DisplayCooldownCircleOwnerRpc()
+    void DisplayCooldownCircleOwnerRpc(float maximumCooldownValue)
     {
         Image image = GameObject.Find("CooldownMarker").GetComponent<Image>();
         image.enabled = true;
-        StartCoroutine(ChangeCooldownCircle(objectInteraction.AttackingCooldown));
+        StartCoroutine(ChangeCooldownCircle(maximumCooldownValue));
     }
 
     IEnumerator ChangeCooldownCircle(float maximumCooldownValue)
     {
+        Debug.Log(maximumCooldownValue);
         Image cooldownImage = GameObject.Find("CooldownMarker").GetComponent<Image>();
+        float currentCooldownValue = maximumCooldownValue;
+        float updateTime = 0.01f;
+        Debug.Log("current sigm" + currentCooldownValue);
         while (cooldownImage.fillAmount != 0)
         {
-            cooldownImage.fillAmount = objectInteraction.AttackingCooldown / maximumCooldownValue;
-            yield return new WaitForSeconds(0.01f);
+            Debug.Log("potem : " + currentCooldownValue + "     " + cooldownImage.fillAmount);
+            currentCooldownValue -= updateTime;
+            yield return new WaitForSeconds(updateTime * 1.001f);
+            cooldownImage.fillAmount = currentCooldownValue / maximumCooldownValue;
         }
         cooldownImage.enabled = false;
         cooldownImage.fillAmount = 1;
     }
     IEnumerator DecreaseVisibilityOfHitmark() {
         Image image = GameObject.Find("Hitmark").GetComponent<Image>();
-        float fadeDuration = 0.5f; // Czas w sekundach, w którym obrazek stanie siê niewidoczny
+        float fadeDuration = 0.5f;
         float timeDifferenceBetweenFades = 0.05f;
         float fadeTime = 0f;
         while (image.enabled == true)
         {
-            // Oblicz zmniejszenie przezroczystoœci na podstawie czasu
             fadeTime += timeDifferenceBetweenFades;
-            float alpha = Mathf.Clamp01(1 - fadeTime / fadeDuration); // Od 1 do 0
-
-            // Zmieñ kolor obrazu, modyfikuj¹c wartoœæ alfa
+            float alpha = Mathf.Clamp01(1 - fadeTime / fadeDuration); 
             Color newColor = image.color;
             newColor.a = alpha;
             image.color = newColor;
-
-            // Opcjonalnie: wy³¹cz obiekt, gdy stanie siê niewidoczny
             if (alpha <= 0)
             {
-                image.enabled = false; // Lub Destroy(gameObject), jeœli chcesz go usun¹æ
+                image.enabled = false;
                 image.color = new Color(255, 255, 255, 1);
             }
             yield return new WaitForSeconds(timeDifferenceBetweenFades);

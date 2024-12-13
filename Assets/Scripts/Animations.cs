@@ -59,7 +59,7 @@ public class Animations : NetworkBehaviour
         playerAnimator.SetBool("isRunning", isRunning);
     }
 
-    void ManagePunchingAnimation()
+    void ManagePunchingAnimation(float cooldown) //cooldown is not used here yet, but it is used in PlayerUI
     {
         MakePunchingAnimationServerRpc();
         if (localPlayerModelAnimator)
