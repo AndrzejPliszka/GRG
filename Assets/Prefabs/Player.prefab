@@ -279,8 +279,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rightHand: {fileID: 4022174330282023745}
   localRightHandPath: rig/metarig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R
-  itemPrefabsData: {fileID: 11400000, guid: 1366c90a8136cb948b0666a6271ef310, type: 2}
-  itemMaterialData: {fileID: 11400000, guid: b7ec39857340da74082c38c82f8a4628, type: 2}
+  itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}
+  itemTierData: {fileID: 11400000, guid: e6c211ddcaf602045b55cbfd0c77ed64, type: 2}
 --- !u!136 &-5647826904980089932
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -318,8 +318,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   unusedInventorySlot: {fileID: 21300000, guid: 849e6b76ff9e28445bb397eca0bb58a6, type: 3}
   usedInventorySlot: {fileID: 21300000, guid: 5a623d959f72348418f6ad7c25b80586, type: 3}
-  itemPrefabs: {fileID: 11400000, guid: 1366c90a8136cb948b0666a6271ef310, type: 2}
-  itemMaterials: {fileID: 11400000, guid: b7ec39857340da74082c38c82f8a4628, type: 2}
+  itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}
+  itemTierData: {fileID: 11400000, guid: e6c211ddcaf602045b55cbfd0c77ed64, type: 2}
 --- !u!114 &4431121441564395761
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -333,4 +333,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Ragdoll: {fileID: 47492354796517529, guid: 3a08e0566eadc794da932e8fb77951ba, type: 3}
-  itemPrefabsData: {fileID: 11400000, guid: 1366c90a8136cb948b0666a6271ef310, type: 2}
+  itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}

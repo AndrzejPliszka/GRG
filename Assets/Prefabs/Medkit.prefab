@@ -121,7 +121,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7d2a5f3432e14947a64207cd42ea06d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  itemMaterials: {fileID: 11400000, guid: b7ec39857340da74082c38c82f8a4628, type: 2}
+  itemTierData: {fileID: 11400000, guid: e6c211ddcaf602045b55cbfd0c77ed64, type: 2}
   itemProperties:
     m_InternalValue:
       itemType: 0
@@ -183,7 +183,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!114 &7484768608143312066
 MonoBehaviour:
   m_ObjectHideFlags: 0

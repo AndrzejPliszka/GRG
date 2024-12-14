@@ -27,8 +27,9 @@ public class Death : NetworkBehaviour
         //drop items from inventory
         for (int i = 0; i < playerData.Inventory.Count; i++)
         {
-            if (playerData.Inventory[i].itemType == ItemData.ItemType.Null) { continue; }
             ItemData.ItemProperties itemProperties = playerData.RemoveItemFromInventory(i);
+
+            if (itemProperties.itemType == ItemData.ItemType.Null) { continue; } //if null do not spawn object, because there was no item in the first place
 
             //maybe encapsulate into function, currently same code is used in objectInteraction
             GameObject itemPrefab = itemTypeData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;

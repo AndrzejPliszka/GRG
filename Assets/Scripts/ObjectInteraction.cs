@@ -106,8 +106,12 @@ public class ObjectInteraction : NetworkBehaviour
             parentObject = rightHand;
             
         //Remove held item if it existed
-        if (parentObject.Find("HeldItem"))
-            Destroy(parentObject.Find("HeldItem").gameObject);
+        for(int i = 0; i < parentObject.childCount; i++) //this is because for whatever reason sometimes 2 weapons spawned and when using .Find only first was deleted
+        {
+            if(parentObject.GetChild(i).name == "HeldItem")
+                Destroy(parentObject.GetChild(i).gameObject);
+        }
+            
         //Do not spawn anything when there is no item
         if (itemToHold.itemType == ItemData.ItemType.Null)
             return;
@@ -182,21 +186,17 @@ public class ObjectInteraction : NetworkBehaviour
     [Rpc(SendTo.Server)]
     public void DropItemServerRpc()
     {
-        if (playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType != ItemData.ItemType.Null)
-        {
-            ItemData.ItemProperties itemProperties = playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
+        ItemData.ItemProperties itemProperties = playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
 
-            //Remove held item
-            ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
+        if(itemProperties.itemType == ItemData.ItemType.Null) { return; } //if it is null return, because there is no item there to spawn
 
-            GameObject itemPrefab = itemTypeData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
-            GameObject newItem = Instantiate(itemPrefab, transform.position + transform.forward, new Quaternion());
-            newItem.GetComponent<NetworkObject>().Spawn();
-            newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;
-        }
-        else {
-            return;
-        }
+        //Remove held item
+        ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
+
+        GameObject itemPrefab = itemTypeData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
+        GameObject newItem = Instantiate(itemPrefab, transform.position + transform.forward, new Quaternion());
+        newItem.GetComponent<NetworkObject>().Spawn();
+        newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;
     }
 
     //This function only exists, because I need to call OnPunch on owner, and only want to do this when server detects punch and no cooldown

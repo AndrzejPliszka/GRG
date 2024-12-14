@@ -12,7 +12,7 @@ public class Animations : NetworkBehaviour
     Animator localPlayerModelAnimator;
     Movement playerMovement;
     ObjectInteraction objectInteraction;
-    float punchingAnimationDuration = 0.6f;
+    const float punchingAnimationDuration = 0.6f;
 
     void Start()
     {

@@ -106,14 +106,11 @@ public class PlayerData : NetworkBehaviour
     public ItemData.ItemProperties RemoveItemFromInventory(int targetSlot)
     {
         if (!IsServer) throw new Exception("Trying to remove item from inventory as a client");
-        if (Inventory[targetSlot].itemType != ItemData.ItemType.Null)
-        {
-            ItemData.ItemProperties item = Inventory[targetSlot];
-            Inventory[targetSlot] = new ItemData.ItemProperties { itemType = ItemData.ItemType.Null }; //deleting item from inventory
-            return item; //returnng item so it can be spawned on scene as gameObject
-        }
-        else
-            throw new Exception("Trying to remove item from item slot, where there is no item [remember Inventory indexing starts at 0]");
+
+        ItemData.ItemProperties item = Inventory[targetSlot];
+        Inventory[targetSlot] = new ItemData.ItemProperties { itemType = ItemData.ItemType.Null }; //deleting item from inventory
+        return item; //returnng item so it can be spawned on scene as gameObject
+        
     }
 
     //This method is needed because we cannot directly change selectedInventorySlots in other script
