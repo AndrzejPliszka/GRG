@@ -15,8 +15,8 @@ public class ItemEntry
     public Sprite coloredItemSprite;
 }
 
-[CreateAssetMenu(fileName = "ItemPrefabs", menuName = "ScriptableObjects/ItemPrefabs", order = 1)]
-public class ItemPrefabs : ScriptableObject
+[CreateAssetMenu(fileName = "ItemTypeData", menuName = "ScriptableObjects/ItemTypeData", order = 1)]
+public class ItemTypeData : ScriptableObject
 {
     public List<ItemEntry> items = new();
 

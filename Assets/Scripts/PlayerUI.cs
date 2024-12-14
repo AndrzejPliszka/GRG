@@ -16,8 +16,8 @@ public class PlayerUI : NetworkBehaviour
     [SerializeField] Sprite unusedInventorySlot;
     [SerializeField] Sprite usedInventorySlot;
 
-    [SerializeField] ItemPrefabs itemPrefabs; //[TO DO: Change name to be actually descriptive]
-    [SerializeField] ItemMaterials itemMaterials;
+    [SerializeField] ItemTypeData itemTypeData;
+    [SerializeField] ItemTierData itemTierData;
     public override void OnNetworkSpawn()
     {
         objectInteraction = GetComponent<ObjectInteraction>();
@@ -96,14 +96,11 @@ public class PlayerUI : NetworkBehaviour
 
     IEnumerator ChangeCooldownCircle(float maximumCooldownValue)
     {
-        Debug.Log(maximumCooldownValue);
         Image cooldownImage = GameObject.Find("CooldownMarker").GetComponent<Image>();
         float currentCooldownValue = maximumCooldownValue;
         float updateTime = 0.01f;
-        Debug.Log("current sigm" + currentCooldownValue);
         while (cooldownImage.fillAmount != 0)
         {
-            Debug.Log("potem : " + currentCooldownValue + "     " + cooldownImage.fillAmount);
             currentCooldownValue -= updateTime;
             yield return new WaitForSeconds(updateTime * 1.001f);
             cooldownImage.fillAmount = currentCooldownValue / maximumCooldownValue;
@@ -142,11 +139,11 @@ public class PlayerUI : NetworkBehaviour
         if (e.Value.itemType != ItemData.ItemType.Null)
         {
             staticItemImage.enabled = true;
-            staticItemImage.sprite = itemPrefabs.GetDataOfItemType(e.Value.itemType).staticItemSprite;
+            staticItemImage.sprite = itemTypeData.GetDataOfItemType(e.Value.itemType).staticItemSprite;
 
             coloredItemImage.enabled = true;
-            coloredItemImage.sprite = itemPrefabs.GetDataOfItemType(e.Value.itemType).coloredItemSprite;
-            coloredItemImage.color = itemMaterials.GetDataOfItemTier(e.Value.itemTier).UIColor;
+            coloredItemImage.sprite = itemTypeData.GetDataOfItemType(e.Value.itemType).coloredItemSprite;
+            coloredItemImage.color = itemTierData.GetDataOfItemTier(e.Value.itemTier).UIColor;
         }
         else
         {

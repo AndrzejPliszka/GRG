@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 
 public class ItemData : NetworkBehaviour
 {
-    [SerializeField] ItemMaterials itemMaterials;
+    [SerializeField] ItemTierData itemTierData;
     public enum ItemType
     {
         Null, //this type is used to denote no item in inventory (I use this instead of list with varying size, because with this I can store items dynamically in different item slots)
@@ -26,7 +26,7 @@ public class ItemData : NetworkBehaviour
     public NetworkVariable<ItemProperties> itemProperties = new();
 
     //Static function that changes texture of given item to appropariate material (it is here, because I have no script to handle behaviour and putting it in player scripts would be odd, but it is *theoretically* changing data)
-    public static void RetextureItem(GameObject item, ItemTier itemTier, ItemMaterials itemMaterials)
+    public static void RetextureItem(GameObject item, ItemTier itemTier, ItemTierData itemMaterials)
     {
         foreach (Renderer itemPartRenderer in item.GetComponentsInChildren<Renderer>())
         {
@@ -55,7 +55,7 @@ public class ItemData : NetworkBehaviour
     }
     private void Start()
     {
-        RetextureItem(transform.gameObject, itemProperties.Value.itemTier, itemMaterials);
+        RetextureItem(transform.gameObject, itemProperties.Value.itemTier, itemTierData);
     }
 
 }

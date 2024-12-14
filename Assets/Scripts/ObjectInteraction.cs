@@ -24,9 +24,9 @@ public class ObjectInteraction : NetworkBehaviour
 
     //References to scriptable objects
     [SerializeField]
-    ItemPrefabs itemPrefabsData;
+    ItemTypeData itemTypeData;
     [SerializeField]
-    ItemMaterials itemMaterialData;
+    ItemTierData itemTierData;
 
     //Network variable, because it is changed on server but client also needs to know this to display cooldown accordingly
     public float AttackingCooldown { get; private set; }
@@ -112,8 +112,8 @@ public class ObjectInteraction : NetworkBehaviour
         if (itemToHold.itemType == ItemData.ItemType.Null)
             return;
         //Spawn object in hand
-        GameObject heldItem = Instantiate(itemPrefabsData.GetDataOfItemType(itemToHold.itemType).holdedItemPrefab, parentObject);
-        ItemData.RetextureItem(heldItem, itemToHold.itemTier, itemMaterialData);
+        GameObject heldItem = Instantiate(itemTypeData.GetDataOfItemType(itemToHold.itemType).holdedItemPrefab, parentObject);
+        ItemData.RetextureItem(heldItem, itemToHold.itemTier, itemTierData);
         heldItem.name = "HeldItem"; 
     }
 
@@ -189,7 +189,7 @@ public class ObjectInteraction : NetworkBehaviour
             //Remove held item
             ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
 
-            GameObject itemPrefab = itemPrefabsData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
+            GameObject itemPrefab = itemTypeData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
             GameObject newItem = Instantiate(itemPrefab, transform.position + transform.forward, new Quaternion());
             newItem.GetComponent<NetworkObject>().Spawn();
             newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;

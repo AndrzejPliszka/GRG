@@ -21,6 +21,9 @@ public class PlayerData : NetworkBehaviour
     bool decreaseHungerFaster = false;
     bool decreaseHealth = false;
 
+    //Event variables
+    public event Action OnDeath;
+
     public void Awake()
     {
         //we need to do this before connection (so before Start()/OnNetworkSpawn()), but not on declaration, because there will be memory leak
@@ -31,6 +34,7 @@ public class PlayerData : NetworkBehaviour
     {
         if (IsServer)
         {
+            Health.OnValueChanged += InvokeDeath;
             //move to game manager or player manager??
             StartCoroutine(ReduceHunger());
             StartCoroutine(ChangeHealthOverTime());
@@ -64,6 +68,8 @@ public class PlayerData : NetworkBehaviour
             decreaseHealth = true;
         else
             decreaseHealth = false;
+
+            
             
     }
     //[WARNING !] This is unsafe, because it makes that nickname is de facto Owner controlled and can be changed any time by client by calling this method
@@ -187,5 +193,11 @@ public class PlayerData : NetworkBehaviour
             Health.Value = 0;
         else if (Health.Value > 100)
             Health.Value = 100;
+    }
+
+    private void InvokeDeath(int oldValue, int newValue)
+    {
+        if(newValue == 0)
+            OnDeath.Invoke();
     }
 }

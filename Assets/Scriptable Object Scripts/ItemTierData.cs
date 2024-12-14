@@ -11,9 +11,9 @@ public class MaterialEntry
     public Color UIColor;
 }
 
-[CreateAssetMenu(fileName = "ItemMaterials", menuName = "ScriptableObjects/ItemMaterials", order = 1)]
+[CreateAssetMenu(fileName = "ItemTierData", menuName = "ScriptableObjects/ItemTierData", order = 1)]
 
-public class ItemMaterials : ScriptableObject
+public class ItemTierData : ScriptableObject
 {
     public List<MaterialEntry> items = new();
 

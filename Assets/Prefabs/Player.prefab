@@ -93,6 +93,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ccc32afbec3e558419c47ae31cf9a5aa, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1479745517137566766}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ccc32afbec3e558419c47ae31cf9a5aa, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4431121441564395761}
   m_SourcePrefab: {fileID: 100100000, guid: ccc32afbec3e558419c47ae31cf9a5aa, type: 3}
 --- !u!4 &4022174330282023745 stripped
 Transform:
@@ -317,3 +320,17 @@ MonoBehaviour:
   usedInventorySlot: {fileID: 21300000, guid: 5a623d959f72348418f6ad7c25b80586, type: 3}
   itemPrefabs: {fileID: 11400000, guid: 1366c90a8136cb948b0666a6271ef310, type: 2}
   itemMaterials: {fileID: 11400000, guid: b7ec39857340da74082c38c82f8a4628, type: 2}
+--- !u!114 &4431121441564395761
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4635584588995661503}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcb782558a28d8e4387592afafca031f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Ragdoll: {fileID: 47492354796517529, guid: 3a08e0566eadc794da932e8fb77951ba, type: 3}
+  itemPrefabsData: {fileID: 11400000, guid: 1366c90a8136cb948b0666a6271ef310, type: 2}
