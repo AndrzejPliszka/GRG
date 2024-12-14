@@ -15,4 +15,4 @@ MonoBehaviour:
   items:
   - itemTier: 0
     itemMaterial: {fileID: 2100000, guid: 8412eb0a7c3566d4ab4ef1aafeddd6ee, type: 2}
-    UIColor: {r: 0.6037736, g: 0.2153779, b: 0, a: 0}
+    UIColor: {r: 0.4056604, g: 0.20964108, b: 0, a: 1}

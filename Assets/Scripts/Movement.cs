@@ -80,7 +80,7 @@ public class Movement : NetworkBehaviour
             gameObject.GetComponent<CharacterController>().excludeLayers = LayerMask.GetMask("LocalObject");  //on host i cannot disable entire component cos it is referenced in ("client side") script
 
         //Position camera
-        playerCamera.transform.position = transform.position + CameraOffset;
+        playerCamera.transform.position = LocalPlayerModel.transform.position + CameraOffset;
         playerCamera.transform.parent = LocalPlayerModel.transform;
 
         menuManager.ResumeGame(); //lock cursor in place

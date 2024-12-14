@@ -86,7 +86,9 @@ public class ObjectInteraction : NetworkBehaviour
         Debug.DrawRay(cameraPosition, rayDirection * 100f, Color.red, 0.5f);
         LayerMask layersToDetect = ~LayerMask.GetMask("LocalObject"); // ~ negates bytes, which makes that layersToDetect is all masks except LocalObject (only relevant on host)
         if (Physics.Raycast(ray, out RaycastHit hit, 10, layersToDetect))
-        { 
+        {
+            if (hit.collider.gameObject == gameObject) //don't detect yourself [!!!!Temporary solution: doesn't let you pick up things under you]
+                return null;
             return hit.collider.gameObject;
         }
         else
