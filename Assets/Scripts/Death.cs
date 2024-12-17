@@ -10,16 +10,24 @@ public class Death : NetworkBehaviour
 {
     PlayerData playerData;
     Movement playerMovement;
+    Menu menuScript;
     [SerializeField] GameObject Ragdoll;
     [SerializeField] ItemTypeData itemTypeData;
     void Start()
     {
-        if(!IsServer) { return; }
+        menuScript = GameObject.Find("Canvas").GetComponent<Menu>();
         playerData = GetComponent<PlayerData>();
         playerMovement = GetComponent<Movement>();
-        playerData.OnDeath += Die;
+
+        NetworkManager.OnConnectionEvent += HandleDisconnectedPlayers; //Without this, game would froze when theres no connection with server
+
+
+        if (!IsServer) { return; }
+        playerData.OnDeath += () => { Destroy(gameObject); }; //Destroy this game object on death. OnNetworkDespawn automatically handles all dying logic when player is destroyed.
+
     }
 
+    //Spawns ragdoll, throws away all items in inventory and destroys player side local model
     void Die()
     {
         if (!IsServer) { throw new Exception("Client cannot decide to kill himself, only server can do that!"); };
@@ -38,7 +46,6 @@ public class Death : NetworkBehaviour
             newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;
 
         }
-        Destroy(gameObject);
 
         //instantainte ragdoll
         GameObject ragdoll = Instantiate(Ragdoll, transform.position, transform.rotation);
@@ -48,8 +55,24 @@ public class Death : NetworkBehaviour
     [Rpc(SendTo.Owner)]
     void DestroyLocalPlayerModelOwnerRpc()
     {
-        GameObject.Find("Canvas").GetComponent<Menu>().PauseGame();
+        menuScript.PauseGame();
         if(playerMovement)
             Destroy(playerMovement.LocalPlayerModel);
     }
+
+    //This function just calls QuitServer if player calling method is owner
+    void HandleDisconnectedPlayers(NetworkManager networkManager, ConnectionEventData connectionData)
+    {
+
+        if (connectionData.EventType == ConnectionEvent.ClientDisconnected && IsClient && connectionData.ClientId == NetworkManager.Singleton.LocalClientId)
+            menuScript.QuitServer();
+    }
+
+    //Always when deleting player with this script Die() function will be called!
+    public override void OnNetworkDespawn()
+    {
+        if (!IsServer) { return; }
+        Die();
+    }
+
 }

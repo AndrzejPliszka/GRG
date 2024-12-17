@@ -54,4 +54,5 @@ public class VoiceChat : NetworkBehaviour
         isInChannel = true;
         Debug.Log("Successfully Joined Vivox Channel");
     }
+
 }

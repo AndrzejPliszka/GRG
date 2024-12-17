@@ -89,7 +89,7 @@ public class Menu : NetworkBehaviour
         mainMenu.SetActive(false);
     }
 
-    async void QuitServer()
+    public async void QuitServer()
     {
         NetworkManager.Singleton.Shutdown();
         SceneManager.LoadScene(SceneManager.GetActiveScene().name); //change if different scene for menu
