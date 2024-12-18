@@ -51,7 +51,7 @@ public class ObjectInteraction : NetworkBehaviour
         if (Input.GetKeyDown(KeyCode.E)) //E is interaction key (for now only for picking up items)
             InteractWithObjectServerRpc(cameraXRotation);
 
-        if (Input.GetKeyDown(KeyCode.Q)) //Q is dropping items key
+        if (Input.GetKeyDown(KeyCode.T)) //T is dropping items key
             DropItemServerRpc();
 
         if (Input.GetKeyDown(KeyCode.Alpha1)) {

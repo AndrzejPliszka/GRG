@@ -1,17 +1,22 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using System.Threading.Tasks;
+using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Vivox;
-using Unity.Netcode;
-using System.Threading.Tasks;
-using UnityEngine.UI;
-using System;
+using UnityEngine;
 
 public class VoiceChat : NetworkBehaviour
 {
     bool isInChannel = false;
+    public bool IsMuted { get; private set; } = false;
+    private void Update()
+    {
+        if (Input.GetKeyUp(KeyCode.Q))
+            MutePlayer();
+        else if(Input.GetKeyDown(KeyCode.Q))
+            UnmutePlayer();
+    }
     async Task InitializeAsync()
     {
         await UnityServices.InitializeAsync();
@@ -20,16 +25,17 @@ public class VoiceChat : NetworkBehaviour
     }
     async Task LoginToVivoxAsync()
     {
-        LoginOptions options = new LoginOptions();
-        options.DisplayName = "Sigma";
-        options.EnableTTS = true;
+        LoginOptions options = new()
+        {
+            EnableTTS = true
+        };
         await VivoxService.Instance.LoginAsync(options);
     }
     async Task JoinPositionalChannelAsync()
     {
-        string channelToJoin = "Lobby";
-        Channel3DProperties channelProperties = new Channel3DProperties(30, 10, 1.0f, AudioFadeModel.InverseByDistance);
-        await VivoxService.Instance.JoinPositionalChannelAsync(channelToJoin, ChatCapability.TextAndAudio, null);
+        string channelToJoin = NetworkManager.Singleton.GetComponent<UnityTransport>().ConnectionData.ToString(); //setting this, so there are different voice chat channels for different servers
+        Channel3DProperties channelProperties = new(30, 10, 1.0f, AudioFadeModel.InverseByDistance);
+        await VivoxService.Instance.JoinPositionalChannelAsync(channelToJoin, ChatCapability.TextAndAudio, channelProperties);
     }
 
 
@@ -40,10 +46,12 @@ public class VoiceChat : NetworkBehaviour
         AuthenticationService.Instance.SignOut();
     }
 
-    public void UpdateVivoxPosition()
+    public void UpdateVivoxPosition(GameObject TalkingPlayer)
     {
         if (isInChannel)
-            VivoxService.Instance.Set3DPosition(gameObject, "Lobby");
+        {
+            VivoxService.Instance.Set3DPosition(TalkingPlayer, NetworkManager.Singleton.GetComponent<UnityTransport>().ConnectionData.ToString());
+        }
     }
 
     public async Task StartVivox()
@@ -52,7 +60,19 @@ public class VoiceChat : NetworkBehaviour
         await LoginToVivoxAsync();
         await JoinPositionalChannelAsync();
         isInChannel = true;
+        MutePlayer();
         Debug.Log("Successfully Joined Vivox Channel");
     }
 
+    public void MutePlayer()
+    {
+        IsMuted = true;
+        VivoxService.Instance.MuteInputDevice();
+    }
+
+    public void UnmutePlayer()
+    {
+        IsMuted = false;
+        VivoxService.Instance.UnmuteInputDevice();
+    }
 }

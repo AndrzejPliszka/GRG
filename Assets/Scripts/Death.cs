@@ -55,7 +55,9 @@ public class Death : NetworkBehaviour
     [Rpc(SendTo.Owner)]
     void DestroyLocalPlayerModelOwnerRpc()
     {
-        menuScript.PauseGame();
+        //I need to check if "Canvas" exists, because if host exit the game it doesn't but menuScript itself is not null
+        if(GameObject.Find("Canvas") && menuScript != null) //when you die you want to display menu that lets you respawn/exit the server
+            menuScript.PauseGame();
         if(playerMovement)
             Destroy(playerMovement.LocalPlayerModel);
     }
@@ -63,7 +65,6 @@ public class Death : NetworkBehaviour
     //This function just calls QuitServer if player calling method is owner
     void HandleDisconnectedPlayers(NetworkManager networkManager, ConnectionEventData connectionData)
     {
-
         if (connectionData.EventType == ConnectionEvent.ClientDisconnected && IsClient && connectionData.ClientId == NetworkManager.Singleton.LocalClientId)
             menuScript.QuitServer();
     }
@@ -72,7 +73,8 @@ public class Death : NetworkBehaviour
     public override void OnNetworkDespawn()
     {
         if (!IsServer) { return; }
-        Die();
+        if(!IsHost)
+            Die();
     }
 
 }

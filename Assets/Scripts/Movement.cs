@@ -93,7 +93,7 @@ public class Movement : NetworkBehaviour
         HandleMovement();
         HandleRotation();
         HandleGravityAndJumping(false);
-        if(voiceChat) voiceChat.UpdateVivoxPosition();
+        if(voiceChat) voiceChat.UpdateVivoxPosition(gameObject);
         ReconciliateServerRpc();
     }
 

@@ -12,6 +12,7 @@ using System;
 public class PlayerUI : NetworkBehaviour
 {
     ObjectInteraction objectInteraction;
+    VoiceChat voiceChat;
     // Start is called before the first frame update
     [SerializeField] Sprite unusedInventorySlot;
     [SerializeField] Sprite usedInventorySlot;
@@ -30,12 +31,17 @@ public class PlayerUI : NetworkBehaviour
         objectInteraction.OnHittingSomething += DisplayHitmarkOwnerRpc;
         objectInteraction.OnPunch += DisplayCooldownCircleOwnerRpc;
 
+        voiceChat = GameObject.Find("VoiceChatManager").GetComponent<VoiceChat>();
     }
 
     private void Update()
     {
         if (!IsOwner) {  return; }
         UpdateLookedAtObjectTextServerRpc(GameObject.Find("Camera").transform.rotation.eulerAngles.x);
+        if (voiceChat)
+            ModifyVoiceChatIcon(!voiceChat.IsMuted);
+
+
     }
 
     //This function will update text which tells player what is he looking at. It needs X Camera Rotation from client (in "Vector3 form") (server doesn't have camera - it is only on client)
@@ -134,6 +140,7 @@ public class PlayerUI : NetworkBehaviour
         if (!IsOwner) return;
         //Inventory slots are numbered 1, 2, 3, but Inventory is 0-indexed, e.Value is changed element, e.Index is it's index
         GameObject inventorySlot = GameObject.Find($"InventorySlot{e.Index + 1}");
+        if (inventorySlot == null) { return; }
         Image staticItemImage = inventorySlot.transform.Find("StaticItemImage").GetComponent<Image>();
         Image coloredItemImage = inventorySlot.transform.Find("ColoredItemImage").GetComponent<Image>();
         if (e.Value.itemType != ItemData.ItemType.Null)
@@ -170,5 +177,10 @@ public class PlayerUI : NetworkBehaviour
         if (!IsOwner) return;
         GameObject.Find("HealthBar").GetComponent<Slider>().value = newHealthValue;
         GameObject.Find("HealthBarText").GetComponent<TMP_Text>().text = newHealthValue.ToString();
+    }
+
+    public void ModifyVoiceChatIcon(bool shouldBeEnabled)
+    {
+        GameObject.Find("MicActivityIcon").GetComponent<Image>().enabled = shouldBeEnabled;
     }
 }
