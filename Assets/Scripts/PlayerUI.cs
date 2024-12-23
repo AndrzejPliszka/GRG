@@ -51,7 +51,7 @@ public class PlayerUI : NetworkBehaviour
         GameObject targetObject = objectInteraction.GetObjectInFrontOfCamera(cameraXRotation);
         if (targetObject == null || string.IsNullOrEmpty(targetObject.tag))
         {
-            GameObject.Find("CenterText").GetComponent<TMP_Text>().text = "";
+            ResetLookedAtTextOwnerRpc();
             return;
         }
 

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(PlayerData))]
 [RequireComponent(typeof(Movement))]
@@ -31,6 +32,8 @@ public class Death : NetworkBehaviour
     void Die()
     {
         if (!IsServer) { throw new Exception("Client cannot decide to kill himself, only server can do that!"); };
+        if (!SceneManager.GetActiveScene().isLoaded || NetworkManager == null || NetworkManager.ShutdownInProgress) //if server is closing do not do anything
+            return;
         DestroyLocalPlayerModelOwnerRpc();
         //drop items from inventory
         for (int i = 0; i < playerData.Inventory.Count; i++)
@@ -55,8 +58,8 @@ public class Death : NetworkBehaviour
     [Rpc(SendTo.Owner)]
     void DestroyLocalPlayerModelOwnerRpc()
     {
-        //I need to check if "Canvas" exists, because if host exit the game it doesn't but menuScript itself is not null
-        if(GameObject.Find("Canvas") && menuScript != null) //when you die you want to display menu that lets you respawn/exit the server
+        //when you die you want to display menu that lets you respawn/exit the server
+        if (menuScript != null)
             menuScript.PauseGame();
         if(playerMovement)
             Destroy(playerMovement.LocalPlayerModel);
@@ -72,9 +75,10 @@ public class Death : NetworkBehaviour
     //Always when deleting player with this script Die() function will be called!
     public override void OnNetworkDespawn()
     {
-        if (!IsServer) { return; }
-        if(!IsHost)
-            Die();
+        //without it on host there will be errors on him quiting server (also spawning corpses on server that is about to turn off is weird)
+        if (!IsServer || !SceneManager.GetActiveScene().isLoaded || NetworkManager == null || NetworkManager.ShutdownInProgress) 
+            return;
+        Die();
     }
 
 }
