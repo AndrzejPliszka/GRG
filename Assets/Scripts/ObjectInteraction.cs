@@ -70,7 +70,22 @@ public class ObjectInteraction : NetworkBehaviour
         }
 
         if (Input.GetMouseButtonDown(0))
-            AttackObjectServerRpc(cameraXRotation);
+        {
+            DebugFunctionServerRpc(2 * NetworkManager.Singleton.ServerTime.Time - NetworkManager.Singleton.LocalTime.Time);
+
+            if (IsHost) //Host cannot use same formula for time as client, because then he will have tick from future
+                AttackObjectServerRpc(cameraXRotation, NetworkManager.Singleton.ServerTime.TimeAsFloat - 0.1f);
+            else
+                //Time (which is param in this function) is just serverTime - ping but written differently
+                AttackObjectServerRpc(cameraXRotation, 2 * NetworkManager.Singleton.ServerTime.TimeAsFloat - NetworkManager.Singleton.LocalTime.TimeAsFloat);
+        }
+    }
+
+    //DELETE!!! THIS FUnCTION IS ONLY FOR DEBUG PURPOSES!
+    [Rpc(SendTo.Server)]
+    void DebugFunctionServerRpc(double currentTick)
+    {
+        Debug.Log("Past tick:                                                                  " + currentTick);
     }
 
     //This function casts a ray in front of camera and returns gameObject which got hit by it
@@ -160,7 +175,7 @@ public class ObjectInteraction : NetworkBehaviour
 
     //Function that does of all things that happen when you press left mouse button
     [Rpc(SendTo.Server)]
-    void AttackObjectServerRpc(float cameraXRotation)
+    void AttackObjectServerRpc(float cameraXRotation, float timeOfAttack)
     {
         if (AttackingCooldown > 0) { return; } //If cooldown not zero then ignore rest of code, because nothing will happen anyways
 
@@ -170,7 +185,8 @@ public class ObjectInteraction : NetworkBehaviour
         InvokeOnPunchEventOwnerRpc(AttackingCooldown);
         StartCoroutine(DeacreaseCooldown());
 
-        GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
+
+        GameObject targetObject = GetComponent<LagCompensation>().CheckIfPlayerHit(cameraXRotation, timeOfAttack);
         if (targetObject == null) { return; }
         string targetObjectTag = targetObject.tag;
 
