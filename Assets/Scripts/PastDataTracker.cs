@@ -23,7 +23,7 @@ public class PastDataTracker : NetworkBehaviour
     {
         if(!IsServer) return;
         AddRecordToTickDictionary();
-        Debug.Log("CurrentTick: " + NetworkManager.Singleton.ServerTime.Time);
+        //Debug.Log("CurrentTick: " + NetworkManager.Singleton.ServerTime.Time);
     }
 
     void AddRecordToTickDictionary()
@@ -33,7 +33,6 @@ public class PastDataTracker : NetworkBehaviour
         if (timeDictionary.ContainsKey(currentTime)) { return; }
 
         transform.GetPositionAndRotation(out Vector3 currentPosition, out Quaternion currentRotation);
-        Debug.Log(currentPosition);
         if(timeDictionary.Count >= 100) 
         {
             float oldestKey = timeDictionary.OrderBy(pair => pair.Key).First().Key;

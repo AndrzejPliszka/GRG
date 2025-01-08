@@ -71,13 +71,13 @@ public class ObjectInteraction : NetworkBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-            DebugFunctionServerRpc(2 * NetworkManager.Singleton.ServerTime.Time - NetworkManager.Singleton.LocalTime.Time);
+            //DebugFunctionServerRpc(2 * NetworkManager.Singleton.ServerTime.Time - NetworkManager.Singleton.LocalTime.Time);
 
             if (IsHost) //Host cannot use same formula for time as client, because then he will have tick from future
                 AttackObjectServerRpc(cameraXRotation, NetworkManager.Singleton.ServerTime.TimeAsFloat - 0.1f);
             else
                 //Time (which is param in this function) is just serverTime - ping but written differently
-                AttackObjectServerRpc(cameraXRotation, 2 * NetworkManager.Singleton.ServerTime.TimeAsFloat - NetworkManager.Singleton.LocalTime.TimeAsFloat);
+                AttackObjectServerRpc(cameraXRotation, NetworkManager.Singleton.ServerTime.TimeAsFloat - (NetworkManager.Singleton.LocalTime.TimeAsFloat - NetworkManager.Singleton.ServerTime.TimeAsFloat));
         }
     }
 
@@ -90,24 +90,50 @@ public class ObjectInteraction : NetworkBehaviour
 
     //This function casts a ray in front of camera and returns gameObject which got hit by it
     //based on rotation and position of transform.player, cameraOffset (which is variable in this class) and parameter cameraXRotation (which is in degrees in "Vector3 form")
-    public GameObject GetObjectInFrontOfCamera(float cameraXRotation)
+    public GameObject GetObjectInFrontOfCamera(float cameraXRotation, float timeWhenHit = 0)
     {
-        if (!IsServer) throw new Exception("Don't call GetObjectInFrontOfCamera on client!"); //We do not trust client, remember?
+        LagCompensation lagCompensation = null;
+        if (!IsServer && timeWhenHit != 0)
+        {
+            Debug.LogWarning("You specified server side property (timeWhenHit) on client!");
+            timeWhenHit = 0;
+        }
 
+        if (timeWhenHit != 0) //if this is 0, we don't care about accuracy, so we dont need to do lag compensation
+        { 
+            lagCompensation = gameObject.GetComponent<LagCompensation>();
+            lagCompensation.SimulatePlayersOnGivenTime(timeWhenHit);
+        }
+
+        Vector3 cameraOffset = GetComponent<Movement>().CameraOffset;
         Quaternion verticalRotation = Quaternion.Euler(cameraXRotation, transform.rotation.eulerAngles.y, 0);
         Vector3 rayDirection = verticalRotation * Vector3.forward; //Changing quaternion into vector3, because Ray takes Vector3
         Vector3 cameraPosition = transform.position + new Vector3(0, cameraOffset.y) + transform.rotation * new Vector3(0, 0, cameraOffset.z);
         Ray ray = new(cameraPosition, rayDirection);
         Debug.DrawRay(cameraPosition, rayDirection * 100f, Color.red, 0.5f);
-        LayerMask layersToDetect = ~LayerMask.GetMask("LocalObject"); // ~ negates bytes, which makes that layersToDetect is all masks except LocalObject (only relevant on host)
+        LayerMask layersToDetect;
+        if (timeWhenHit != 0)
+            layersToDetect = ~LayerMask.GetMask("UnsyncedObject"); //when timeWhenHit is specified, then it is on server so, do not check unsynced player side object
+        else
+            layersToDetect = ~LayerMask.GetMask(""); //else it is probably executed on client (and even if not if timeWhenHit is not specified we dont probably care so much about accuracy), so we can detect everything
+
         if (Physics.Raycast(ray, out RaycastHit hit, 10, layersToDetect))
         {
-            if (hit.collider.gameObject == gameObject) //don't detect yourself [!!!!Temporary solution: doesn't let you pick up things under you]
-                return null;
-            return hit.collider.gameObject;
+            //if it is simplified player, find "original" one with data and return it
+            if (hit.transform.CompareTag("SimplifiedPlayer") && NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(ulong.Parse(hit.transform.gameObject.name), out NetworkObject playerPrefab))
+            {
+                if (timeWhenHit != 0)
+                    lagCompensation.DestroySimulatedPlayers();
+                return playerPrefab.gameObject;
+            }
+            //else return object that was hit
+            if (timeWhenHit != 0)
+                lagCompensation.DestroySimulatedPlayers();
+            return hit.transform.gameObject;
         }
-        else
-            return null;
+        if (timeWhenHit != 0)
+            lagCompensation.DestroySimulatedPlayers();
+        return null;
     }
 
 
@@ -186,7 +212,7 @@ public class ObjectInteraction : NetworkBehaviour
         StartCoroutine(DeacreaseCooldown());
 
 
-        GameObject targetObject = GetComponent<LagCompensation>().CheckIfPlayerHit(cameraXRotation, timeOfAttack);
+        GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation, timeOfAttack);
         if (targetObject == null) { return; }
         string targetObjectTag = targetObject.tag;
 

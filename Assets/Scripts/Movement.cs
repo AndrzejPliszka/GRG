@@ -10,6 +10,8 @@ public class Movement : NetworkBehaviour
     [SerializeField] float sensitivity = 5f;
     [SerializeField] float reconciliationThreshold;
 
+    bool isTesting = false;
+
     GameObject playerCamera;
     CharacterController characterController;
 
@@ -77,7 +79,7 @@ public class Movement : NetworkBehaviour
         if (!IsHost) //character controller is disabled to disable its collision (if enabled there would be two collisions in one place, because of localPlayerModel character controller)
             gameObject.GetComponent<CharacterController>().enabled = false;
         else
-            gameObject.GetComponent<CharacterController>().excludeLayers = LayerMask.GetMask("LocalObject");  //on host i cannot disable entire component cos it is referenced in ("client side") script
+            gameObject.GetComponent<CharacterController>().excludeLayers = LayerMask.GetMask("UnsyncedObject");  //on host i cannot disable entire component cos it is referenced in ("client side") script
 
         //Position camera
         playerCamera.transform.position = LocalPlayerModel.transform.position + CameraOffset;
@@ -124,7 +126,11 @@ public class Movement : NetworkBehaviour
             IsRunning = false;
             SetIsRunningServerRpc(false);
         }
-           
+
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            isTesting = true;
+        }
     }
 
     //Function moving local player and sending keyboard inputs to server
@@ -134,7 +140,8 @@ public class Movement : NetworkBehaviour
         // get input
         float moveX = Input.GetAxis("Vertical");
         float moveZ = Input.GetAxis("Horizontal");
-
+        if (isTesting)
+            moveX = -1;
         MovePlayerServerRpc(new Vector3(moveX, 0, moveZ)); //and send it to the server
 
         // Client side movement
