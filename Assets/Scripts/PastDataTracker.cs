@@ -4,7 +4,6 @@ using System.Xml;
 using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
 
 public struct TimeData
 {
@@ -22,7 +21,7 @@ public class PastDataTracker : NetworkBehaviour
     private void FixedUpdate()
     {
         if(!IsServer) return;
-        AddRecordToTickDictionary();
+            AddRecordToTickDictionary();
         //Debug.Log("CurrentTick: " + NetworkManager.Singleton.ServerTime.Time);
     }
 
@@ -38,7 +37,7 @@ public class PastDataTracker : NetworkBehaviour
             float oldestKey = timeDictionary.OrderBy(pair => pair.Key).First().Key;
             timeDictionary.Remove(oldestKey);
         }
-        timeDictionary.Add(currentTime, new TimeData() { rotation = currentRotation, position = currentPosition });
+        timeDictionary.Add(currentTime, new TimeData() { rotation = currentRotation, position = currentPosition });   
     }
 
     public TimeData GetPastData(float time)

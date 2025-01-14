@@ -77,7 +77,7 @@ public class ObjectInteraction : NetworkBehaviour
                 AttackObjectServerRpc(cameraXRotation, NetworkManager.Singleton.ServerTime.TimeAsFloat - 0.1f);
             else
                 //Time (which is param in this function) is just serverTime - ping but written differently
-                AttackObjectServerRpc(cameraXRotation, NetworkManager.Singleton.ServerTime.TimeAsFloat - (NetworkManager.Singleton.LocalTime.TimeAsFloat - NetworkManager.Singleton.ServerTime.TimeAsFloat));
+                AttackObjectServerRpc(cameraXRotation, NetworkManager.Singleton.ServerTime.TimeAsFloat);
         }
     }
 
@@ -115,10 +115,11 @@ public class ObjectInteraction : NetworkBehaviour
         if (timeWhenHit != 0)
             layersToDetect = ~LayerMask.GetMask("UnsyncedObject"); //when timeWhenHit is specified, then it is on server so, do not check unsynced player side object
         else
-            layersToDetect = ~LayerMask.GetMask(""); //else it is probably executed on client (and even if not if timeWhenHit is not specified we dont probably care so much about accuracy), so we can detect everything
+            layersToDetect = ~LayerMask.GetMask("UnsyncedObject"); //[CHANGE !!!!!]else it is probably executed on client (and even if not if timeWhenHit is not specified we dont probably care so much about accuracy), so we can detect everything
 
         if (Physics.Raycast(ray, out RaycastHit hit, 10, layersToDetect))
         {
+            Debug.Log(hit.transform.name);
             //if it is simplified player, find "original" one with data and return it
             if (hit.transform.CompareTag("SimplifiedPlayer") && NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(ulong.Parse(hit.transform.gameObject.name), out NetworkObject playerPrefab))
             {
