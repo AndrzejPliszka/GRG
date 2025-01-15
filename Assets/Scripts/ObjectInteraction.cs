@@ -74,10 +74,10 @@ public class ObjectInteraction : NetworkBehaviour
             //DebugFunctionServerRpc(2 * NetworkManager.Singleton.ServerTime.Time - NetworkManager.Singleton.LocalTime.Time);
 
             if (IsHost) //Host cannot use same formula for time as client, because then he will have tick from future
-                AttackObjectServerRpc(cameraXRotation, NetworkManager.Singleton.ServerTime.TimeAsFloat - 0.1f);
+                AttackObjectServerRpc(cameraXRotation, NetworkManager.Singleton.ServerTime.Tick);
             else
                 //Time (which is param in this function) is just serverTime - ping but written differently
-                AttackObjectServerRpc(cameraXRotation, NetworkManager.Singleton.ServerTime.TimeAsFloat);
+                AttackObjectServerRpc(cameraXRotation, NetworkManager.Singleton.ServerTime.Tick - 3);
         }
     }
 
@@ -90,7 +90,7 @@ public class ObjectInteraction : NetworkBehaviour
 
     //This function casts a ray in front of camera and returns gameObject which got hit by it
     //based on rotation and position of transform.player, cameraOffset (which is variable in this class) and parameter cameraXRotation (which is in degrees in "Vector3 form")
-    public GameObject GetObjectInFrontOfCamera(float cameraXRotation, float timeWhenHit = 0)
+    public GameObject GetObjectInFrontOfCamera(float cameraXRotation, int timeWhenHit = 0)
     {
         LagCompensation lagCompensation = null;
         if (!IsServer && timeWhenHit != 0)
@@ -202,7 +202,7 @@ public class ObjectInteraction : NetworkBehaviour
 
     //Function that does of all things that happen when you press left mouse button
     [Rpc(SendTo.Server)]
-    void AttackObjectServerRpc(float cameraXRotation, float timeOfAttack)
+    void AttackObjectServerRpc(float cameraXRotation, int timeOfAttack)
     {
         if (AttackingCooldown > 0) { return; } //If cooldown not zero then ignore rest of code, because nothing will happen anyways
 

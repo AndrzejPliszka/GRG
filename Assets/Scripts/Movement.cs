@@ -132,7 +132,6 @@ public class Movement : NetworkBehaviour
 
         if (Input.GetKeyDown(KeyCode.Z))
         {
-            IsRunning = true;
             isTesting = true;
         }
     }

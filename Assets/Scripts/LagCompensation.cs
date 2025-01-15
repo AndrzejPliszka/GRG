@@ -8,7 +8,7 @@ public class LagCompensation : NetworkBehaviour
 {
     [SerializeField] GameObject simplifiedPlayer; //game object with collider same as player and no other data
     List<GameObject> spawnedPlayers = new();
-    public void SimulatePlayersOnGivenTime(float time)
+    public void SimulatePlayersOnGivenTime(int tick)
     {
         if (!IsServer) { throw new Exception("Client cannot do lag compensation, dum dum!"); }
         float detectionRadius = 15f;
@@ -20,7 +20,7 @@ public class LagCompensation : NetworkBehaviour
             if (distance <= detectionRadius && player != gameObject)
             {
                 PastDataTracker pastDataTracker = player.GetComponent<PastDataTracker>();
-                TimeData pastData = pastDataTracker.GetPastData(time);
+                TimeData pastData = pastDataTracker.GetPastData(tick);
                 GameObject instantiatedPlayer = Instantiate(simplifiedPlayer, pastData.position, pastData.rotation);
                 instantiatedPlayer.GetComponent<NetworkObject>().Spawn();
                 instantiatedPlayer.layer = LayerMask.NameToLayer("ServerSimulation");

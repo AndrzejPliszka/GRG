@@ -28,7 +28,7 @@ public class PastDataTracker : NetworkBehaviour
     void AddRecordToTickDictionary()
     {
         if(!IsServer) { throw new System.Exception("timeDictionary is only used Server Side!"); }
-        float currentTime = NetworkManager.Singleton.ServerTime.TimeAsFloat;
+        float currentTime = NetworkManager.Singleton.ServerTime.Tick;
         if (timeDictionary.ContainsKey(currentTime)) { return; }
 
         transform.GetPositionAndRotation(out Vector3 currentPosition, out Quaternion currentRotation);
@@ -40,7 +40,7 @@ public class PastDataTracker : NetworkBehaviour
         timeDictionary.Add(currentTime, new TimeData() { rotation = currentRotation, position = currentPosition });   
     }
 
-    public TimeData GetPastData(float time)
+    public TimeData GetPastData(int time)
     {
         if (!IsServer) { throw new System.Exception("SingleTickData is only used Server Side!"); }
         //Get value corresponding to smallest key larger than time in function
