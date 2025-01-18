@@ -249,7 +249,6 @@ public class Movement : NetworkBehaviour
     {
         float distance = Vector3.Distance(localPosition, transform.position);
         //if player moves and desync is small do not fix position
-        Debug.Log(distance);
         if (distance == 0f)
         {
             HandleWhenNoDescyncOwnerRpc();

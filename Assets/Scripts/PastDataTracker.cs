@@ -5,7 +5,7 @@ using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 
-public struct TimeData
+public struct TickData
 {
     public Quaternion rotation;
     public Vector3 position;
@@ -16,7 +16,7 @@ public class PastDataTracker : NetworkBehaviour
 {
 
     //server side dictionary (will not be sent to clients)
-    readonly Dictionary<float,  TimeData> timeDictionary = new();
+    readonly Dictionary<float,  TickData> tickDictionary = new();
 
     private void FixedUpdate()
     {
@@ -27,25 +27,25 @@ public class PastDataTracker : NetworkBehaviour
 
     void AddRecordToTickDictionary()
     {
-        if(!IsServer) { throw new System.Exception("timeDictionary is only used Server Side!"); }
-        float currentTime = NetworkManager.Singleton.ServerTime.Tick;
-        if (timeDictionary.ContainsKey(currentTime)) { return; }
+        if(!IsServer) { throw new System.Exception("tickDictionary is only used Server Side!"); }
+        float currentTick = NetworkManager.Singleton.ServerTime.Tick;
+        if (tickDictionary.ContainsKey(currentTick)) { return; }
 
         transform.GetPositionAndRotation(out Vector3 currentPosition, out Quaternion currentRotation);
-        if(timeDictionary.Count >= 100) 
+        if(tickDictionary.Count >= 100) 
         {
-            float oldestKey = timeDictionary.OrderBy(pair => pair.Key).First().Key;
-            timeDictionary.Remove(oldestKey);
+            float oldestKey = tickDictionary.OrderBy(pair => pair.Key).First().Key;
+            tickDictionary.Remove(oldestKey);
         }
-        timeDictionary.Add(currentTime, new TimeData() { rotation = currentRotation, position = currentPosition });   
+        tickDictionary.Add(currentTick, new TickData() { rotation = currentRotation, position = currentPosition });   
     }
 
-    public TimeData GetPastData(int time)
+    public TickData GetPastData(int tick)
     {
         if (!IsServer) { throw new System.Exception("SingleTickData is only used Server Side!"); }
         //Get value corresponding to smallest key larger than time in function
-        TimeData result = timeDictionary
-            .Where(entry => entry.Key >= time)
+        TickData result = tickDictionary
+            .Where(entry => entry.Key >= tick)
             .OrderBy(entry => entry.Key) 
             .FirstOrDefault().Value;
 

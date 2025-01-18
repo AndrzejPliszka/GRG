@@ -66,9 +66,7 @@ public class PlayerUI : NetworkBehaviour
                 GameObject.Find("CenterText").GetComponent<TMP_Text>().text = "";
                 break;
         };
-        ;
     }
-
 
     [Rpc(SendTo.Owner)]
     void DisplayHitmarkOwnerRpc()

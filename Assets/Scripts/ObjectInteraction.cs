@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using Unity.Collections;
 using Unity.Netcode;
@@ -41,7 +42,7 @@ public class ObjectInteraction : NetworkBehaviour
     }
     void Start()
     {
-        cameraOffset = gameObject.GetComponent<Movement>().CameraOffset;        
+        cameraOffset = gameObject.GetComponent<Movement>().CameraOffset;
     }
 
     void Update()
@@ -73,10 +74,10 @@ public class ObjectInteraction : NetworkBehaviour
         {
             //DebugFunctionServerRpc(2 * NetworkManager.Singleton.ServerTime.Time - NetworkManager.Singleton.LocalTime.Time);
 
-            if (IsHost) //Host cannot use same formula for time as client, because then he will have tick from future
+            if (IsHost)
                 AttackObjectServerRpc(cameraXRotation, NetworkManager.Singleton.ServerTime.Tick);
             else
-                //Time (which is param in this function) is just serverTime - ping but written differently
+                //I subtract 3 from here, because it doesn't work without it: server simulates time which was too early for some reason
                 AttackObjectServerRpc(cameraXRotation, NetworkManager.Singleton.ServerTime.Tick - 3);
         }
     }
@@ -93,6 +94,7 @@ public class ObjectInteraction : NetworkBehaviour
     public GameObject GetObjectInFrontOfCamera(float cameraXRotation, int timeWhenHit = 0)
     {
         LagCompensation lagCompensation = null;
+        Movement movement = GetComponent<Movement>();
         if (!IsServer && timeWhenHit != 0)
         {
             Debug.LogWarning("You specified server side property (timeWhenHit) on client!");
@@ -100,26 +102,38 @@ public class ObjectInteraction : NetworkBehaviour
         }
 
         if (timeWhenHit != 0) //if this is 0, we don't care about accuracy, so we dont need to do lag compensation
-        { 
+        {
             lagCompensation = gameObject.GetComponent<LagCompensation>();
             lagCompensation.SimulatePlayersOnGivenTime(timeWhenHit);
         }
 
-        Vector3 cameraOffset = GetComponent<Movement>().CameraOffset;
+        Vector3 cameraOffset = movement.CameraOffset;
         Quaternion verticalRotation = Quaternion.Euler(cameraXRotation, transform.rotation.eulerAngles.y, 0);
         Vector3 rayDirection = verticalRotation * Vector3.forward; //Changing quaternion into vector3, because Ray takes Vector3
-        Vector3 cameraPosition = transform.position + new Vector3(0, cameraOffset.y) + transform.rotation * new Vector3(0, 0, cameraOffset.z);
+
+        Vector3 currentPosition = IsServer ? transform.position : movement.LocalPlayerModel.transform.position; //if not on server use localmodel with more "Up to date" position and rotation
+        Quaternion currentRotation = IsServer ? transform.rotation : movement.LocalPlayerModel.transform.rotation;
+        Vector3 cameraPosition = currentPosition + new Vector3(0, cameraOffset.y) + currentRotation * new Vector3(0, 0, cameraOffset.z);
+
         Ray ray = new(cameraPosition, rayDirection);
-        Debug.DrawRay(cameraPosition, rayDirection * 100f, Color.red, 0.5f);
+        Debug.DrawRay(cameraPosition, rayDirection * 100f, Color.red, 0.01f);
         LayerMask layersToDetect;
         if (timeWhenHit != 0)
-            layersToDetect = ~LayerMask.GetMask("UnsyncedObject"); //when timeWhenHit is specified, then it is on server so, do not check unsynced player side object
+            layersToDetect = ~LayerMask.GetMask("UnsyncedObject", "LocalObject"); //when timeWhenHit is specified, then it is on server so, do not check unsynced player side object
         else
-            layersToDetect = ~LayerMask.GetMask("UnsyncedObject"); //[CHANGE !!!!!]else it is probably executed on client (and even if not if timeWhenHit is not specified we dont probably care so much about accuracy), so we can detect everything
+            layersToDetect = ~LayerMask.GetMask("LocalObject"); //else it is probably executed on client (and even if not if timeWhenHit is not specified we dont probably care so much about accuracy), so we can detect everything (except localPlayerModel)
 
-        if (Physics.Raycast(ray, out RaycastHit hit, 10, layersToDetect))
+        RaycastHit[] hits = new RaycastHit[10]; //LIMITATION: if looking at more than 10 things it can interact with NOT the first thing in front of camera! (it is becuse hits in raycastNonAlloc needs to be array and arrays have fixed length)
+        int numberOfHits = Physics.RaycastNonAlloc(ray, hits, 10, layersToDetect);
+        if (numberOfHits != 0)
         {
-            Debug.Log(hit.transform.name);
+            RaycastHit hit = getClosestRay(hits);
+            if (hit.transform == transform) {
+                if (numberOfHits < 2)
+                    return hit.transform.gameObject;
+                hits = hits.Where(hit => hit.transform != transform).ToArray(); //We are modifying hits array, so there is no this gameobject in it
+                hit = getClosestRay(hits);
+            }
             //if it is simplified player, find "original" one with data and return it
             if (hit.transform.CompareTag("SimplifiedPlayer") && NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(ulong.Parse(hit.transform.gameObject.name), out NetworkObject playerPrefab))
             {
@@ -137,6 +151,19 @@ public class ObjectInteraction : NetworkBehaviour
         return null;
     }
 
+    //This function exists, because RaycastNonAlloc doesn't return rays in order
+    static RaycastHit getClosestRay(RaycastHit[] hits) {
+        RaycastHit closestHit = hits[0];
+
+        foreach (RaycastHit hit in hits)
+        {
+            if (hit.collider == null) //do not consider null colliders, that are in array to fill it up
+                continue;
+            if (hit.distance < closestHit.distance)
+                closestHit = hit;
+        }
+        return closestHit;
+    }
 
     //This function changes model that is held in hand
     [Rpc(SendTo.ClientsAndHost)]
@@ -239,7 +266,7 @@ public class ObjectInteraction : NetworkBehaviour
         ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
 
         GameObject itemPrefab = itemTypeData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
-        GameObject newItem = Instantiate(itemPrefab, transform.position + transform.forward, new Quaternion());
+        GameObject newItem = Instantiate(itemPrefab, transform.position + transform.forward, transform.rotation);
         newItem.GetComponent<NetworkObject>().Spawn();
         newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;
     }

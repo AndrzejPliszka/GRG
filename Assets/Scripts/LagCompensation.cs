@@ -20,9 +20,8 @@ public class LagCompensation : NetworkBehaviour
             if (distance <= detectionRadius && player != gameObject)
             {
                 PastDataTracker pastDataTracker = player.GetComponent<PastDataTracker>();
-                TimeData pastData = pastDataTracker.GetPastData(tick);
+                TickData pastData = pastDataTracker.GetPastData(tick);
                 GameObject instantiatedPlayer = Instantiate(simplifiedPlayer, pastData.position, pastData.rotation);
-                instantiatedPlayer.GetComponent<NetworkObject>().Spawn();
                 instantiatedPlayer.layer = LayerMask.NameToLayer("ServerSimulation");
                 //We need to differentiate these prefabs, so we know which player they are meant to "represent"
                 instantiatedPlayer.name = player.GetComponent<NetworkObject>().NetworkObjectId.ToString();
@@ -35,7 +34,7 @@ public class LagCompensation : NetworkBehaviour
         if (!IsServer) { throw new Exception("Client cannot do lag compensation, dum dum!"); }
         for (int i = spawnedPlayers.Count - 1; i >= 0; i--) //for loop going down, so when we delete elements, indexes of next ones stay the same
         {
-            spawnedPlayers[i].GetComponent<Collider>().enabled = false;
+            Destroy(spawnedPlayers[i]);
             spawnedPlayers.RemoveAt(i);
         }
     }
