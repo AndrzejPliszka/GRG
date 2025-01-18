@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using Unity.Netcode;
 using UnityEngine;
 using System;
+using static ItemData;
 [RequireComponent(typeof(PlayerData))]
 [RequireComponent(typeof(ObjectInteraction))] //this is because we will use function that says what are we looking at
 public class PlayerUI : NetworkBehaviour
@@ -37,51 +38,35 @@ public class PlayerUI : NetworkBehaviour
     private void Update()
     {
         if (!IsOwner) {  return; }
-        UpdateLookedAtObjectTextServerRpc(GameObject.Find("Camera").transform.rotation.eulerAngles.x);
+        UpdateLookedAtObjectText(GameObject.Find("Camera").transform.rotation.eulerAngles.x);
         if (voiceChat)
             ModifyVoiceChatIcon(!voiceChat.IsMuted);
-
 
     }
 
     //This function will update text which tells player what is he looking at. It needs X Camera Rotation from client (in "Vector3 form") (server doesn't have camera - it is only on client)
-    [Rpc(SendTo.Server)]
-    void UpdateLookedAtObjectTextServerRpc(float cameraXRotation)
+    void UpdateLookedAtObjectText(float cameraXRotation)
     {
         GameObject targetObject = objectInteraction.GetObjectInFrontOfCamera(cameraXRotation);
         if (targetObject == null || string.IsNullOrEmpty(targetObject.tag))
         {
-            ResetLookedAtTextOwnerRpc();
+            GameObject.Find("CenterText").GetComponent<TMP_Text>().text = "";
             return;
         }
-
+        
          switch (targetObject.tag)
         {
             case "Player":
-                UpdateLookedAtPlayerTextOwnerRpc(targetObject.GetComponent<PlayerData>().Nickname.Value);
+                GameObject.Find("CenterText").GetComponent<TMP_Text>().text = targetObject.GetComponent<PlayerData>().Nickname.Value.ToString();
                 break;
             case "Item":
-                UpdateLookedAtItemTextOwnerRpc(targetObject.GetComponent<ItemData>().itemProperties.Value);
+                GameObject.Find("CenterText").GetComponent<TMP_Text>().text = targetObject.GetComponent<ItemData>().itemProperties.Value.itemType.ToString();;
                 break;
             default:
-                ResetLookedAtTextOwnerRpc();
+                GameObject.Find("CenterText").GetComponent<TMP_Text>().text = "";
                 break;
         };
-        ;
     }
-    //These short functions exists because they need to be sent to the owner as RPC and thus cannot be in ServerRpc above
-    [Rpc(SendTo.Owner)]
-    void UpdateLookedAtPlayerTextOwnerRpc(FixedString32Bytes nickname) {
-        GameObject.Find("CenterText").GetComponent<TMP_Text>().text = nickname.ToString(); }
-
-    [Rpc(SendTo.Owner)]
-    void UpdateLookedAtItemTextOwnerRpc(ItemData.ItemProperties itemProperties) {
-        GameObject.Find("CenterText").GetComponent<TMP_Text>().text = itemProperties.itemType.ToString(); }
-
-    [Rpc(SendTo.Owner)]
-    void ResetLookedAtTextOwnerRpc() {
-        GameObject.Find("CenterText").GetComponent<TMP_Text>().text = ""; }
-
 
     [Rpc(SendTo.Owner)]
     void DisplayHitmarkOwnerRpc()
