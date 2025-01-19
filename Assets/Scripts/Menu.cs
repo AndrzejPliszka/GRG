@@ -43,8 +43,7 @@ public class Menu : NetworkBehaviour
 
         resumeGameButton = GameObject.Find("ResumeGameButton").GetComponent<Button>();
         exitServerButton = GameObject.Find("ExitServerButton").GetComponent<Button>();
-
-        voiceChat = GameObject.Find("VoiceChatManager").GetComponent<VoiceChat>();
+        exitServerButton = GameObject.Find("ExitServerButton").GetComponent<Button>();
     }
     void Start()
     {
@@ -54,15 +53,15 @@ public class Menu : NetworkBehaviour
         });
         clientButton.onClick.AddListener(async () => {
             HideStartingMenu();
-            if (voiceChat != null)
-                await voiceChat.StartVivox();
             NetworkManager.Singleton.StartClient();
+            if (NetworkManager.Singleton.LocalClient.PlayerObject.gameObject.TryGetComponent<VoiceChat>(out voiceChat))
+                await voiceChat.StartVivox();
         });
         hostButton.onClick.AddListener(async () => {
             HideStartingMenu();
-            if (voiceChat != null)
-                await voiceChat.StartVivox();
             NetworkManager.Singleton.StartHost();
+            if (NetworkManager.Singleton.LocalClient.PlayerObject.gameObject.TryGetComponent<VoiceChat>(out voiceChat))
+                await voiceChat.StartVivox();
         });
         ipInputField.onValueChanged.AddListener((string inputValue) =>
         {

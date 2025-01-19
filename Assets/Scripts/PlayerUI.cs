@@ -31,7 +31,7 @@ public class PlayerUI : NetworkBehaviour
         objectInteraction.OnHittingSomething += DisplayHitmarkOwnerRpc;
         objectInteraction.OnPunch += DisplayCooldownCircleOwnerRpc;
 
-        voiceChat = GameObject.Find("VoiceChatManager").GetComponent<VoiceChat>();
+        voiceChat = gameObject.GetComponent<VoiceChat>();
     }
 
     private void Update()

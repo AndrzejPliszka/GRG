@@ -9,9 +9,10 @@ using UnityEngine;
 public class VoiceChat : NetworkBehaviour
 {
     bool isInChannel = false;
-    public bool IsMuted { get; private set; } = false;
+    public bool IsMuted { get; private set; } = true;
     private void Update()
     {
+        if(!IsOwner || !isInChannel) return;
         if (Input.GetKeyUp(KeyCode.Q))
             MutePlayer();
         else if(Input.GetKeyDown(KeyCode.Q))
@@ -59,6 +60,7 @@ public class VoiceChat : NetworkBehaviour
         await InitializeAsync();
         await LoginToVivoxAsync();
         await JoinPositionalChannelAsync();
+        IsMuted = false;
         isInChannel = true;
         MutePlayer();
         Debug.Log("Successfully Joined Vivox Channel");

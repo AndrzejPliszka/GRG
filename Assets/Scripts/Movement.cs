@@ -38,7 +38,7 @@ public class Movement : NetworkBehaviour
     private void Awake()
     {
         playerCamera = GameObject.Find("Camera");
-        voiceChat = GameObject.Find("VoiceChatManager").GetComponent<VoiceChat>();
+        voiceChat = gameObject.GetComponent<VoiceChat>();
         characterController = gameObject.GetComponent<CharacterController>();
         menuManager = GameObject.Find("Canvas").GetComponent<Menu>();
     }
