@@ -10,6 +10,8 @@ public class Movement : NetworkBehaviour
     [SerializeField] float sensitivity = 5f;
     [SerializeField] float reconciliationThreshold;
 
+    bool isTesting = false;
+
     GameObject playerCamera;
     CharacterController characterController;
 
@@ -31,8 +33,7 @@ public class Movement : NetworkBehaviour
     Menu menuManager;
     VoiceChat voiceChat;
 
-    //only server side
-    Vector3 finalMovementVector = Vector3.zero; //only used in reconciliation
+    bool shouldReconciliate = true;
 
     //set up references
     private void Awake()
@@ -94,7 +95,11 @@ public class Movement : NetworkBehaviour
         HandleRotation();
         HandleGravityAndJumping(false);
         if(voiceChat) voiceChat.UpdateVivoxPosition(gameObject);
-        ReconciliateServerRpc();
+        if (shouldReconciliate)
+        {
+            ReconciliateServerRpc(LocalPlayerModel.transform.position);
+            shouldReconciliate = false;
+        }
     }
 
     //things that are done on keybord input (fixed update doesn't always register them)
@@ -124,7 +129,11 @@ public class Movement : NetworkBehaviour
             IsRunning = false;
             SetIsRunningServerRpc(false);
         }
-           
+
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            isTesting = true;
+        }
     }
 
     //Function moving local player and sending keyboard inputs to server
@@ -134,7 +143,8 @@ public class Movement : NetworkBehaviour
         // get input
         float moveX = Input.GetAxis("Vertical");
         float moveZ = Input.GetAxis("Horizontal");
-
+        if (isTesting)
+            moveX = 1;
         MovePlayerServerRpc(new Vector3(moveX, 0, moveZ)); //and send it to the server
 
         // Client side movement
@@ -178,7 +188,7 @@ public class Movement : NetworkBehaviour
     {
         Vector3 clampedInput = new(Mathf.Clamp(inputVector.x, -1, 1), 0, Mathf.Clamp(inputVector.z, -1, 1)); //clamp because we don't trust client
         if (clampedInput.magnitude > 1) clampedInput = clampedInput.normalized;   //make walking diagonally not faster than walking normally
-        Vector3 moveVector = speed* Time.fixedDeltaTime * (clampedInput.x * rotationTransform.forward + clampedInput.z * rotationTransform.right); ;
+        Vector3 moveVector = speed* Time.fixedDeltaTime * (clampedInput.x * rotationTransform.forward + clampedInput.z * rotationTransform.right);
         if (IsRunning)
             moveVector *= runningModifier;
         return moveVector;
@@ -209,7 +219,6 @@ public class Movement : NetworkBehaviour
         // Server-side authoritative movement
         Vector3 finalMove = CalculateMovement(inputVector, transform);
         characterController.Move(finalMove);
-        finalMovementVector += finalMove; //finalMovementVector used for reconsiliation
 
     }
     //Rotates player on server (only "horizontaly", because "vertical" movement is only registered by camera)
@@ -227,7 +236,6 @@ public class Movement : NetworkBehaviour
         moveVector = CalculateGravity(pressedSpace, transform);
         characterController.Move(moveVector  * Time.fixedDeltaTime);
         IsGrounded = characterController.isGrounded;
-        finalMovementVector += moveVector; //finalMovementVector used for reconsiliation
     }
 
     [Rpc(SendTo.Server)]
@@ -237,37 +245,35 @@ public class Movement : NetworkBehaviour
     }
     //This function calls ReconciliatePositionRpc on owner and resets finalMovementVector
     [Rpc(SendTo.Server)]
-    private void ReconciliateServerRpc()
+    private void ReconciliateServerRpc(Vector3 localPosition)
     {
-        ReconciliatePositionRpc(transform.position, finalMovementVector);
-        finalMovementVector = Vector3.zero;
+        float distance = Vector3.Distance(localPosition, transform.position);
+        //if player moves and desync is small do not fix position
+        if (distance == 0f)
+        {
+            HandleWhenNoDescyncOwnerRpc();
+        }
+
+        ReconciliatePositionRpc(transform.position - localPosition);
     }
 
+    Vector3 lastOffset;
+
     //This function corrects position of localPlayerModel, so it alligns with real position sent from server (note that normal desync during walking is ~ 1 unit)
-    //If currentMovementVector is anything than (0, 0, 0) *[so is moving or in the air], do not reconciliate (that would tamper with player movement), unless desync is extreme
     //It is Rpc, so I can give "up to date" movement vector from server and position, and move character without stuttering
     [Rpc(SendTo.Owner)]
-    private void ReconciliatePositionRpc(Vector3 serverPosition, Vector3 currentMovementVector)
+    private void ReconciliatePositionRpc(Vector3 offsetToMove)
     {
-        //variables to 
+        lastOffset = offsetToMove;
+        localCharacterController.detectCollisions = false;
+        localCharacterController.Move(offsetToMove);
+        localCharacterController.detectCollisions = true;
+        shouldReconciliate = true;
+    }
+    [Rpc(SendTo.Owner)]
+    private void HandleWhenNoDescyncOwnerRpc()
+    {
+        shouldReconciliate = true;
+    }
 
-        float distance = Vector3.Distance(LocalPlayerModel.transform.position, serverPosition);
-        //if player moves and desync is small do not fix position
-        if (currentMovementVector != new Vector3(0, yVelocityOnGround, 0) && distance < 3)
-        {
-            return;
-        }
-
-        //fixing position
-        localCharacterController.Move(Vector3.Lerp(LocalPlayerModel.transform.position, serverPosition, Time.fixedDeltaTime*10) - LocalPlayerModel.transform.position);
-
-        //if desync is extreme localPlayerModel to correct postiion
-        if(distance > 10)
-        {
-            localCharacterController.enabled = false;
-            LocalPlayerModel.transform.position = serverPosition;
-            localCharacterController.enabled = true;
-        }
-    }    
-    
 }

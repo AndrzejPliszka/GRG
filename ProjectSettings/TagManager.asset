@@ -6,15 +6,16 @@ TagManager:
   tags:
   - Item
   - Material
+  - SimplifiedPlayer
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - LocalObject
+  - UnsyncedObject
   - Water
   - UI
-  - 
-  - 
+  - ServerSimulation
+  - LocalObject
   - 
   - 
   - 

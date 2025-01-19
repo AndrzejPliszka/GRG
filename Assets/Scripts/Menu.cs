@@ -91,6 +91,8 @@ public class Menu : NetworkBehaviour
     public async void QuitServer()
     {
         NetworkManager.Singleton.Shutdown();
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name); //change if different scene for menu
         if (voiceChat != null)
             await voiceChat.LogoutFromVivox();
