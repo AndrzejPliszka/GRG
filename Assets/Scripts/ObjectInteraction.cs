@@ -38,7 +38,6 @@ public class ObjectInteraction : NetworkBehaviour
     private void Awake()
     {
         playerData = GetComponent<PlayerData>();
-        //subscribe DisplayInventoryClientRpc, so it is called every time Inventory changes
     }
     void Start()
     {
@@ -72,7 +71,6 @@ public class ObjectInteraction : NetworkBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-            //DebugFunctionServerRpc(2 * NetworkManager.Singleton.ServerTime.Time - NetworkManager.Singleton.LocalTime.Time);
 
             if (IsHost)
                 AttackObjectServerRpc(cameraXRotation, NetworkManager.Singleton.ServerTime.Tick);
@@ -80,13 +78,6 @@ public class ObjectInteraction : NetworkBehaviour
                 //I subtract 3 from here, because it doesn't work without it: server simulates time which was too early for some reason
                 AttackObjectServerRpc(cameraXRotation, NetworkManager.Singleton.ServerTime.Tick - 3);
         }
-    }
-
-    //DELETE!!! THIS FUnCTION IS ONLY FOR DEBUG PURPOSES!
-    [Rpc(SendTo.Server)]
-    void DebugFunctionServerRpc(double currentTick)
-    {
-        Debug.Log("Past tick:                                                                  " + currentTick);
     }
 
     //This function casts a ray in front of camera and returns gameObject which got hit by it
@@ -107,7 +98,6 @@ public class ObjectInteraction : NetworkBehaviour
             lagCompensation.SimulatePlayersOnGivenTime(timeWhenHit);
         }
 
-        Vector3 cameraOffset = movement.CameraOffset;
         Quaternion verticalRotation = Quaternion.Euler(cameraXRotation, transform.rotation.eulerAngles.y, 0);
         Vector3 rayDirection = verticalRotation * Vector3.forward; //Changing quaternion into vector3, because Ray takes Vector3
 
@@ -127,12 +117,12 @@ public class ObjectInteraction : NetworkBehaviour
         int numberOfHits = Physics.RaycastNonAlloc(ray, hits, 10, layersToDetect);
         if (numberOfHits != 0)
         {
-            RaycastHit hit = getClosestRay(hits);
+            RaycastHit hit = GetClosestRay(hits);
             if (hit.transform == transform) {
                 if (numberOfHits < 2)
                     return hit.transform.gameObject;
                 hits = hits.Where(hit => hit.transform != transform).ToArray(); //We are modifying hits array, so there is no this gameobject in it
-                hit = getClosestRay(hits);
+                hit = GetClosestRay(hits);
             }
             //if it is simplified player, find "original" one with data and return it
             if (hit.transform.CompareTag("SimplifiedPlayer") && NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(ulong.Parse(hit.transform.gameObject.name), out NetworkObject playerPrefab))
@@ -152,7 +142,7 @@ public class ObjectInteraction : NetworkBehaviour
     }
 
     //This function exists, because RaycastNonAlloc doesn't return rays in order
-    static RaycastHit getClosestRay(RaycastHit[] hits) {
+    static RaycastHit GetClosestRay(RaycastHit[] hits) {
         RaycastHit closestHit = hits[0];
 
         foreach (RaycastHit hit in hits)

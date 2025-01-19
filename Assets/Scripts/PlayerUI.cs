@@ -20,8 +20,35 @@ public class PlayerUI : NetworkBehaviour
 
     [SerializeField] ItemTypeData itemTypeData;
     [SerializeField] ItemTierData itemTierData;
+
+    TMP_Text centerText;
+    TMP_Text hungerBarText;
+    TMP_Text healthBarText;
+    Image hitmark;
+    Image cooldownMarker;
+    Image micActivityIcon;
+    Slider hungerBar;
+    Slider healthBar;
+
+    List<GameObject> inventorySlots = new();
     public override void OnNetworkSpawn()
     {
+        centerText = GameObject.Find("CenterText").GetComponent<TMP_Text>();
+        hungerBarText = GameObject.Find("HungerBarText").GetComponent<TMP_Text>();
+        healthBarText = GameObject.Find("HealthBarText").GetComponent<TMP_Text>();
+
+        hitmark = GameObject.Find("Hitmark").GetComponent<Image>();
+        cooldownMarker = GameObject.Find("CooldownMarker").GetComponent<Image>();
+        micActivityIcon = GameObject.Find("MicActivityIcon").GetComponent<Image>();
+
+        hungerBar = GameObject.Find("HungerBar").GetComponent<Slider>();
+        healthBar = GameObject.Find("HealthBar").GetComponent<Slider>();
+
+        GameObject inventorySlotsContainer = GameObject.Find("InventorySlots");
+        for (int i = 0; i < inventorySlotsContainer.transform.childCount; i++) {
+            inventorySlots.Add(inventorySlotsContainer.transform.GetChild(i).gameObject);
+        }
+
         objectInteraction = GetComponent<ObjectInteraction>();
         PlayerData playerData = GetComponent<PlayerData>();
         playerData.SelectedInventorySlot.OnValueChanged += ChangeInventorySlot;
@@ -50,20 +77,20 @@ public class PlayerUI : NetworkBehaviour
         GameObject targetObject = objectInteraction.GetObjectInFrontOfCamera(cameraXRotation);
         if (targetObject == null || string.IsNullOrEmpty(targetObject.tag))
         {
-            GameObject.Find("CenterText").GetComponent<TMP_Text>().text = "";
+            centerText.text = "";
             return;
         }
         
          switch (targetObject.tag)
         {
             case "Player":
-                GameObject.Find("CenterText").GetComponent<TMP_Text>().text = targetObject.GetComponent<PlayerData>().Nickname.Value.ToString();
+                centerText.text = targetObject.GetComponent<PlayerData>().Nickname.Value.ToString();
                 break;
             case "Item":
-                GameObject.Find("CenterText").GetComponent<TMP_Text>().text = targetObject.GetComponent<ItemData>().itemProperties.Value.itemType.ToString();;
+                centerText.text = targetObject.GetComponent<ItemData>().itemProperties.Value.itemType.ToString();;
                 break;
             default:
-                GameObject.Find("CenterText").GetComponent<TMP_Text>().text = "";
+                centerText.text = "";
                 break;
         };
     }
@@ -71,50 +98,46 @@ public class PlayerUI : NetworkBehaviour
     [Rpc(SendTo.Owner)]
     void DisplayHitmarkOwnerRpc()
     {
-        Image image = GameObject.Find("Hitmark").GetComponent<Image>();
-        image.color = new Color(255, 255, 255, 1);
-        image.enabled = true;
+        hitmark.color = new Color(255, 255, 255, 1);
+        hitmark.enabled = true;
         StartCoroutine(DecreaseVisibilityOfHitmark());
     }
 
     [Rpc(SendTo.Owner)]
     void DisplayCooldownCircleOwnerRpc(float maximumCooldownValue)
     {
-        Image image = GameObject.Find("CooldownMarker").GetComponent<Image>();
-        image.enabled = true;
+        cooldownMarker.enabled = true;
         StartCoroutine(ChangeCooldownCircle(maximumCooldownValue));
     }
 
     IEnumerator ChangeCooldownCircle(float maximumCooldownValue)
     {
-        Image cooldownImage = GameObject.Find("CooldownMarker").GetComponent<Image>();
         float currentCooldownValue = maximumCooldownValue;
         float updateTime = 0.01f;
-        while (cooldownImage.fillAmount != 0)
+        while (cooldownMarker.fillAmount != 0)
         {
             currentCooldownValue -= updateTime;
             yield return new WaitForSeconds(updateTime * 1.001f);
-            cooldownImage.fillAmount = currentCooldownValue / maximumCooldownValue;
+            cooldownMarker.fillAmount = currentCooldownValue / maximumCooldownValue;
         }
-        cooldownImage.enabled = false;
-        cooldownImage.fillAmount = 1;
+        cooldownMarker.enabled = false;
+        cooldownMarker.fillAmount = 1;
     }
     IEnumerator DecreaseVisibilityOfHitmark() {
-        Image image = GameObject.Find("Hitmark").GetComponent<Image>();
         float fadeDuration = 0.5f;
         float timeDifferenceBetweenFades = 0.05f;
         float fadeTime = 0f;
-        while (image.enabled == true)
+        while (hitmark.enabled == true)
         {
             fadeTime += timeDifferenceBetweenFades;
             float alpha = Mathf.Clamp01(1 - fadeTime / fadeDuration); 
-            Color newColor = image.color;
+            Color newColor = hitmark.color;
             newColor.a = alpha;
-            image.color = newColor;
+            hitmark.color = newColor;
             if (alpha <= 0)
             {
-                image.enabled = false;
-                image.color = new Color(255, 255, 255, 1);
+                hitmark.enabled = false;
+                hitmark.color = new Color(255, 255, 255, 1);
             }
             yield return new WaitForSeconds(timeDifferenceBetweenFades);
         }
@@ -124,11 +147,11 @@ public class PlayerUI : NetworkBehaviour
     {
         if (!IsOwner) return;
         //Inventory slots are numbered 1, 2, 3, but Inventory is 0-indexed, e.Value is changed element, e.Index is it's index
-        GameObject inventorySlot = GameObject.Find($"InventorySlot{e.Index + 1}");
+        GameObject inventorySlot = inventorySlots[e.Index];
         if (inventorySlot == null) { return; }
         Image staticItemImage = inventorySlot.transform.Find("StaticItemImage").GetComponent<Image>();
         Image coloredItemImage = inventorySlot.transform.Find("ColoredItemImage").GetComponent<Image>();
-        if (e.Value.itemType != ItemData.ItemType.Null)
+        if (e.Value.itemType != ItemType.Null)
         {
             staticItemImage.enabled = true;
             staticItemImage.sprite = itemTypeData.GetDataOfItemType(e.Value.itemType).staticItemSprite;
@@ -146,26 +169,26 @@ public class PlayerUI : NetworkBehaviour
     public void ChangeInventorySlot(int oldInventorySlot, int newInventorySlot) {
         if(!IsOwner) return;
         //Inventory slots on scene are named 1, 2, 3 etc, but in code they are 0 indexed!
-        GameObject.Find($"InventorySlot{oldInventorySlot + 1}").GetComponent<Image>().sprite = unusedInventorySlot;
-        GameObject.Find($"InventorySlot{newInventorySlot + 1}").GetComponent<Image>().sprite = usedInventorySlot;
+        inventorySlots[oldInventorySlot].GetComponent<Image>().sprite = unusedInventorySlot;
+        inventorySlots[newInventorySlot].GetComponent<Image>().sprite = usedInventorySlot;
     }
 
     public void ModifyHungerBar(int oldHungerValue, int newHungerValue)
     {
         if (!IsOwner) return;
-        GameObject.Find("HungerBar").GetComponent<Slider>().value = newHungerValue;
-        GameObject.Find("HungerBarText").GetComponent<TMP_Text>().text = newHungerValue.ToString();
+        hungerBar.value = newHungerValue;
+        hungerBarText.text = newHungerValue.ToString();
     }
 
     public void ModifyHealthBar(int oldHealthValue, int newHealthValue)
     {
         if (!IsOwner) return;
-        GameObject.Find("HealthBar").GetComponent<Slider>().value = newHealthValue;
-        GameObject.Find("HealthBarText").GetComponent<TMP_Text>().text = newHealthValue.ToString();
+        healthBar.value = newHealthValue;
+        healthBarText.text = newHealthValue.ToString();
     }
 
     public void ModifyVoiceChatIcon(bool shouldBeEnabled)
     {
-        GameObject.Find("MicActivityIcon").GetComponent<Image>().enabled = shouldBeEnabled;
+        micActivityIcon.enabled = shouldBeEnabled;
     }
 }
