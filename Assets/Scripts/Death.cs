@@ -14,24 +14,27 @@ public class Death : NetworkBehaviour
     Menu menuScript;
     [SerializeField] GameObject Ragdoll;
     [SerializeField] ItemTypeData itemTypeData;
+
     void Start()
     {
         menuScript = GameObject.Find("Canvas").GetComponent<Menu>();
         playerData = GetComponent<PlayerData>();
         playerMovement = GetComponent<Movement>();
 
-        NetworkManager.OnConnectionEvent += HandleDisconnectedPlayers; //Without this, game would froze when theres no connection with server
-
-
-        if (!IsServer) { return; }
-        playerData.OnDeath += () => { Destroy(gameObject); }; //Destroy this game object on death. OnNetworkDespawn automatically handles all dying logic when player is destroyed.
-
+        if(IsOwner) {
+            NetworkManager.OnConnectionEvent += HandleDisconnectedPlayers; //Without this, game would froze when theres no connection with server
+        }
+        if (IsServer)
+        {
+            playerData.OnDeath += () => { Destroy(gameObject); };
+        }
+            
+        
     }
     //Spawns ragdoll, throws away all items in inventory and destroys player side local model
     void Die()
     {
         if (!IsServer) { throw new Exception("Client cannot decide to kill himself, only server can do that!"); };
-        Debug.Log(Application.isPlaying);
         if (!SceneManager.GetActiveScene().isLoaded || NetworkManager == null || NetworkManager.ShutdownInProgress || !NetworkManager.Singleton.IsListening) //if server is closing do not do anything
             return;
         DestroyLocalPlayerModelOwnerRpc();
@@ -75,6 +78,8 @@ public class Death : NetworkBehaviour
     //Always when deleting player with this script Die() function will be called!
     public override void OnNetworkDespawn()
     {
+        Debug.Log(playerData);
+        NetworkManager.OnConnectionEvent -= HandleDisconnectedPlayers;
         //without it on host there will be errors on him quiting server (also spawning corpses on server that is about to turn off is weird)
         if (!IsServer || !SceneManager.GetActiveScene().isLoaded || NetworkManager == null || NetworkManager.ShutdownInProgress || !NetworkManager.Singleton.IsListening) 
             return;

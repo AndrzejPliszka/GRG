@@ -29,8 +29,7 @@ public class PlayerUI : NetworkBehaviour
     Image micActivityIcon;
     Slider hungerBar;
     Slider healthBar;
-
-    List<GameObject> inventorySlots = new();
+    readonly List<GameObject> inventorySlots = new();
     public override void OnNetworkSpawn()
     {
         centerText = GameObject.Find("CenterText").GetComponent<TMP_Text>();

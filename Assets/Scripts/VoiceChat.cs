@@ -10,6 +10,17 @@ public class VoiceChat : NetworkBehaviour
 {
     bool isInChannel = false;
     public bool IsMuted { get; private set; } = true;
+
+    private async void Start()
+    {
+        if(!IsOwner) return;
+        await StartVivox();
+    }
+    public async override void OnNetworkDespawn()
+    {
+        if (!IsOwner) return;
+        await LogoutFromVivox();
+    }
     private void Update()
     {
         if(!IsOwner || !isInChannel) return;
@@ -42,28 +53,39 @@ public class VoiceChat : NetworkBehaviour
 
     public async Task LogoutFromVivox()
     {
-        isInChannel = false;
-        await VivoxService.Instance.LogoutAsync();
-        AuthenticationService.Instance.SignOut();
-    }
-
-    public void UpdateVivoxPosition(GameObject TalkingPlayer)
-    {
         if (isInChannel)
         {
-            VivoxService.Instance.Set3DPosition(TalkingPlayer, NetworkManager.Singleton.GetComponent<UnityTransport>().ConnectionData.ToString());
+            isInChannel = false;
+
+            await VivoxService.Instance.LogoutAsync();
+            AuthenticationService.Instance.SignOut();
+        }
+
+        Debug.Log("Successfully logout from Vivox");
+    }
+
+    public void UpdateVivoxPosition()
+    {
+        if (!IsClient) { return; };
+        if (isInChannel)
+        {
+            VivoxService.Instance.Set3DPosition(gameObject, NetworkManager.Singleton.GetComponent<UnityTransport>().ConnectionData.ToString());
         }
     }
 
     public async Task StartVivox()
     {
-        await InitializeAsync();
-        await LoginToVivoxAsync();
-        await JoinPositionalChannelAsync();
-        IsMuted = false;
-        isInChannel = true;
-        MutePlayer();
-        Debug.Log("Successfully Joined Vivox Channel");
+        if (!IsClient) { return; }; 
+        if (!isInChannel)
+        {
+            await InitializeAsync();
+            await LoginToVivoxAsync();
+            await JoinPositionalChannelAsync();
+            isInChannel = true;
+            IsMuted = false;
+            MutePlayer();
+            Debug.Log("Successfully Joined Vivox Channel");
+        }
     }
 
     public void MutePlayer()

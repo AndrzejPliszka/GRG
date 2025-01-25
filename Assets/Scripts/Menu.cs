@@ -28,7 +28,6 @@ public class Menu : NetworkBehaviour
     Button resumeGameButton;
     Button exitServerButton;
 
-    VoiceChat voiceChat;
     public FixedString32Bytes Nickname { get; private set; }
     private void Awake()
     {
@@ -47,21 +46,26 @@ public class Menu : NetworkBehaviour
     }
     void Start()
     {
+        //removing listeners, so methods are never called twice (maybe there is cleaner solution)
+        serverButton.onClick.RemoveAllListeners();
+        clientButton.onClick.RemoveAllListeners();
+        hostButton.onClick.RemoveAllListeners();
+        ipInputField.onValueChanged.RemoveAllListeners();
+        nicknameField.onValueChanged.RemoveAllListeners();
+        resumeGameButton.onClick.RemoveAllListeners();
+        exitServerButton.onClick.RemoveAllListeners();
+
         serverButton.onClick.AddListener(() => {
             HideStartingMenu();
             NetworkManager.Singleton.StartServer();
         });
-        clientButton.onClick.AddListener(async () => {
+        clientButton.onClick.AddListener(() => {
             HideStartingMenu();
             NetworkManager.Singleton.StartClient();
-            if (NetworkManager.Singleton.LocalClient.PlayerObject.gameObject.TryGetComponent<VoiceChat>(out voiceChat))
-                await voiceChat.StartVivox();
         });
-        hostButton.onClick.AddListener(async () => {
+        hostButton.onClick.AddListener(() => {
             HideStartingMenu();
             NetworkManager.Singleton.StartHost();
-            if (NetworkManager.Singleton.LocalClient.PlayerObject.gameObject.TryGetComponent<VoiceChat>(out voiceChat))
-                await voiceChat.StartVivox();
         });
         ipInputField.onValueChanged.AddListener((string inputValue) =>
         {
@@ -83,20 +87,18 @@ public class Menu : NetworkBehaviour
         pauseMenu.SetActive(false);
     }
 
+
     public void HideStartingMenu()
     {
         mainMenu.SetActive(false);
     }
 
-    public async void QuitServer()
+    public void QuitServer()
     {
         NetworkManager.Singleton.Shutdown();
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name); //change if different scene for menu
-        if (voiceChat != null)
-            await voiceChat.LogoutFromVivox();
-        Debug.Log("Successfully logout from Vivox");
     }
     public void ResumeGame()
     {

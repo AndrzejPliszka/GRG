@@ -94,7 +94,7 @@ public class Movement : NetworkBehaviour
         HandleMovement();
         HandleRotation();
         HandleGravityAndJumping(false);
-        if(voiceChat) voiceChat.UpdateVivoxPosition(gameObject);
+        if(voiceChat) voiceChat.UpdateVivoxPosition();
         if (shouldReconciliate)
         {
             ReconciliateServerRpc(LocalPlayerModel.transform.position);
