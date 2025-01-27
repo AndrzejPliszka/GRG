@@ -45,9 +45,9 @@ public class PlayerData : NetworkBehaviour
             {
                 Inventory.Add(new ItemData.ItemProperties());
             }
-            AddItemToInventory(new ItemData.ItemProperties { itemTier=ItemData.ItemTier.Wood, itemType = ItemData.ItemType.Sword});
-            AddItemToInventory(new ItemData.ItemProperties { itemTier = ItemData.ItemTier.Wood, itemType = ItemData.ItemType.Axe });
-            AddItemToInventory(new ItemData.ItemProperties { itemTier = ItemData.ItemTier.Wood, itemType = ItemData.ItemType.Medkit });
+            AddItemToInventory(new ItemData.ItemProperties { itemTier=ItemData.ItemTier.Stone, itemType = ItemData.ItemType.Sword});
+            AddItemToInventory(new ItemData.ItemProperties { itemTier = ItemData.ItemTier.Stone, itemType = ItemData.ItemType.Food });
+            AddItemToInventory(new ItemData.ItemProperties { itemTier = ItemData.ItemTier.Stone, itemType = ItemData.ItemType.Medkit });
         }
         //Reset inventory on server
         if (!IsOwner) { return; }

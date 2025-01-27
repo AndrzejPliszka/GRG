@@ -14,12 +14,14 @@ public class ItemData : NetworkBehaviour
         Null, //this type is used to denote no item in inventory (I use this instead of list with varying size, because with this I can store items dynamically in different item slots)
         Sword,
         Axe,
-        Medkit
+        Medkit,
+        Food
     }
 
     public enum ItemTier
     {
-        Wood
+        Wood,
+        Stone
     }
 
     //here I create networkVariable exclusive to every item

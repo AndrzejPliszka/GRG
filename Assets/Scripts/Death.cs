@@ -78,7 +78,6 @@ public class Death : NetworkBehaviour
     //Always when deleting player with this script Die() function will be called!
     public override void OnNetworkDespawn()
     {
-        Debug.Log(playerData);
         NetworkManager.OnConnectionEvent -= HandleDisconnectedPlayers;
         //without it on host there will be errors on him quiting server (also spawning corpses on server that is about to turn off is weird)
         if (!IsServer || !SceneManager.GetActiveScene().isLoaded || NetworkManager == null || NetworkManager.ShutdownInProgress || !NetworkManager.Singleton.IsListening) 

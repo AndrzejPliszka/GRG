@@ -206,11 +206,17 @@ public class ObjectInteraction : NetworkBehaviour
                 }
                 return;
         }
+
         //if is not looking at interactive object, check if has interactible item in hand
         switch (playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType)
         {
             case ItemData.ItemType.Medkit:
                 playerData.ChangeHealth(30);
+                playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
+                ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
+                break;
+            case ItemData.ItemType.Food:
+                playerData.ChangeHunger(30);
                 playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
                 ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
                 break;
@@ -224,7 +230,10 @@ public class ObjectInteraction : NetworkBehaviour
         if (AttackingCooldown > 0) { return; } //If cooldown not zero then ignore rest of code, because nothing will happen anyways
 
         //make it possible to punch nothing and punish player for doing that
-        playerData.ChangeHunger(-2); //TO DO: CHECK IF HOLDING SOMETHING BEFORE DOING THIS!
+        ItemData.ItemProperties heldItem = playerData.Inventory[playerData.SelectedInventorySlot.Value]; 
+
+        if(heldItem.itemType == ItemData.ItemType.Null)
+            playerData.ChangeHunger(-2);
         AttackingCooldown = 1f;
         InvokeOnPunchEventOwnerRpc(AttackingCooldown);
         StartCoroutine(DeacreaseCooldown());
