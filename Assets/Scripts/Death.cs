@@ -35,7 +35,7 @@ public class Death : NetworkBehaviour
     void Die()
     {
         if (!IsServer) { throw new Exception("Client cannot decide to kill himself, only server can do that!"); };
-        if (!SceneManager.GetActiveScene().isLoaded || NetworkManager == null || NetworkManager.ShutdownInProgress || !NetworkManager.Singleton.IsListening) //if server is closing do not do anything
+        if (!IsSpawned || this == null || !SceneManager.GetActiveScene().isLoaded || NetworkManager == null || NetworkManager.ShutdownInProgress || !NetworkManager.Singleton.IsListening) //if server is closing do not do anything
             return;
         DestroyLocalPlayerModelOwnerRpc();
         //drop items from inventory
@@ -61,17 +61,18 @@ public class Death : NetworkBehaviour
     [Rpc(SendTo.Owner)]
     void DestroyLocalPlayerModelOwnerRpc()
     {
+        if (this == null) { Debug.LogWarning("DestroyLocalPlayerModelOwnerRpc called on destroyed object."); return; }
         //when you die you want to display menu that lets you respawn/exit the server
         if (menuScript != null)
             menuScript.PauseGame();
-        if(playerMovement)
+        if(playerMovement != null && playerMovement.LocalPlayerModel != null)
             Destroy(playerMovement.LocalPlayerModel);
     }
 
     //This function just calls QuitServer if player calling method is owner
     void HandleDisconnectedPlayers(NetworkManager networkManager, ConnectionEventData connectionData)
     {
-        if (connectionData.EventType == ConnectionEvent.ClientDisconnected && IsClient && connectionData.ClientId == NetworkManager.Singleton.LocalClientId)
+        if (connectionData.EventType == ConnectionEvent.ClientDisconnected && IsClient && connectionData.ClientId == NetworkManager.Singleton.LocalClientId && menuScript != null)
             menuScript.QuitServer();
     }
 
@@ -84,5 +85,11 @@ public class Death : NetworkBehaviour
             return;
         Die();
     }
+    public override void OnDestroy()
+    {
+        // Clean up your NetworkBehaviour
 
+        // Always invoked the base
+        base.OnDestroy();
+    }
 }

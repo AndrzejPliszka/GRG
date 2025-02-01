@@ -24,6 +24,7 @@ public class PlayerUI : NetworkBehaviour
     TMP_Text centerText;
     TMP_Text hungerBarText;
     TMP_Text healthBarText;
+    TMP_Text moneyCount;
     Image hitmark;
     Image cooldownMarker;
     Image micActivityIcon;
@@ -35,6 +36,7 @@ public class PlayerUI : NetworkBehaviour
         centerText = GameObject.Find("CenterText").GetComponent<TMP_Text>();
         hungerBarText = GameObject.Find("HungerBarText").GetComponent<TMP_Text>();
         healthBarText = GameObject.Find("HealthBarText").GetComponent<TMP_Text>();
+        moneyCount = GameObject.Find("MoneyCount").GetComponent<TMP_Text>();
 
         hitmark = GameObject.Find("Hitmark").GetComponent<Image>();
         cooldownMarker = GameObject.Find("CooldownMarker").GetComponent<Image>();
@@ -54,6 +56,7 @@ public class PlayerUI : NetworkBehaviour
         playerData.Inventory.OnListChanged += DisplayInventory;
         playerData.Hunger.OnValueChanged += ModifyHungerBar;
         playerData.Health.OnValueChanged += ModifyHealthBar;
+        playerData.Money.OnValueChanged += ModifyMoneyCount;
 
         objectInteraction.OnHittingSomething += DisplayHitmarkOwnerRpc;
         objectInteraction.OnPunch += DisplayCooldownCircleOwnerRpc;
@@ -185,7 +188,11 @@ public class PlayerUI : NetworkBehaviour
         healthBar.value = newHealthValue;
         healthBarText.text = newHealthValue.ToString();
     }
-
+    public void ModifyMoneyCount(int oldMoneyValue, int newMoneyValue)
+    {
+        if (!IsOwner) return;
+        moneyCount.text = newMoneyValue.ToString() + "$";
+    }
     public void ModifyVoiceChatIcon(bool shouldBeEnabled)
     {
         micActivityIcon.enabled = shouldBeEnabled;

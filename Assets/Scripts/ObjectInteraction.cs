@@ -208,15 +208,20 @@ public class ObjectInteraction : NetworkBehaviour
         }
 
         //if is not looking at interactive object, check if has interactible item in hand
+        float itemTierValueMultiplier = itemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
         switch (playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType)
         {
             case ItemData.ItemType.Medkit:
-                playerData.ChangeHealth(30);
+                int baseMedkitHealhValue = 30;
+                int medkitHealhValue = Convert.ToInt16(baseMedkitHealhValue * itemTierValueMultiplier);
+                playerData.ChangeHealth(medkitHealhValue);
                 playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
                 ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
                 break;
             case ItemData.ItemType.Food:
-                playerData.ChangeHunger(30);
+                int baseFoodHungerValue = 30;
+                int foodHungerValue = Convert.ToInt16(baseFoodHungerValue * itemTierValueMultiplier);
+                playerData.ChangeHunger(foodHungerValue);
                 playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
                 ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
                 break;
@@ -241,12 +246,25 @@ public class ObjectInteraction : NetworkBehaviour
 
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation, timeOfAttack);
         if (targetObject == null) { return; }
-        string targetObjectTag = targetObject.tag;
 
+        float itemTierValueMultiplier = itemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
+        string targetObjectTag = targetObject.tag;
         switch (targetObjectTag)
         {
             case "Player":
-                targetObject.GetComponent<PlayerData>().ChangeHealth(-20);
+                int baseAttack = -20;
+                if (heldItem.itemType != ItemData.ItemType.Sword && heldItem.itemType != ItemData.ItemType.Null) //when punching someone with something other then sword do massive debuff
+                {
+                    baseAttack = Convert.ToInt16(baseAttack * (1f / 10f));
+                    playerData.ChangeHunger(-2);
+                }
+
+                if (heldItem.itemType != ItemData.ItemType.Null)
+                    baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
+                else
+                    baseAttack = Convert.ToInt16(baseAttack * (1f/2f)); //when punching someone with fist, deal half of damage of weakest sword 
+
+                targetObject.GetComponent<PlayerData>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke();
                 break;
         }

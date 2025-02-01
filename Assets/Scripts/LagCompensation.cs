@@ -7,7 +7,7 @@ using UnityEngine;
 public class LagCompensation : NetworkBehaviour
 {
     [SerializeField] GameObject simplifiedPlayer; //game object with collider same as player and no other data
-    List<GameObject> spawnedPlayers = new();
+    readonly List<GameObject> spawnedPlayers = new(); //readonly here complies with best practises
     public void SimulatePlayersOnGivenTime(int tick)
     {
         if (!IsServer) { throw new Exception("Client cannot do lag compensation, dum dum!"); }

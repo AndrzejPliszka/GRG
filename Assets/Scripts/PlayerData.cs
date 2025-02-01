@@ -17,6 +17,8 @@ public class PlayerData : NetworkBehaviour
 
     public NetworkVariable<int> Health { get; private set; } = new(100);
 
+    public NetworkVariable<int> Money { get; private set; } = new(0);
+
     //Variables that hold things related to managing data above
     bool decreaseHungerFaster = false;
     bool decreaseHealth = false;
@@ -45,9 +47,6 @@ public class PlayerData : NetworkBehaviour
             {
                 Inventory.Add(new ItemData.ItemProperties());
             }
-            AddItemToInventory(new ItemData.ItemProperties { itemTier=ItemData.ItemTier.Stone, itemType = ItemData.ItemType.Sword});
-            AddItemToInventory(new ItemData.ItemProperties { itemTier = ItemData.ItemTier.Stone, itemType = ItemData.ItemType.Food });
-            AddItemToInventory(new ItemData.ItemProperties { itemTier = ItemData.ItemTier.Stone, itemType = ItemData.ItemType.Medkit });
         }
         //Reset inventory on server
         if (!IsOwner) { return; }
@@ -191,7 +190,16 @@ public class PlayerData : NetworkBehaviour
         else if (Health.Value > 100)
             Health.Value = 100;
     }
+    //this function is setter for money. It returns false, if player would have negative balance after changing money
+    public bool ChangeMoney(int amountToIncrease)
+    {
+        if (!IsServer) { throw new Exception("Trying to modify money amount on client!"); };
+        if (Money.Value + amountToIncrease < 0)
+            return false;
+        Money.Value += amountToIncrease;
+        return true;
 
+    }
     private void InvokeDeath(int oldValue, int newValue)
     {
         if(newValue == 0)

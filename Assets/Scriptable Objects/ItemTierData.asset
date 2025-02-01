@@ -16,6 +16,8 @@ MonoBehaviour:
   - itemTier: 0
     itemMaterial: {fileID: 2100000, guid: 8412eb0a7c3566d4ab4ef1aafeddd6ee, type: 2}
     UIColor: {r: 0.4056604, g: 0.20964108, b: 0, a: 1}
+    multiplier: 1
   - itemTier: 1
     itemMaterial: {fileID: 2100000, guid: 2b3861d193e3ec246937419eb44dfa24, type: 2}
     UIColor: {r: 0.254717, g: 0.254717, b: 0.254717, a: 1}
+    multiplier: 1.5
