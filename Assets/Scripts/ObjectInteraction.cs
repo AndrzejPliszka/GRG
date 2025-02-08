@@ -249,23 +249,32 @@ public class ObjectInteraction : NetworkBehaviour
 
         float itemTierValueMultiplier = itemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
         string targetObjectTag = targetObject.tag;
+        int baseAttack = -20;
         switch (targetObjectTag)
         {
             case "Player":
-                int baseAttack = -20;
-                if (heldItem.itemType != ItemData.ItemType.Sword && heldItem.itemType != ItemData.ItemType.Null) //when punching someone with something other then sword do massive debuff
-                {
-                    baseAttack = Convert.ToInt16(baseAttack * (1f / 10f));
-                    playerData.ChangeHunger(-2);
-                }
-
-                if (heldItem.itemType != ItemData.ItemType.Null)
+                if (heldItem.itemType == ItemData.ItemType.Sword)
                     baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
-                else
+                else if(heldItem.itemType == ItemData.ItemType.Null)
                     baseAttack = Convert.ToInt16(baseAttack * (1f/2f)); //when punching someone with fist, deal half of damage of weakest sword 
+                else
+                    break;
 
                 targetObject.GetComponent<PlayerData>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke();
+                break;
+            case "Structure":
+                if (heldItem.itemType == ItemData.ItemType.Axe)
+                    baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
+                else
+                    break;
+
+                if (targetObject.GetComponent<BreakableStructure>().Health.Value + baseAttack <= 0) //If we predict tree will be cut, then give money [MAY CAUSE ERRORS] (this will be deleted may I add circular economy)
+                    playerData.ChangeMoney(10);
+
+                targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
+                OnHittingSomething.Invoke();
+
                 break;
         }
     }
