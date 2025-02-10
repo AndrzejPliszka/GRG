@@ -263,7 +263,7 @@ public class ObjectInteraction : NetworkBehaviour
                 targetObject.GetComponent<PlayerData>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke();
                 break;
-            case "Structure":
+            case "AxeBreakableStructure":
                 if (heldItem.itemType == ItemData.ItemType.Axe)
                     baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
                 else
@@ -275,6 +275,17 @@ public class ObjectInteraction : NetworkBehaviour
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke();
 
+                break;
+            case "GenericBreakableStructure":
+                if (heldItem.itemType == ItemData.ItemType.Sword)
+                    baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
+                else if (heldItem.itemType == ItemData.ItemType.Null)
+                    baseAttack = Convert.ToInt16(baseAttack * (1f / 2f)); //when punching someone with fist, deal half of damage of weakest sword 
+                else
+                    break;
+
+                targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
+                OnHittingSomething.Invoke();
                 break;
         }
     }
