@@ -35,8 +35,6 @@ public class Death : NetworkBehaviour
     void Die()
     {
         if (!IsServer) { throw new Exception("Client cannot decide to kill himself, only server can do that!"); };
-        if (!IsSpawned || this == null || !SceneManager.GetActiveScene().isLoaded || NetworkManager == null || NetworkManager.ShutdownInProgress || !NetworkManager.Singleton.IsListening) //if server is closing do not do anything
-            return;
         DestroyLocalPlayerModelOwnerRpc();
         //drop items from inventory
         for (int i = 0; i < playerData.Inventory.Count; i++)

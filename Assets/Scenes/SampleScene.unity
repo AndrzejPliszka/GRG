@@ -5534,6 +5534,38 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1492825262829951473, guid: 1078b3a81a0478944b58dccda565722e, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 2030290912516330414, guid: 1078b3a81a0478944b58dccda565722e, type: 3}
+      propertyPath: m_TagString
+      value: Buy
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063323180561659438, guid: 1078b3a81a0478944b58dccda565722e, type: 3}
+      propertyPath: price
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063323180561659438, guid: 1078b3a81a0478944b58dccda565722e, type: 3}
+      propertyPath: soldItemTier
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063323180561659438, guid: 1078b3a81a0478944b58dccda565722e, type: 3}
+      propertyPath: soldItemType
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2448978458959167896, guid: 1078b3a81a0478944b58dccda565722e, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 3718354965
+      objectReference: {fileID: 0}
+    - target: {fileID: 2448978458959167896, guid: 1078b3a81a0478944b58dccda565722e, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 1473166660
+      objectReference: {fileID: 0}
+    - target: {fileID: 2647109971216568048, guid: 1078b3a81a0478944b58dccda565722e, type: 3}
+      propertyPath: m_IsTrigger
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3692010717249118366, guid: 1078b3a81a0478944b58dccda565722e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -13.681509
@@ -5578,10 +5610,21 @@ PrefabInstance:
       propertyPath: m_Name
       value: shopStand
       objectReference: {fileID: 0}
+    - target: {fileID: 4068853293296777764, guid: 1078b3a81a0478944b58dccda565722e, type: 3}
+      propertyPath: m_TagString
+      value: Shop
+      objectReference: {fileID: 0}
+    - target: {fileID: 7817843612323513898, guid: 1078b3a81a0478944b58dccda565722e, type: 3}
+      propertyPath: m_IsTrigger
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8821438127650819201, guid: 1078b3a81a0478944b58dccda565722e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: 1078b3a81a0478944b58dccda565722e, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

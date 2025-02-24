@@ -1,5 +1,9 @@
 using System;
+using System.Collections;
+using System.Threading;
+using System.Threading.Tasks;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -24,9 +28,11 @@ public class Movement : NetworkBehaviour
     [SerializeField] bool renderOrginalModel = false; //Set true while debugging
     public bool IsGrounded {get; private set;} //getter-setter, because animator needs this to be public, but we want this readonly beyond this script
     public bool IsRunning { get; private set; }
+    public NetworkVariable<bool> IsSitting { get; private set; } = new(false);//network variable because it is set on server, but client also needs to know if sitting (for localCharacterModel)
     [field: SerializeField] public GameObject LocalPlayerModel { get; private set; } // Client-side predicted player model
-    CharacterController localCharacterController; //and his character_Controller
+    CharacterController localCharacterController; //and his characterController
 
+    public CancellationTokenSource sittingCourutineCancellationToken; //public, because Shop script can force you to stop sitting down
     //Manager components (scripts)
     Menu menuManager;
     VoiceChat voiceChat;
@@ -93,7 +99,7 @@ public class Movement : NetworkBehaviour
         HandleRotation();
         HandleGravityAndJumping(false);
         if(voiceChat) voiceChat.UpdateVivoxPosition();
-        if (shouldReconciliate)
+        if (shouldReconciliate || IsHost)
         {
             ReconciliateServerRpc(LocalPlayerModel.transform.position);
             shouldReconciliate = false;
@@ -132,7 +138,7 @@ public class Movement : NetworkBehaviour
     //Function moving local player and sending keyboard inputs to server
     private void HandleMovement()
     {
-        if(menuManager.isGamePaused) { return; }
+        if(menuManager.isGamePaused || IsSitting.Value) { return; }
         // get input
         float moveX = Input.GetAxis("Vertical");
         float moveZ = Input.GetAxis("Horizontal");
@@ -203,6 +209,29 @@ public class Movement : NetworkBehaviour
         Vector3 moveVector = new(0, currentVelocity, 0);
         return moveVector;
     }
+    public void TeleportPlayerToPosition(Vector3 position)
+    {
+        if (!IsServer) { throw new Exception("No teleporting on client side!"); }
+        characterController.enabled = false;
+        transform.position = position;
+        characterController.enabled = true;
+    }
+    public async Task<bool> MakePlayerSit(int duration)
+    {
+        if (!IsServer) { throw new Exception("Changing state can be done only on server"); }
+        sittingCourutineCancellationToken = new();
+        IsSitting.Value = true;
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(duration), sittingCourutineCancellationToken.Token);
+            IsSitting.Value = false;
+            return true;
+        }
+        catch (TaskCanceledException)
+        {
+            return false;
+        }
+    }
     //Moves player on the server
     [Rpc(SendTo.Server)]
     private void MovePlayerServerRpc(Vector3 inputVector)
@@ -223,6 +252,11 @@ public class Movement : NetworkBehaviour
     [Rpc(SendTo.Server)]
     private void HandleGravityAndJumpingServerRpc(bool pressedSpace)
     {
+        if (pressedSpace && sittingCourutineCancellationToken != null)
+        {
+            sittingCourutineCancellationToken.Cancel();
+            IsSitting.Value = false;
+        }
         Vector3 moveVector;
         moveVector = CalculateGravity(pressedSpace, transform);
         characterController.Move(moveVector  * Time.fixedDeltaTime);
@@ -241,24 +275,20 @@ public class Movement : NetworkBehaviour
         float distance = Vector3.Distance(localPosition, transform.position);
         //if player moves and desync is small do not fix position
         if (distance == 0f)
-        {
             HandleWhenNoDescyncOwnerRpc();
-        }
-
-        ReconciliatePositionRpc(transform.position - localPosition);
+        else
+            ReconciliatePositionRpc(transform.position - localPosition);
     }
-
-    Vector3 lastOffset;
 
     //This function corrects position of localPlayerModel, so it alligns with real position sent from server (note that normal desync during walking is ~ 1 unit)
     //It is Rpc, so I can give "up to date" movement vector from server and position, and move character without stuttering
     [Rpc(SendTo.Owner)]
     private void ReconciliatePositionRpc(Vector3 offsetToMove)
     {
-        lastOffset = offsetToMove;
-        localCharacterController.detectCollisions = false;
-        localCharacterController.Move(offsetToMove);
-        localCharacterController.detectCollisions = true;
+        //do not use Move, as it detects collisions even if you specified detectCollisions = false!
+        localCharacterController.enabled = false;
+        localCharacterController.transform.position += offsetToMove;
+        localCharacterController.enabled = true;
         shouldReconciliate = true;
     }
     [Rpc(SendTo.Owner)]

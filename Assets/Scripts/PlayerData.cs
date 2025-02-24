@@ -17,7 +17,7 @@ public class PlayerData : NetworkBehaviour
 
     public NetworkVariable<int> Health { get; private set; } = new(100);
 
-    public NetworkVariable<int> Money { get; private set; } = new(0);
+    public NetworkVariable<float> Money { get; private set; } = new(0);
 
     //Variables that hold things related to managing data above
     bool decreaseHungerFaster = false;
@@ -83,21 +83,31 @@ public class PlayerData : NetworkBehaviour
     public bool AddItemToInventory(ItemData.ItemProperties itemData)
     {
         if (!IsServer) throw new Exception("Trying to add item to inventory as a client");
-        if (Inventory[SelectedInventorySlot.Value].itemType == ItemData.ItemType.Null)
+        int freeSlot = FindFreeInventorySlot();
+        if (freeSlot != -1)
         {
-            Inventory[SelectedInventorySlot.Value] = itemData;
+            Inventory[freeSlot] = itemData;
             return true;
         }
-        else {
-            for (int i = 0; i < Inventory.Count; i++) {
-                if (Inventory[i].itemType == ItemData.ItemType.Null)
-                {
-                    Inventory[i] = itemData;
-                    return true;
-                }
-            }
-        }
+
         return false;
+    }
+
+    //If no inventory slots are available, return -1
+    public int FindFreeInventorySlot()
+    {
+        //try selectedInventorySlot
+        if (Inventory[SelectedInventorySlot.Value].itemType == ItemData.ItemType.Null)
+            return SelectedInventorySlot.Value;
+
+        //try other slots
+        for (int i = 0; i < Inventory.Count; i++)
+        {
+            if (Inventory[i].itemType == ItemData.ItemType.Null)
+                return i;
+        }
+        //all slots are taken, return -1
+        return -1;
     }
 
     //Removes item in current inventory slot and returnes it (so it can be spawned as an gameObject)
@@ -191,12 +201,13 @@ public class PlayerData : NetworkBehaviour
             Health.Value = 100;
     }
     //this function is setter for money. It returns false, if player would have negative balance after changing money
-    public bool ChangeMoney(int amountToIncrease)
+    public bool ChangeMoney(float amountToIncrease)
     {
         if (!IsServer) { throw new Exception("Trying to modify money amount on client!"); };
         if (Money.Value + amountToIncrease < 0)
             return false;
         Money.Value += amountToIncrease;
+        Money.Value = (Mathf.Round(Money.Value * 100)) / 100.0f; //ensure amountToIncrease has max 2 digits after colon
         return true;
 
     }

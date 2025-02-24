@@ -67,22 +67,22 @@ public class PlayerUI : NetworkBehaviour
     private void Update()
     {
         if (!IsOwner) {  return; }
-        UpdateLookedAtObjectText(GameObject.Find("Camera").transform.rotation.eulerAngles.x);
+        UpdateLookedAtObjectText();
         if (voiceChat)
             ModifyVoiceChatIcon(!voiceChat.IsMuted);
 
     }
 
     //This function will update text which tells player what is he looking at. It needs X Camera Rotation from client (in "Vector3 form") (server doesn't have camera - it is only on client)
-    void UpdateLookedAtObjectText(float cameraXRotation)
+    void UpdateLookedAtObjectText()
     {
-        GameObject targetObject = objectInteraction.GetObjectInFrontOfCamera(cameraXRotation);
+        GameObject targetObject = objectInteraction.GetObjectInFrontOfCamera(GameObject.Find("Camera").transform.rotation.eulerAngles.x);
         if (targetObject == null || string.IsNullOrEmpty(targetObject.tag))
         {
             centerText.text = "";
             return;
         }
-        
+        Shop parentShopScript; //declare here to avoid scope issues
          switch (targetObject.tag)
         {
             case "Player":
@@ -90,6 +90,17 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "Item":
                 centerText.text = targetObject.GetComponent<ItemData>().itemProperties.Value.itemType.ToString();;
+                break;
+            case "Tree":
+                centerText.text = "Tree";
+                break;
+            case "Buy":
+                parentShopScript = targetObject.transform.parent.GetComponent<Shop>();
+                centerText.text = $"Buy {parentShopScript.ItemToSell.itemTier} {parentShopScript.ItemToSell.itemType}";
+                break;
+            case "Work":
+                parentShopScript = targetObject.transform.parent.GetComponent<Shop>();
+                centerText.text = $"Work in {parentShopScript.ItemToSell.itemTier} {parentShopScript.ItemToSell.itemType} Shop";
                 break;
             default:
                 centerText.text = "";
@@ -188,7 +199,7 @@ public class PlayerUI : NetworkBehaviour
         healthBar.value = newHealthValue;
         healthBarText.text = newHealthValue.ToString();
     }
-    public void ModifyMoneyCount(int oldMoneyValue, int newMoneyValue)
+    public void ModifyMoneyCount(float oldMoneyValue, float newMoneyValue)
     {
         if (!IsOwner) return;
         moneyCount.text = newMoneyValue.ToString() + "$";

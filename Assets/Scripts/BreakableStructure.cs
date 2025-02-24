@@ -21,7 +21,11 @@ public class BreakableStructure : NetworkBehaviour
         Health.Value += amountToChange;
 
         if (Health.Value <= 0)
+        {
+            gameObject.GetComponent<NetworkObject>().Despawn();
             Destroy(gameObject);
+        }
+            
 
         if (Health.Value > maximumHealth)
             Health.Value = maximumHealth;
