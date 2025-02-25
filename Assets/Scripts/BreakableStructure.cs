@@ -5,14 +5,14 @@ using UnityEngine;
 
 public class BreakableStructure : NetworkBehaviour
 {
-    [SerializeField] int maximumHealth;
+    [field: SerializeField] public int MaximumHealth { get; private set; } = new();
     public NetworkVariable<int> Health { get; private set; } = new();
     public DynamicObjectSpawning spawner; //this is used to communicate with spawner. it may be empty if object was put manually itp.
 
     public override void OnNetworkSpawn()
     {
         if(!IsServer) return;
-        Health.Value = maximumHealth;
+        Health.Value = MaximumHealth;
     }
 
     public void ChangeHealth(int amountToChange)
@@ -27,8 +27,8 @@ public class BreakableStructure : NetworkBehaviour
         }
             
 
-        if (Health.Value > maximumHealth)
-            Health.Value = maximumHealth;
+        if (Health.Value > MaximumHealth)
+            Health.Value = MaximumHealth;
     }
 
     override public void OnDestroy()

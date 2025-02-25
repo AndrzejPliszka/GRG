@@ -143,5 +143,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0045f534312bba145948daf84d91e0d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maximumHealth: 100
+  <MaximumHealth>k__BackingField: 100
   spawner: {fileID: 0}
