@@ -294,6 +294,8 @@ public class ObjectInteraction : NetworkBehaviour
             case "Shop":
                 if (heldItem.itemType == ItemData.ItemType.Sword)
                     baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
+                else if(heldItem.itemType == ItemData.ItemType.Hammer)
+                    baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier * -1); //hammer repairs shops, so we multiply times -1 so we add health to shop
                 else
                     break;
 
