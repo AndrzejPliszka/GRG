@@ -32,31 +32,34 @@ public class Animations : NetworkBehaviour
         if (!IsOwner) { return; }
         float horizontalInput = Input.GetAxis("Horizontal");
         float verticalInput = Input.GetAxis("Vertical");
-        bool IsGrounded = playerMovement.IsGrounded;
+        bool isGrounded = playerMovement.IsGrounded;
         bool isRunning = playerMovement.IsRunning;
-        ChangeAnimationPropertiesServerRpc(horizontalInput, verticalInput, IsGrounded, isRunning);
+        bool isSitting = playerMovement.IsSitting.Value;
+        ChangeAnimationPropertiesServerRpc(horizontalInput, verticalInput, isGrounded, isRunning, isSitting);
         if (localPlayerModelAnimator)
-            ChangeAnimationPropertiesOnClient(horizontalInput, verticalInput, IsGrounded, isRunning);
+            ChangeAnimationPropertiesOnClient(horizontalInput, verticalInput, isGrounded, isRunning, isSitting);
 
     }
 
     //This changes animation locally on localPlayerModel
-    void ChangeAnimationPropertiesOnClient(float horizontalInput, float verticalInput, bool IsGrounded, bool isRunning)
+    void ChangeAnimationPropertiesOnClient(float horizontalInput, float verticalInput, bool isGrounded, bool isRunning, bool isSitting)
     {
         localPlayerModelAnimator.SetFloat("horizontalInput", horizontalInput);
         localPlayerModelAnimator.SetFloat("verticalInput", verticalInput);
-        localPlayerModelAnimator.SetBool("isGrounded", IsGrounded);
+        localPlayerModelAnimator.SetBool("isGrounded", isGrounded);
         localPlayerModelAnimator.SetBool("isRunning", isRunning);
+        localPlayerModelAnimator.SetBool("isSitting", isSitting);
     }
 
     //This actually changes the animation on the server
     [Rpc(SendTo.Server)]
-    void ChangeAnimationPropertiesServerRpc(float horizontalInput, float verticalInput, bool isGrounded, bool isRunning)
+    void ChangeAnimationPropertiesServerRpc(float horizontalInput, float verticalInput, bool isGrounded, bool isRunning, bool isSitting)
     {
         playerAnimator.SetFloat("horizontalInput", horizontalInput);
         playerAnimator.SetFloat("verticalInput", verticalInput);
         playerAnimator.SetBool("isGrounded", isGrounded);
         playerAnimator.SetBool("isRunning", isRunning);
+        playerAnimator.SetBool("isSitting", isSitting);
     }
 
     void ManagePunchingAnimation(float cooldown) //cooldown is not used here yet, but it is used in PlayerUI

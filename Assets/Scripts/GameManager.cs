@@ -59,5 +59,17 @@ public class GameManager : NetworkBehaviour
             item.GetComponent<NetworkObject>().Spawn();
             item.GetComponent<ItemData>().itemProperties.Value = new ItemData.ItemProperties { itemTier = ItemData.ItemTier.Stone, itemType = ItemData.ItemType.Food };
         }
+        for (int i = 0; i < 5; i++)
+        {
+            GameObject item = Instantiate(itemTypeData.GetDataOfItemType(ItemData.ItemType.Hammer).droppedItemPrefab, new Vector3(10, 5, 16), new Quaternion());
+            item.GetComponent<NetworkObject>().Spawn();
+            item.GetComponent<ItemData>().itemProperties.Value = new ItemData.ItemProperties { itemTier = ItemData.ItemTier.Wood, itemType = ItemData.ItemType.Hammer };
+        }
+        for (int i = 0; i < 5; i++)
+        {
+            GameObject item = Instantiate(itemTypeData.GetDataOfItemType(ItemData.ItemType.Hammer).droppedItemPrefab, new Vector3(10, 5, 18), new Quaternion());
+            item.GetComponent<NetworkObject>().Spawn();
+            item.GetComponent<ItemData>().itemProperties.Value = new ItemData.ItemProperties { itemTier = ItemData.ItemTier.Stone, itemType = ItemData.ItemType.Hammer };
+        }
     }
 }

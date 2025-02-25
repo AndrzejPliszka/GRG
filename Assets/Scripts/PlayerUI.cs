@@ -22,6 +22,7 @@ public class PlayerUI : NetworkBehaviour
     [SerializeField] ItemTierData itemTierData;
 
     TMP_Text centerText;
+    TMP_Text errorText;
     TMP_Text hungerBarText;
     TMP_Text healthBarText;
     TMP_Text moneyCount;
@@ -34,6 +35,7 @@ public class PlayerUI : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         centerText = GameObject.Find("CenterText").GetComponent<TMP_Text>();
+        errorText = GameObject.Find("ErrorText").GetComponent<TMP_Text>();
         hungerBarText = GameObject.Find("HungerBarText").GetComponent<TMP_Text>();
         healthBarText = GameObject.Find("HealthBarText").GetComponent<TMP_Text>();
         moneyCount = GameObject.Find("MoneyCount").GetComponent<TMP_Text>();
@@ -45,11 +47,13 @@ public class PlayerUI : NetworkBehaviour
         hungerBar = GameObject.Find("HungerBar").GetComponent<Slider>();
         healthBar = GameObject.Find("HealthBar").GetComponent<Slider>();
 
+        errorText.enabled = false; //We do this so DisplayError() works (see function)
+
         GameObject inventorySlotsContainer = GameObject.Find("InventorySlots");
         for (int i = 0; i < inventorySlotsContainer.transform.childCount; i++) {
             inventorySlots.Add(inventorySlotsContainer.transform.GetChild(i).gameObject);
         }
-
+        
         objectInteraction = GetComponent<ObjectInteraction>();
         PlayerData playerData = GetComponent<PlayerData>();
         playerData.SelectedInventorySlot.OnValueChanged += ChangeInventorySlot;
@@ -67,29 +71,55 @@ public class PlayerUI : NetworkBehaviour
     private void Update()
     {
         if (!IsOwner) {  return; }
-        UpdateLookedAtObjectText(GameObject.Find("Camera").transform.rotation.eulerAngles.x);
+        UpdateLookedAtObjectText();
         if (voiceChat)
             ModifyVoiceChatIcon(!voiceChat.IsMuted);
 
     }
 
     //This function will update text which tells player what is he looking at. It needs X Camera Rotation from client (in "Vector3 form") (server doesn't have camera - it is only on client)
-    void UpdateLookedAtObjectText(float cameraXRotation)
+    void UpdateLookedAtObjectText()
     {
-        GameObject targetObject = objectInteraction.GetObjectInFrontOfCamera(cameraXRotation);
+        GameObject targetObject = objectInteraction.GetObjectInFrontOfCamera(GameObject.Find("Camera").transform.rotation.eulerAngles.x);
         if (targetObject == null || string.IsNullOrEmpty(targetObject.tag))
         {
             centerText.text = "";
             return;
         }
-        
+        //declare these here to avoid scope issues
+        Shop shopScript;
+        BreakableStructure breakableStructure;
+        int currentHealth, maxHealth;
          switch (targetObject.tag)
         {
             case "Player":
-                centerText.text = targetObject.GetComponent<PlayerData>().Nickname.Value.ToString();
+                PlayerData playerData = targetObject.GetComponent<PlayerData>();
+                centerText.text = $"{playerData.Nickname.Value}\n{playerData.Health.Value}/100";
                 break;
             case "Item":
                 centerText.text = targetObject.GetComponent<ItemData>().itemProperties.Value.itemType.ToString();;
+                break;
+            case "Tree":
+                breakableStructure = targetObject.GetComponent<BreakableStructure>();
+                currentHealth = breakableStructure.Health.Value;
+                maxHealth = breakableStructure.MaximumHealth;
+                centerText.text = $"Tree\n{currentHealth}/{maxHealth}";
+                break;
+            case "Buy":
+                shopScript = targetObject.transform.parent.GetComponent<Shop>();
+                centerText.text = $"Buy {shopScript.ItemToSell.itemTier} {shopScript.ItemToSell.itemType}";
+                break;
+            case "Work":
+                shopScript = targetObject.transform.parent.GetComponent<Shop>();
+                centerText.text = $"Work in {shopScript.ItemToSell.itemTier} {shopScript.ItemToSell.itemType} Shop";
+                break;
+            case "Shop":
+                shopScript = targetObject.GetComponent<Shop>();
+                breakableStructure = targetObject.GetComponent<BreakableStructure>();
+                currentHealth = breakableStructure.Health.Value;
+                maxHealth = breakableStructure.MaximumHealth;
+                centerText.text = $"Tree\n{currentHealth}/{maxHealth}";
+                centerText.text = $"{shopScript.ItemToSell.itemTier} {shopScript.ItemToSell.itemType} Shop\n{currentHealth}/{maxHealth}";
                 break;
             default:
                 centerText.text = "";
@@ -145,6 +175,36 @@ public class PlayerUI : NetworkBehaviour
         }
     }
 
+    public void DisplayError(string error) {
+        if(errorText.enabled == true) //if not this, coroutine could be called couple times, which results in bugged behaviour
+            return;
+
+        errorText.text = error;
+        errorText.enabled = true;
+        StartCoroutine(DecreaseVisibilityOfErrorText());
+    }
+
+    IEnumerator DecreaseVisibilityOfErrorText()
+    {
+        float fadeDuration = 1f;
+        float timeDifferenceBetweenFades = 0.05f;
+        float fadeTime = 0f;
+        while (errorText.enabled == true)
+        {
+            fadeTime += timeDifferenceBetweenFades;
+            float alpha = Mathf.Clamp01(1 - fadeTime / fadeDuration);
+            Color newColor = errorText.color;
+            newColor.a = alpha;
+            errorText.color = newColor;
+            if (alpha <= 0)
+            {
+                errorText.enabled = false;
+                errorText.color = new Color(255, 0, 0, 1);
+            }
+            yield return new WaitForSeconds(timeDifferenceBetweenFades);
+        }
+    }
+
     public void DisplayInventory(NetworkListEvent<ItemData.ItemProperties> e)
     {
         if (!IsOwner) return;
@@ -188,7 +248,7 @@ public class PlayerUI : NetworkBehaviour
         healthBar.value = newHealthValue;
         healthBarText.text = newHealthValue.ToString();
     }
-    public void ModifyMoneyCount(int oldMoneyValue, int newMoneyValue)
+    public void ModifyMoneyCount(float oldMoneyValue, float newMoneyValue)
     {
         if (!IsOwner) return;
         moneyCount.text = newMoneyValue.ToString() + "$";

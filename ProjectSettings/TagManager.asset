@@ -7,7 +7,10 @@ TagManager:
   - Item
   - Material
   - SimplifiedPlayer
-  - Structure
+  - Shop
+  - Tree
+  - Buy
+  - Work
   layers:
   - Default
   - TransparentFX

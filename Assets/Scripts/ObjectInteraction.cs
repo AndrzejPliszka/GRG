@@ -189,6 +189,7 @@ public class ObjectInteraction : NetworkBehaviour
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
         if (targetObject == null) { return; }
         string targetObjectTag = targetObject.tag;
+        Shop shopScript; //declared here to avoid scope issues
         //first see if is looking at interactive object
         switch (targetObjectTag)
         {
@@ -205,6 +206,20 @@ public class ObjectInteraction : NetworkBehaviour
                     Destroy(targetObject);
                 }
                 return;
+            case "Buy":
+                shopScript = targetObject.transform.parent.GetComponent<Shop>();
+                if (shopScript == null)
+                    throw new Exception("Parent of object with BuyingPlace, does not have Shop script, modify hierarchy or this script accordingly!");
+                shopScript.BuyFromShop(gameObject);
+                ChangeHeldItemClientRpc(playerData.Inventory[playerData.SelectedInventorySlot.Value]);
+                return;
+            case "Work":
+                shopScript = targetObject.transform.parent.GetComponent<Shop>();
+                if (shopScript == null)
+                    throw new Exception("Parent of object with BuyingPlace, does not have Shop script, modify hierarchy or this script accordingly!");
+                shopScript.WorkInShop(gameObject);
+                return;
+
         }
 
         //if is not looking at interactive object, check if has interactible item in hand
@@ -263,7 +278,7 @@ public class ObjectInteraction : NetworkBehaviour
                 targetObject.GetComponent<PlayerData>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke();
                 break;
-            case "Structure":
+            case "Tree":
                 if (heldItem.itemType == ItemData.ItemType.Axe)
                     baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
                 else
@@ -275,6 +290,17 @@ public class ObjectInteraction : NetworkBehaviour
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke();
 
+                break;
+            case "Shop":
+                if (heldItem.itemType == ItemData.ItemType.Sword)
+                    baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
+                else if(heldItem.itemType == ItemData.ItemType.Hammer)
+                    baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier * -1); //hammer repairs shops, so we multiply times -1 so we add health to shop
+                else
+                    break;
+
+                targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
+                OnHittingSomething.Invoke();
                 break;
         }
     }

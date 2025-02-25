@@ -15,7 +15,8 @@ public class ItemData : NetworkBehaviour
         Sword,
         Axe,
         Medkit,
-        Food
+        Food,
+        Hammer
     }
 
     public enum ItemTier
