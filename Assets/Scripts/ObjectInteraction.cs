@@ -302,6 +302,21 @@ public class ObjectInteraction : NetworkBehaviour
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke();
                 break;
+            case "Crop":
+                if (heldItem.itemType == ItemData.ItemType.Sickle)
+                    baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
+                else
+                    break;
+
+                if (targetObject.GetComponent<BreakableStructure>().Health.Value + baseAttack <= 0) //If we predict crop will be cut, then give money [MAY CAUSE ERRORS] (this will be deleted may I add circular economy)
+                {
+                    GameManager.Instance.ChangeFoodSupply(1);
+                    playerData.ChangeMoney(5);
+                }
+
+                targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
+                OnHittingSomething.Invoke();
+                break;
         }
     }
 

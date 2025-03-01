@@ -16,7 +16,8 @@ public class ItemData : NetworkBehaviour
         Axe,
         Medkit,
         Food,
-        Hammer
+        Hammer,
+        Sickle
     }
 
     public enum ItemTier
@@ -28,17 +29,6 @@ public class ItemData : NetworkBehaviour
     //here I create networkVariable exclusive to every item
     public NetworkVariable<ItemProperties> itemProperties = new();
 
-    //Static function that changes texture of given item to appropariate material (it is here, because I have no script to handle behaviour and putting it in player scripts would be odd, but it is *theoretically* changing data)
-    public static void RetextureItem(GameObject item, ItemTier itemTier, ItemTierData itemMaterials)
-    {
-        foreach (Renderer itemPartRenderer in item.GetComponentsInChildren<Renderer>())
-        {
-            if (itemPartRenderer.transform.CompareTag("Material"))
-            {
-                itemPartRenderer.material = itemMaterials.GetDataOfItemTier(itemTier).itemMaterial;
-            }
-        }
-    }
     //This is struct which stores ALL data related to item, which won't change on picking up/dropping items
     //To make NetworkList out of struct I need to serialize it this way and implement IEquatable
     [Serializable]
@@ -54,6 +44,18 @@ public class ItemData : NetworkBehaviour
         {
             serializer.SerializeValue(ref itemType);
             serializer.SerializeValue(ref itemTier);
+        }
+    }
+
+    //Static function that changes texture of given item to appropariate material (it is here, because I have no script to handle behaviour and putting it in player scripts would be odd, but it is *theoretically* changing data)
+    public static void RetextureItem(GameObject item, ItemTier itemTier, ItemTierData itemMaterials)
+    {
+        foreach (Renderer itemPartRenderer in item.GetComponentsInChildren<Renderer>())
+        {
+            if (itemPartRenderer.transform.CompareTag("Material"))
+            {
+                itemPartRenderer.material = itemMaterials.GetDataOfItemTier(itemTier).itemMaterial;
+            }
         }
     }
     private void Start()

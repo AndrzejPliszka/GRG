@@ -91,12 +91,11 @@ public class Movement : NetworkBehaviour
         menuManager.ResumeGame(); //lock cursor in place
     }
 
-    //all things that need to contact server regulary
+    //all things that use time.fixedDeltaTime or need to contact server regulary
     private void FixedUpdate()
     {
         if (!IsOwner) return;
         HandleMovement();
-        HandleRotation();
         HandleGravityAndJumping(false);
         if(voiceChat) voiceChat.UpdateVivoxPosition();
         if (shouldReconciliate || IsHost)
@@ -106,10 +105,12 @@ public class Movement : NetworkBehaviour
         }
     }
 
-    //things that are done on keybord input (fixed update doesn't always register them)
+    //things that are done on player input (fixed update doesn't always register them)
     private void Update()
     {
         if (!IsOwner) return;
+        HandleRotation();
+
         //pausing the game (move to other component?)
         if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.V)) //v to test pause menu in unity editor
         {
@@ -150,7 +151,6 @@ public class Movement : NetworkBehaviour
     }
 
     //Function dealing with camera, rotation of both player and camera and sending mouse input to server
-    //Note: for some reason rotation is significantly faster on application then in unity editor
     private void HandleRotation() {
         if (menuManager.isGamePaused) { return; }
         float mouseY = Input.GetAxis("Mouse Y");

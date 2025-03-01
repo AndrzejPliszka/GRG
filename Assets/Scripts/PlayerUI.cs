@@ -105,6 +105,12 @@ public class PlayerUI : NetworkBehaviour
                 maxHealth = breakableStructure.MaximumHealth;
                 centerText.text = $"Tree\n{currentHealth}/{maxHealth}";
                 break;
+            case "Crop":
+                breakableStructure = targetObject.GetComponent<BreakableStructure>();
+                currentHealth = breakableStructure.Health.Value;
+                maxHealth = breakableStructure.MaximumHealth;
+                centerText.text = $"Crop\n{currentHealth}/{maxHealth}";
+                break;
             case "Buy":
                 shopScript = targetObject.transform.parent.GetComponent<Shop>();
                 centerText.text = $"Buy {shopScript.ItemToSell.itemTier} {shopScript.ItemToSell.itemType}";
@@ -118,8 +124,10 @@ public class PlayerUI : NetworkBehaviour
                 breakableStructure = targetObject.GetComponent<BreakableStructure>();
                 currentHealth = breakableStructure.Health.Value;
                 maxHealth = breakableStructure.MaximumHealth;
-                centerText.text = $"Tree\n{currentHealth}/{maxHealth}";
                 centerText.text = $"{shopScript.ItemToSell.itemTier} {shopScript.ItemToSell.itemType} Shop\n{currentHealth}/{maxHealth}";
+                break;
+            case "Storage":
+                centerText.text = $"Supply:\n{GameManager.Instance.TownData[0].foodSupply}/{GameManager.Instance.TownData[0].maximumFoodSupply}";
                 break;
             default:
                 centerText.text = "";
@@ -175,7 +183,8 @@ public class PlayerUI : NetworkBehaviour
         }
     }
 
-    public void DisplayError(string error) {
+    [Rpc(SendTo.Owner)]
+    public void DisplayErrorOwnerRpc(string error) {
         if(errorText.enabled == true) //if not this, coroutine could be called couple times, which results in bugged behaviour
             return;
 
