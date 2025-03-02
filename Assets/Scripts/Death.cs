@@ -36,6 +36,7 @@ public class Death : NetworkBehaviour
     {
         if (!IsServer) { throw new Exception("Client cannot decide to kill himself, only server can do that!"); };
         DestroyLocalPlayerModelOwnerRpc();
+        playerMovement.sittingCourutineCancellationToken?.Cancel(); //If player is killed during sitting in shop, stop using it before dying
         //drop items from inventory
         for (int i = 0; i < playerData.Inventory.Count; i++)
         {
@@ -48,7 +49,6 @@ public class Death : NetworkBehaviour
             GameObject newItem = Instantiate(itemPrefab, transform.position + transform.forward, new Quaternion());
             newItem.GetComponent<NetworkObject>().Spawn();
             newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;
-
         }
 
         //instantainte ragdoll
@@ -82,12 +82,5 @@ public class Death : NetworkBehaviour
         if (!IsServer || !SceneManager.GetActiveScene().isLoaded || NetworkManager == null || NetworkManager.ShutdownInProgress || !NetworkManager.Singleton.IsListening) 
             return;
         Die();
-    }
-    public override void OnDestroy()
-    {
-        // Clean up your NetworkBehaviour
-
-        // Always invoked the base
-        base.OnDestroy();
     }
 }

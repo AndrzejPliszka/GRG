@@ -11,6 +11,8 @@ TagManager:
   - Tree
   - Buy
   - Work
+  - Crop
+  - Storage
   layers:
   - Default
   - TransparentFX

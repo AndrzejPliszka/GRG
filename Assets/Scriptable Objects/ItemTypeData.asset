@@ -34,7 +34,12 @@ MonoBehaviour:
     staticItemSprite: {fileID: 21300000, guid: 2a53ecd482090624a8ed64315e5d32b0, type: 3}
     coloredItemSprite: {fileID: 21300000, guid: 42ff01f613409dc43819c3734385d4de, type: 3}
   - itemType: 5
-    droppedItemPrefab: {fileID: 8106892086165317472, guid: 5a8f640d70cf19742babee50c9456405, type: 3}
-    holdedItemPrefab: {fileID: 8106892086165317472, guid: 102d0ca13fa29ee4084a0bc9010abbe2, type: 3}
-    staticItemSprite: {fileID: 21300000, guid: 2a53ecd482090624a8ed64315e5d32b0, type: 3}
-    coloredItemSprite: {fileID: 21300000, guid: 42ff01f613409dc43819c3734385d4de, type: 3}
+    droppedItemPrefab: {fileID: 4827842618004739756, guid: 1a0a12fd83ef51440995074fffb5c932, type: 3}
+    holdedItemPrefab: {fileID: 4827842618004739756, guid: e6a06c60255825f43978d8d5bd1a0e67, type: 3}
+    staticItemSprite: {fileID: 21300000, guid: aef5c5a12f6cfe144a098ed0efe3f7b4, type: 3}
+    coloredItemSprite: {fileID: 21300000, guid: 8fe9cc73c16d66740808a50a4654e0e0, type: 3}
+  - itemType: 6
+    droppedItemPrefab: {fileID: 4100631407276537516, guid: 02351ceb1f06c454f8c54eb81ed55b84, type: 3}
+    holdedItemPrefab: {fileID: 4100631407276537516, guid: 8f28359734aa8c340a0cb982f35888ba, type: 3}
+    staticItemSprite: {fileID: 21300000, guid: 95b96ade105eeb74c85d5c8603dbd0a5, type: 3}
+    coloredItemSprite: {fileID: 21300000, guid: 583587b12e03a7f49b568a9477c1ddfc, type: 3}
