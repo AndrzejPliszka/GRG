@@ -89,6 +89,7 @@ public class PlayerUI : NetworkBehaviour
         //declare these here to avoid scope issues
         Shop shopScript;
         BreakableStructure breakableStructure;
+        Storage storage;
         int currentHealth, maxHealth;
          switch (targetObject.tag)
         {
@@ -127,7 +128,8 @@ public class PlayerUI : NetworkBehaviour
                 centerText.text = $"{shopScript.ItemToSell.itemTier} {shopScript.ItemToSell.itemType} Shop\n{currentHealth}/{maxHealth}";
                 break;
             case "Storage":
-                centerText.text = $"Supply:\n{GameManager.Instance.TownData[0].foodSupply}/{GameManager.Instance.TownData[0].maximumFoodSupply}";
+                storage = targetObject.transform.parent.GetComponent<Storage>();
+                centerText.text = $"Supply:\n{storage.FoodSupply}/{storage.MaximumFoodSupply}";
                 break;
             default:
                 centerText.text = "";

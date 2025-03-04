@@ -77,7 +77,7 @@ public class Shop : NetworkBehaviour
             return;
         }
 
-        if (isUsingFood && GameManager.Instance.TownData[townId].foodSupply - amountOfFoodNeeded < 0)
+        if (isUsingFood && GameManager.Instance.TownData[townId].FoodSupply - amountOfFoodNeeded < 0)
         {
             if (playerUI)
                 playerUI.DisplayErrorOwnerRpc("There is no food in town storage!");
@@ -88,7 +88,7 @@ public class Shop : NetworkBehaviour
         playerMovement.TeleportPlayerToPosition(customerChair.transform.position + new Vector3(0, 1, 0.5f));
         bool didBuy = await playerMovement.MakePlayerSit(5);
         buyingPlayerReference = null;
-        if (!didBuy || (isUsingFood && GameManager.Instance.TownData[townId].foodSupply - amountOfFoodNeeded < 0)) //if there was food when started buying, but someone used it and there is no food in storage you wont be able to buy
+        if (!didBuy || (isUsingFood && GameManager.Instance.TownData[townId].FoodSupply - amountOfFoodNeeded < 0)) //if there was food when started buying, but someone used it and there is no food in storage you wont be able to buy
             return;
         bool didAddToInventory = playerData.AddItemToInventory(ItemToSell);
         if (didAddToInventory)
