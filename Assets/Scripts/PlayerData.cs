@@ -7,6 +7,13 @@ using UnityEngine;
 
 public class PlayerData : NetworkBehaviour
 {
+    public enum PlayerRole
+    {
+        Peasant,
+        Citizen,
+        Leader
+    }
+
     public NetworkVariable<FixedString32Bytes> Nickname { get;  private set; } = new();
 
     public NetworkList<ItemData.ItemProperties> Inventory { get; private set; }
@@ -18,6 +25,10 @@ public class PlayerData : NetworkBehaviour
     public NetworkVariable<int> Health { get; private set; } = new(100);
 
     public NetworkVariable<float> Money { get; private set; } = new(0);
+
+    public NetworkVariable<PlayerRole> Role { get; private set; } = new(PlayerRole.Peasant); //Remember that "real" role of player will be in GameManager and this is just for easier access to that info
+
+    public NetworkVariable<int> AssignedTown { get; private set; } = new();
 
     //Variables that hold things related to managing data above
     bool decreaseHungerFaster = false;
