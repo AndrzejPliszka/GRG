@@ -42,6 +42,7 @@ public class PlayerApperance : NetworkBehaviour
         playerData = GetComponent<PlayerData>();
         playerRenderer = GetObjectRenderer(gameObject);
         ChangePlayerRoleTextureRpc(playerData.Role.Value, playerData.Role.Value); //call this to sync texture with everyone
+        if (!IsServer) { return; }
         playerData.Role.OnValueChanged += ChangePlayerRoleTextureRpc;
     }
 

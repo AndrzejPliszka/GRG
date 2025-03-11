@@ -25,7 +25,7 @@ public class GameManager : NetworkBehaviour
             } 
         }
 
-        public int _maximumFoodSupply;
+        int _maximumFoodSupply;
         public int MaximumFoodSupply
         { //setter getter so I can inform when food amount changes
             get => _maximumFoodSupply;
@@ -40,11 +40,17 @@ public class GameManager : NetworkBehaviour
         }
 
         public event Action<int, int> OnFoodChange = delegate { };
+
         //key is player role and value is all players belonging to that role
-        public Dictionary<PlayerData.PlayerRole, List<GameObject>> townMembers;
+        public Dictionary<PlayerData.PlayerRole, List<GameObject>> townMembers = new();
     }
-    public List<TownProperties> TownData { get; private set; }
-    public List<GameObject> PlayersWithoutTown { get; private set; }
+
+    public event Action<GameObject, PlayerData.PlayerRole> OnPlayerRoleChange = delegate { };
+    public event Action<GameObject, int> OnPlayerTownChange = delegate { };
+
+
+    public List<TownProperties> TownData { get; private set; } = new();
+    public List<GameObject> PlayersWithoutTown { get; private set; } = new();
 
     //Making this script singleton
     public static GameManager Instance { get; private set; }
@@ -53,8 +59,6 @@ public class GameManager : NetworkBehaviour
 
     private void Awake()
     {
-        TownData = new(); //Initializing here and not on declaration, because memory leak
-
         if (Instance == null)
         {
             Instance = this;
@@ -103,5 +107,66 @@ public class GameManager : NetworkBehaviour
             targetTownData.FoodSupply = targetTownData.MaximumFoodSupply;
 
         TownData[0] = targetTownData;
+    }
+
+    //used to put player in PlayersWithoutTown registry
+    public void AddPlayerToRegistry(GameObject playerGameObject)
+    {
+        if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); };
+        PlayersWithoutTown.Add(playerGameObject);
+        //This event is called so every time someone joins this method is called (used in RoleBasedColliders)
+        OnPlayerRoleChange.Invoke(playerGameObject, PlayerData.PlayerRole.Peasant);
+    }
+
+    public void AddPlayerToTown(GameObject playerGameObject, int townId) //TODO: Make this function delete player from peasant registry and other towns
+    {
+        if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); };
+
+        if(TownData[townId].townMembers.ContainsKey(PlayerData.PlayerRole.Citizen))
+            TownData[townId].townMembers[PlayerData.PlayerRole.Citizen].Add(playerGameObject);
+        else
+            TownData[townId].townMembers.Add(PlayerData.PlayerRole.Citizen, new List<GameObject> { playerGameObject });
+
+        PlayersWithoutTown.Remove(playerGameObject);
+
+
+        OnPlayerTownChange.Invoke(playerGameObject, townId);
+        OnPlayerRoleChange.Invoke(playerGameObject, PlayerData.PlayerRole.Citizen);
+    }
+
+    public void RemovePlayerFromTown(GameObject playerGameObject) //TODO: Make this function delete player from peasant registry and other towns
+    {
+        if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); };
+
+        PlayerData playerData = playerGameObject.GetComponent<PlayerData>();
+        TownData[playerData.TownId.Value].townMembers[PlayerData.PlayerRole.Citizen].Remove(playerGameObject);
+        PlayersWithoutTown.Add(playerGameObject);
+
+        OnPlayerTownChange.Invoke(playerGameObject, -1);
+        OnPlayerRoleChange.Invoke(playerGameObject, PlayerData.PlayerRole.Peasant);
+    }
+
+    public void ChangePlayerRole(GameObject playerGameObject, PlayerData.PlayerRole role)
+    {
+        if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); };
+
+        PlayerData playerData = playerGameObject.GetComponent<PlayerData>();
+
+        if (playerData.Role.Value == PlayerData.PlayerRole.Peasant) {
+            if (playerGameObject.GetComponent<PlayerUI>())
+                playerGameObject.GetComponent<PlayerUI>().DisplayErrorOwnerRpc("You need to become citizen of town first!");
+        }
+
+        if (role == PlayerData.PlayerRole.Peasant)
+        {
+            Debug.LogWarning("You cannot change into peasant. Use RemovePlayerFromTown() instead");
+        }
+        TownData[playerData.TownId.Value].townMembers[playerData.Role.Value].Remove(playerGameObject);
+        if(TownData[playerData.TownId.Value].townMembers.ContainsKey(role))
+            TownData[playerData.TownId.Value].townMembers[role].Add(playerGameObject);
+        else
+            TownData[playerData.TownId.Value].townMembers.Add(role, new List<GameObject> { playerGameObject });
+
+        OnPlayerRoleChange.Invoke(playerGameObject, role);
     }
 }
