@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Xml;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -43,6 +45,11 @@ public class GameManager : NetworkBehaviour
 
         //key is player role and value is all players belonging to that role
         public Dictionary<PlayerData.PlayerRole, List<GameObject>> townMembers = new();
+
+        public int PlayerCount()
+        {
+            return townMembers.Values.Sum(list => list.Count);
+        }
     }
 
     public event Action<GameObject, PlayerData.PlayerRole> OnPlayerRoleChange = delegate { };
@@ -146,22 +153,32 @@ public class GameManager : NetworkBehaviour
         OnPlayerRoleChange.Invoke(playerGameObject, PlayerData.PlayerRole.Peasant);
     }
 
-    public void ChangePlayerRole(GameObject playerGameObject, PlayerData.PlayerRole role)
+    public void ChangePlayerRole(GameObject playerGameObject, PlayerData.PlayerRole role, int townId = -1)
     {
         if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); };
 
         PlayerData playerData = playerGameObject.GetComponent<PlayerData>();
 
-        if (playerData.Role.Value == PlayerData.PlayerRole.Peasant) {
+        if (playerData.Role.Value == role)
+            return;
+
+        if (playerData.Role.Value == PlayerData.PlayerRole.Peasant && townId < 0) {
             if (playerGameObject.GetComponent<PlayerUI>())
                 playerGameObject.GetComponent<PlayerUI>().DisplayErrorOwnerRpc("You need to become citizen of town first!");
         }
 
         if (role == PlayerData.PlayerRole.Peasant)
         {
-            Debug.LogWarning("You cannot change into peasant. Use RemovePlayerFromTown() instead");
+            RemovePlayerFromTown(playerGameObject);
+            return;
         }
-        TownData[playerData.TownId.Value].townMembers[playerData.Role.Value].Remove(playerGameObject);
+
+        if (playerData.TownId.Value < 0)
+            AddPlayerToTown(playerGameObject, townId);
+        else
+            TownData[playerData.TownId.Value].townMembers[playerData.Role.Value].Remove(playerGameObject);
+
+
         if(TownData[playerData.TownId.Value].townMembers.ContainsKey(role))
             TownData[playerData.TownId.Value].townMembers[role].Add(playerGameObject);
         else

@@ -114,18 +114,18 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "Buy":
                 shopScript = targetObject.transform.parent.GetComponent<Shop>();
-                centerText.text = $"Buy {shopScript.ItemToSell.itemTier} {shopScript.ItemToSell.itemType}";
+                centerText.text = $"Buy {shopScript.HoverText.Substring(0, shopScript.HoverText.LastIndexOf(' ')).TrimEnd()}"; //Display without last word which is either shop or admission
                 break;
             case "Work":
                 shopScript = targetObject.transform.parent.GetComponent<Shop>();
-                centerText.text = $"Work in {shopScript.ItemToSell.itemTier} {shopScript.ItemToSell.itemType} Shop";
+                centerText.text = $"Work in {shopScript.HoverText}";
                 break;
             case "Shop":
                 shopScript = targetObject.GetComponent<Shop>();
                 breakableStructure = targetObject.GetComponent<BreakableStructure>();
                 currentHealth = breakableStructure.Health.Value;
                 maxHealth = breakableStructure.MaximumHealth;
-                centerText.text = $"{shopScript.ItemToSell.itemTier} {shopScript.ItemToSell.itemType} Shop\n{currentHealth}/{maxHealth}";
+                centerText.text = $"{shopScript.HoverText}\n{currentHealth}/{maxHealth}";
                 break;
             case "Storage":
                 storage = targetObject.transform.parent.GetComponent<Storage>();

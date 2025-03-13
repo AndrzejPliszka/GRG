@@ -248,7 +248,6 @@ public class PlayerData : NetworkBehaviour
     private void ChangeRole(GameObject changedGameObject, PlayerRole role)
     {
         if (!IsServer) { throw new Exception("Trying to change role on client!"); };
-        Debug.Log("Rola sie zmienia (szalone)");
         if (changedGameObject == gameObject)
             Role.Value = role;
     }

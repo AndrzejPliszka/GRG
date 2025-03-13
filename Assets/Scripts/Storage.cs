@@ -18,11 +18,18 @@ public class Storage : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         if(!IsServer) return;
-        ChangeLevelOfMaterialRpc(GameManager.Instance.TownData[townId].FoodSupply, GameManager.Instance.TownData[townId].MaximumFoodSupply);//update amount of stuff in storage on joining
+        NetworkManager.Singleton.OnClientConnectedCallback += SyncClient;
+        ChangeLevelOfMaterialRpc(GameManager.Instance.TownData[townId].FoodSupply, GameManager.Instance.TownData[townId].MaximumFoodSupply);//update amount of stuff in storage for host
         GameManager.Instance.TownData[townId].OnFoodChange += ChangeLevelOfMaterialRpc;
     }
+
+    void SyncClient(ulong clientId)
+    {
+        if( !IsServer ) return;
+        ChangeLevelOfMaterialRpc(GameManager.Instance.TownData[townId].FoodSupply, GameManager.Instance.TownData[townId].MaximumFoodSupply);
+    }
     [Rpc(SendTo.Everyone)]
-    public void ChangeLevelOfMaterialRpc(int foodSupply, int maxFoodSupply)
+    public void ChangeLevelOfMaterialRpc(int foodSupply, int maxFoodSupply) //TO DO: Make this function possible to be sent only to one client
     {
         storedMaterial.transform.position = new Vector3(
             storedMaterial.transform.position.x, (1.0f * foodSupply / maxFoodSupply) * maximumMaterialLevel + yOffset, storedMaterial.transform.position.z); //multiplying times 1.0f to avoid integer devision and always getting 0
