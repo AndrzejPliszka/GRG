@@ -5976,7 +5976,7 @@ GameObject:
   - component: {fileID: 2137334638}
   - component: {fileID: 2137334639}
   m_Layer: 0
-  m_Name: Cube
+  m_Name: TestRoleWall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6016,7 +6016,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   selectedRole: 0
-  ignoreCollisionOfSelectedRole: 1
+  ignoreCollisionOfSelectedRole: 0
 --- !u!65 &2137334640
 BoxCollider:
   m_ObjectHideFlags: 0

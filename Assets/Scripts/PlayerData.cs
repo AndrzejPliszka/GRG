@@ -48,8 +48,6 @@ public class PlayerData : NetworkBehaviour
         if (IsServer)
         {
             GameManager.Instance.AddPlayerToRegistry(gameObject);
-            GameManager.Instance.OnPlayerRoleChange += ChangeRole;
-            GameManager.Instance.OnPlayerTownChange += ChangeTownId;
 
             Health.OnValueChanged += InvokeDeath;
             //move to game manager or player manager??
@@ -74,7 +72,7 @@ public class PlayerData : NetworkBehaviour
         if (Input.GetKeyDown(KeyCode.X))
         {
             if (IsServer)
-                GameManager.Instance.AddPlayerToTown(gameObject, 0);
+                GameManager.Instance.ChangePlayerAffiliation(gameObject, PlayerRole.Citizen ,0);
             else
                 AddToTownClientRpc();
         }
@@ -97,7 +95,7 @@ public class PlayerData : NetworkBehaviour
     [Rpc(SendTo.Server)]
     private void AddToTownClientRpc()//UNSAFE TESTING FUNCTION DELETE FOR SAFETY!!!
     {
-        GameManager.Instance.AddPlayerToTown(gameObject, 0);
+        GameManager.Instance.ChangePlayerAffiliation(gameObject, PlayerRole.Citizen, 0);
     }
     //[WARNING !] This is unsafe, because it makes that nickname is de facto Owner controlled and can be changed any time by client by calling this method
     //It is that way, because otherwise nickname would need to be send to server on player join and server would need to assign it only one time and I don't really know how to do this and this will be assigned by client anyways, so I don't care
@@ -243,18 +241,5 @@ public class PlayerData : NetworkBehaviour
     {
         if(newValue == 0)
             OnDeath.Invoke();
-    }
-
-    private void ChangeRole(GameObject changedGameObject, PlayerRole role)
-    {
-        if (!IsServer) { throw new Exception("Trying to change role on client!"); };
-        if (changedGameObject == gameObject)
-            Role.Value = role;
-    }
-    private void ChangeTownId(GameObject changedGameObject, int townId)
-    {
-        if (!IsServer) { throw new Exception("Trying to change town on client!"); };
-        if (changedGameObject == gameObject)
-            TownId.Value = townId;
     }
 }

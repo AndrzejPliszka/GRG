@@ -73,7 +73,7 @@ public class Shop : NetworkBehaviour
         if (playerTownId != townId)
             return;
 
-        if (GameManager.Instance.TownData[townId].PlayerCount() == 0)
+        if (GameManager.Instance.TownData[townId].townMembers.Count == 0)
             isShopOpen.Value = true;
         else
             isShopOpen.Value = false;
@@ -102,7 +102,7 @@ public class Shop : NetworkBehaviour
                 playerUI.DisplayErrorOwnerRpc("Inventory full!");
             return;
         }
-        if (!isShopOpen.Value && !(noWorkerRequiredOnEmptyTown && GameManager.Instance.TownData[townId].PlayerCount() == 0))
+        if (!isShopOpen.Value && !(noWorkerRequiredOnEmptyTown && GameManager.Instance.TownData[townId].townMembers.Count == 0))
         {
             if (playerUI)
                 playerUI.DisplayErrorOwnerRpc("Nobody is working in the shop!");
@@ -134,7 +134,7 @@ public class Shop : NetworkBehaviour
             didBuy = playerData.AddItemToInventory(ItemToSell);
 
         if (isBuyingRole) //did buy is true by default at this point, so I dont need to set it
-            GameManager.Instance.ChangePlayerRole(buyingPlayer, playerRole, townId); 
+            GameManager.Instance.ChangePlayerAffiliation(buyingPlayer, playerRole, townId); 
 
         if (didBuy)
         {

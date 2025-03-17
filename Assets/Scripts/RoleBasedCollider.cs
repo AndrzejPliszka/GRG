@@ -30,28 +30,23 @@ public class RoleBasedCollider : NetworkBehaviour
         if (!IsServer) { throw new System.Exception("You cannot use this method on client, as it uses server only info"); }
 
         for (int i = 0; i < GameManager.Instance.TownData.Count; i++) {
-            foreach (var townRole in GameManager.Instance.TownData[i].townMembers)
+            foreach (GameObject player in GameManager.Instance.TownData[i].townMembers)
             {
-                foreach (var player in townRole.Value)
+                if (player.GetComponent<PlayerData>().Role.Value == selectedRole)
                 {
-                    if (townRole.Key == selectedRole)
-                    {
-                        Physics.IgnoreCollision(objectCollider, player.GetComponent<CharacterController>(), ignoreCollisionOfSelectedRole);
-                        ManageThisColliderOnClientRpc(ignoreCollisionOfSelectedRole, RpcTarget.Single(player.GetComponent<NetworkObject>().OwnerClientId, RpcTargetUse.Temp)); //I'm not sure if RpcTargetUse.Temp is most approperiate here 
-                    }
-                    else
-                    {
-                        Physics.IgnoreCollision(objectCollider, player.GetComponent<CharacterController>(), !ignoreCollisionOfSelectedRole);
-                        ManageThisColliderOnClientRpc(!ignoreCollisionOfSelectedRole, RpcTarget.Single(player.GetComponent<NetworkObject>().OwnerClientId, RpcTargetUse.Temp));
-                    }
-                        
+                    Physics.IgnoreCollision(objectCollider, player.GetComponent<CharacterController>(), ignoreCollisionOfSelectedRole);
+                    ManageThisColliderOnClientRpc(ignoreCollisionOfSelectedRole, RpcTarget.Single(player.GetComponent<NetworkObject>().OwnerClientId, RpcTargetUse.Temp)); //I'm not sure if RpcTargetUse.Temp is most approperiate here 
+                }
+                else
+                {
+                   Physics.IgnoreCollision(objectCollider, player.GetComponent<CharacterController>(), !ignoreCollisionOfSelectedRole);
+                    ManageThisColliderOnClientRpc(!ignoreCollisionOfSelectedRole, RpcTarget.Single(player.GetComponent<NetworkObject>().OwnerClientId, RpcTargetUse.Temp));
                 }
             }
         }
         //there is different list only for peasants
         foreach (var player in GameManager.Instance.PlayersWithoutTown)
         {
-            Debug.Log("Jest wieœniak w rejestrze");
             if (PlayerData.PlayerRole.Peasant == selectedRole)
             {
                 Physics.IgnoreCollision(objectCollider, player.GetComponent<CharacterController>(), ignoreCollisionOfSelectedRole);
