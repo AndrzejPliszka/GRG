@@ -42,7 +42,6 @@ public class Menu : NetworkBehaviour
 
         resumeGameButton = GameObject.Find("ResumeGameButton").GetComponent<Button>();
         exitServerButton = GameObject.Find("ExitServerButton").GetComponent<Button>();
-        exitServerButton = GameObject.Find("ExitServerButton").GetComponent<Button>();
     }
     void Start()
     {

@@ -28,11 +28,26 @@ public class Shop : NetworkBehaviour
 
     public string HoverText { get; private set; }
     //server side variables (not used on client)
-    [SerializeField] int price;
+    [SerializeField] float _price;
+    public float Price {
+        get => _price;
+        set
+        {
+            if (_price != value)
+            {
+                _price = value < 0 ? 0 : value;
+                _price = MathF.Round(_price, 2);
+                OnPriceChange.Invoke(_price);
+            }
+        }
+    }
+    Action<float> OnPriceChange;
+    [SerializeField] bool isPriceChangable;
+
     readonly NetworkVariable<bool> isShopOpen = new(); //readonly, because it is best practise here
     GameObject buyingPlayerReference; //this refrence is needed to force buyingPlayer to stop sitting if workingPlayer no longer works
 
-    public ItemData.ItemProperties ItemToSell { private set; get; } = new();
+    public ItemData.ItemProperties SoldItem { private set; get; } = new();
 
     public override void OnNetworkSpawn()
     {
@@ -41,29 +56,18 @@ public class Shop : NetworkBehaviour
             isShopOpen.Value = noWorkerRequiredOnEmptyTown;
             if (noWorkerRequiredOnEmptyTown)
                 GameManager.Instance.OnPlayerTownChange += UpdateIsShopOpen;
+            if (isPriceChangable)
+                GameManager.Instance.TownData[townId].shopsControlledByLeader.Add(this);
+
+            OnPriceChange += ChangeCurrentItemTextRpc;
         }
 
         if (soldItemType != ItemData.ItemType.Null )
-            ItemToSell = new ItemData.ItemProperties() { itemTier = soldItemTier, itemType = soldItemType };
+            SoldItem = new ItemData.ItemProperties() { itemTier = soldItemTier, itemType = soldItemType };
 
-        if (soldItemType != ItemData.ItemType.Null)
-        {
-            shopText.text = $"{ItemToSell.itemTier} {ItemToSell.itemType}\n for {price}$";
-            HoverText = $"{ItemToSell.itemTier} {ItemToSell.itemType} Shop";
-        }
-        else if (isBuyingRole == true)
-        {
-            shopText.text = $"Become {playerRole}\n for {price}$";
-            HoverText = $"{playerRole} Admission";
-        }
-        else
-        {
-            shopText.text = $"This shop sells nothing\n for {price}";
-            HoverText = $"Sigma Ligma Skibidi Shop";
-        }
-
-        ChangeCurretInfoTextRpc(isShopOpen.Value, isShopOpen.Value);
-        isShopOpen.OnValueChanged += ChangeCurretInfoTextRpc;
+        ChangeCurrentItemTextRpc(Price);
+        ChangeCurretOpenInfoTextRpc(isShopOpen.Value, isShopOpen.Value);
+        isShopOpen.OnValueChanged += ChangeCurretOpenInfoTextRpc;
 
     }
 
@@ -89,7 +93,7 @@ public class Shop : NetworkBehaviour
         if (playerMovement == null || playerData == null)
             Debug.LogWarning("Client does not have playerMovement or playerData script and is trying to buy something!");
 
-        if(playerData.Money.Value < price)
+        if(playerData.Money.Value < Price)
         {
             if (playerUI)
                 playerUI.DisplayErrorOwnerRpc("Go get some money first!");
@@ -130,8 +134,8 @@ public class Shop : NetworkBehaviour
         if (!didBuy || (isUsingFood && GameManager.Instance.TownData[townId].FoodSupply - amountOfFoodNeeded < 0))
             return;
 
-        if (ItemToSell.itemType != ItemData.ItemType.Null)
-            didBuy = playerData.AddItemToInventory(ItemToSell);
+        if (SoldItem.itemType != ItemData.ItemType.Null)
+            didBuy = playerData.AddItemToInventory(SoldItem);
 
         if (isBuyingRole) //did buy is true by default at this point, so I dont need to set it
             GameManager.Instance.ChangePlayerAffiliation(buyingPlayer, playerRole, townId); 
@@ -139,8 +143,8 @@ public class Shop : NetworkBehaviour
         if (didBuy)
         {
             if (isUsingFood)
-                GameManager.Instance.ChangeFoodSupply(-amountOfFoodNeeded);
-            playerData.ChangeMoney(-price);
+                GameManager.Instance.ChangeFoodSupply(-amountOfFoodNeeded, townId);
+            playerData.ChangeMoney(-Price);
         }
             
         
@@ -184,7 +188,27 @@ public class Shop : NetworkBehaviour
     }
 
     [Rpc(SendTo.Everyone)]
-    private void ChangeCurretInfoTextRpc(bool wasOpen, bool isOpen)
+    private void ChangeCurrentItemTextRpc(float newPrice)
+    {
+        if (soldItemType != ItemData.ItemType.Null)
+        {
+            shopText.text = $"{SoldItem.itemTier} {SoldItem.itemType}\n for {Price}$";
+            HoverText = $"{SoldItem.itemTier} {SoldItem.itemType} Shop";
+        }
+        else if (isBuyingRole == true)
+        {
+            shopText.text = $"Become {playerRole}\n for {Price}$";
+            HoverText = $"{playerRole} Admission";
+        }
+        else
+        {
+            shopText.text = $"This shop sells nothing\n for {Price}";
+            HoverText = $"Sigma Ligma Skibidi Shop";
+        }
+    }
+
+    [Rpc(SendTo.Everyone)]
+    private void ChangeCurretOpenInfoTextRpc(bool wasOpen, bool isOpen)
     {
         if (isOpen)
         {

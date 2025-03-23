@@ -310,7 +310,8 @@ public class ObjectInteraction : NetworkBehaviour
 
                 if (targetObject.GetComponent<BreakableStructure>().Health.Value + baseAttack <= 0) //If we predict crop will be cut, then give money [MAY CAUSE ERRORS] (this will be deleted may I add circular economy)
                 {
-                    GameManager.Instance.ChangeFoodSupply(1);
+                    if(playerData.TownId.Value >= 0)
+                        GameManager.Instance.ChangeFoodSupply(1, playerData.TownId.Value);
                     playerData.ChangeMoney(5);
                 }
 

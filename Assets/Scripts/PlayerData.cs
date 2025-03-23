@@ -232,6 +232,15 @@ public class PlayerData : NetworkBehaviour
         if (!IsServer) { throw new Exception("Trying to modify money amount on client!"); };
         if (Money.Value + amountToIncrease < 0)
             return false;
+
+        //pay tax
+        if (amountToIncrease > 0 && !(Role.Value == PlayerRole.Leader || Role.Value == PlayerRole.Peasant))
+        { 
+            float taxMoney = GameManager.Instance.TownData[TownId.Value].TaxRate * amountToIncrease;
+            amountToIncrease -= taxMoney;
+            GameManager.Instance.TownData[TownId.Value].townMembers[0].GetComponent<PlayerData>().ChangeMoney(taxMoney); //give tax money to leader
+        }
+
         Money.Value += amountToIncrease;
         Money.Value = (Mathf.Round(Money.Value * 100)) / 100.0f; //ensure amountToIncrease has max 2 digits after colon
         return true;

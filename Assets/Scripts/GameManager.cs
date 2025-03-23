@@ -41,16 +41,28 @@ public class GameManager : NetworkBehaviour
                 }
             }
         }
+        public float _taxRate = 0.25f;
+        public float TaxRate
+        {
+            get => _taxRate;
+            set
+            {
+                if (value < 0)
+                    value = 0;
+                if (value > 1)
+                    value = 1;
 
+                if (_taxRate != value)
+                {
+                    _taxRate = value;
+                    OnTaxRateChange.Invoke(_taxRate);
+                }
+            }
+        }
         public event Action<int, int> OnFoodChange = delegate { };
-
-        //Make this less retarded (?)
-
-        //key is player role and value is all players belonging to that role
-        //public Dictionary<PlayerData.PlayerRole, List<GameObject>> townMembers = new();
-
-        //repeats data above second time
+        public event Action<float> OnTaxRateChange = delegate { };
         public List<GameObject> townMembers = new();
+        public List<Shop> shopsControlledByLeader = new();
     }
 
     public event Action<GameObject, PlayerData.PlayerRole> OnPlayerRoleChange = delegate { };
@@ -75,6 +87,11 @@ public class GameManager : NetworkBehaviour
         {
             Destroy(gameObject);
         }
+
+        for (int i = 0; i < 1; i++)
+        {
+            TownData.Add(new TownProperties() { FoodSupply = 0, MaximumFoodSupply = 100 });
+        }
     }
 
     override public void OnNetworkSpawn()
@@ -82,10 +99,6 @@ public class GameManager : NetworkBehaviour
         if (!IsServer) { return; }
 
         OnPlayerTownChange += ChangeLeader;
-        for (int i = 0; i < 1; i++)
-        {
-            TownData.Add(new TownProperties() { FoodSupply = 0, MaximumFoodSupply = 100 });
-        }
 
         //Spawn all items in the game for testing purposes
         int itemSpawnZPos = 0;
@@ -103,11 +116,12 @@ public class GameManager : NetworkBehaviour
             }
         }
     }
+
     //Functions to manage data
-    public void ChangeFoodSupply(int amountToChange) //TO DO: make that you can change it in every city (currently only in 1st one)
+    public void ChangeFoodSupply(int amountToChange, int townId) //TO DO: make that you can change it in every city (currently only in 1st one)
     {
         if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); };
-        TownProperties targetTownData = TownData[0];
+        TownProperties targetTownData = TownData[townId];
         targetTownData.FoodSupply += amountToChange;
 
         if (targetTownData.FoodSupply < 0)
@@ -115,12 +129,14 @@ public class GameManager : NetworkBehaviour
         if (targetTownData.FoodSupply > targetTownData.MaximumFoodSupply)
             targetTownData.FoodSupply = targetTownData.MaximumFoodSupply;
 
-        TownData[0] = targetTownData;
+        TownData[townId] = targetTownData;
     }
 
     public void ChangeLeader(GameObject player, int townId)
     {
         if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); }
+        if (TownData[townId].townMembers.Count == 0)
+            return;
         ChangePlayerAffiliation(TownData[townId].townMembers[0], PlayerData.PlayerRole.Leader, townId);
     }
 

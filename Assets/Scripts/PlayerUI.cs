@@ -26,6 +26,7 @@ public class PlayerUI : NetworkBehaviour
     TMP_Text hungerBarText;
     TMP_Text healthBarText;
     TMP_Text moneyCount;
+    TMP_Text taxRate;
     Image hitmark;
     Image cooldownMarker;
     Image micActivityIcon;
@@ -39,6 +40,7 @@ public class PlayerUI : NetworkBehaviour
         hungerBarText = GameObject.Find("HungerBarText").GetComponent<TMP_Text>();
         healthBarText = GameObject.Find("HealthBarText").GetComponent<TMP_Text>();
         moneyCount = GameObject.Find("MoneyCount").GetComponent<TMP_Text>();
+        taxRate = GameObject.Find("TaxRate").GetComponent<TMP_Text>();
 
         hitmark = GameObject.Find("Hitmark").GetComponent<Image>();
         cooldownMarker = GameObject.Find("CooldownMarker").GetComponent<Image>();
@@ -53,17 +55,32 @@ public class PlayerUI : NetworkBehaviour
         for (int i = 0; i < inventorySlotsContainer.transform.childCount; i++) {
             inventorySlots.Add(inventorySlotsContainer.transform.GetChild(i).gameObject);
         }
-        
-        objectInteraction = GetComponent<ObjectInteraction>();
         PlayerData playerData = GetComponent<PlayerData>();
-        playerData.SelectedInventorySlot.OnValueChanged += ChangeInventorySlot;
-        playerData.Inventory.OnListChanged += DisplayInventory;
-        playerData.Hunger.OnValueChanged += ModifyHungerBar;
-        playerData.Health.OnValueChanged += ModifyHealthBar;
-        playerData.Money.OnValueChanged += ModifyMoneyCount;
+        objectInteraction = GetComponent<ObjectInteraction>();
 
-        objectInteraction.OnHittingSomething += DisplayHitmarkOwnerRpc;
-        objectInteraction.OnPunch += DisplayCooldownCircleOwnerRpc;
+        if (IsOwner)
+        {
+            playerData.SelectedInventorySlot.OnValueChanged += ChangeInventorySlot;
+            playerData.Inventory.OnListChanged += DisplayInventory;
+            playerData.Hunger.OnValueChanged += ModifyHungerBar;
+            playerData.Health.OnValueChanged += ModifyHealthBar;
+            playerData.Money.OnValueChanged += ModifyMoneyCount;
+        }
+
+        if (IsServer)
+        {
+            //Here are only server side events which call RPCs
+            objectInteraction.OnHittingSomething += DisplayHitmarkOwnerRpc;
+            objectInteraction.OnPunch += DisplayCooldownCircleOwnerRpc;
+            playerData.TownId.OnValueChanged += (int oldTownId, int newTownId) => { //MOVE TO OTHER FUNCTION IF IT GROWS TOO MUCH !!!
+                ModifyTaxRateTextOwnerRpc(GameManager.Instance.TownData[newTownId].TaxRate);
+                if(oldTownId >= 0 && oldTownId < GameManager.Instance.TownData.Count)
+                    GameManager.Instance.TownData[oldTownId].OnTaxRateChange -= ModifyTaxRateTextOwnerRpc;
+                if (newTownId >= 0 && newTownId < GameManager.Instance.TownData.Count)
+                    GameManager.Instance.TownData[newTownId].OnTaxRateChange += ModifyTaxRateTextOwnerRpc;
+            };
+        }
+        
 
         voiceChat = gameObject.GetComponent<VoiceChat>();
     }
@@ -77,6 +94,7 @@ public class PlayerUI : NetworkBehaviour
 
     }
 
+    
     //This function will update text which tells player what is he looking at. It needs X Camera Rotation from client (in "Vector3 form") (server doesn't have camera - it is only on client)
     void UpdateLookedAtObjectText()
     {
@@ -114,7 +132,7 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "Buy":
                 shopScript = targetObject.transform.parent.GetComponent<Shop>();
-                centerText.text = $"Buy {shopScript.HoverText.Substring(0, shopScript.HoverText.LastIndexOf(' ')).TrimEnd()}"; //Display without last word which is either shop or admission
+                centerText.text = $"Buy {shopScript.HoverText[..shopScript.HoverText.LastIndexOf(' ')].TrimEnd()}"; //Display without last word which is either shop or admission
                 break;
             case "Work":
                 shopScript = targetObject.transform.parent.GetComponent<Shop>();
@@ -267,5 +285,13 @@ public class PlayerUI : NetworkBehaviour
     public void ModifyVoiceChatIcon(bool shouldBeEnabled)
     {
         micActivityIcon.enabled = shouldBeEnabled;
+    }
+
+    //Rpc because taxRate is only server side and needs to be sent manually
+    [Rpc(SendTo.Owner)]
+    public void ModifyTaxRateTextOwnerRpc(float newTaxValue)
+    {
+        if (!IsOwner) return;
+        taxRate.text = "Tax rate: \n " + (newTaxValue * 100).ToString() + "%";
     }
 }
