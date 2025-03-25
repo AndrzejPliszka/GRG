@@ -127,12 +127,19 @@ public class Shop : NetworkBehaviour
         }
 
         buyingPlayerReference = buyingPlayer; //used only in checking if someone is buying in the shop, use buyingPlayer otherwise
-        playerMovement.TeleportPlayerToPosition(customerChair.transform.position +  transform.localRotation * customerChair.transform.localRotation * new Vector3(0, 0.75f, 0.5f));
+        playerMovement.TeleportPlayerToPosition(customerChair.transform.position + transform.localRotation * customerChair.transform.localRotation * new Vector3(0, 0.75f, 0.5f));
+        if(playerUI)
+            playerUI.DisplayProgressBarOwnerRpc(5);
         bool didBuy = await playerMovement.MakePlayerSit(5);
         buyingPlayerReference = null;
         //if there was food when started buying, but someone used it and there is no food in storage you wont be able to buy
         if (!didBuy || (isUsingFood && GameManager.Instance.TownData[townId].FoodSupply - amountOfFoodNeeded < 0))
+        {
+            if (playerUI)
+                playerUI.ForceStopProgressBarOwnerRpc();
             return;
+        }
+            
 
         if (SoldItem.itemType != ItemData.ItemType.Null)
             didBuy = playerData.AddItemToInventory(SoldItem);
@@ -144,7 +151,9 @@ public class Shop : NetworkBehaviour
         {
             if (isUsingFood)
                 GameManager.Instance.ChangeFoodSupply(-amountOfFoodNeeded, townId);
+
             playerData.ChangeMoney(-Price);
+            GameManager.Instance.TownData[townId].townMembers[0].GetComponent<PlayerData>().ChangeMoney(Price);
         }
             
         
@@ -180,7 +189,6 @@ public class Shop : NetworkBehaviour
                     buyingPlayerMovement.sittingCourutineCancellationToken.Cancel();
                     buyingPlayerMovement.IsSitting.Value = false;
                 }
-                    
                 return;
             }
             playerData.ChangeMoney(0.1f);

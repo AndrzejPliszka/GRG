@@ -32,7 +32,10 @@ public class PlayerUI : NetworkBehaviour
     Image micActivityIcon;
     Slider hungerBar;
     Slider healthBar;
+    Slider progressBar;
     readonly List<GameObject> inventorySlots = new();
+
+    Coroutine progressBarCoroutine;
     public override void OnNetworkSpawn()
     {
         centerText = GameObject.Find("CenterText").GetComponent<TMP_Text>();
@@ -60,6 +63,8 @@ public class PlayerUI : NetworkBehaviour
 
         if (IsOwner)
         {
+            progressBar = GameObject.Find("ProgressBar").GetComponent<Slider>();
+            progressBar.gameObject.SetActive(false);
             playerData.SelectedInventorySlot.OnValueChanged += ChangeInventorySlot;
             playerData.Inventory.OnListChanged += DisplayInventory;
             playerData.Hunger.OnValueChanged += ModifyHungerBar;
@@ -291,7 +296,40 @@ public class PlayerUI : NetworkBehaviour
     [Rpc(SendTo.Owner)]
     public void ModifyTaxRateTextOwnerRpc(float newTaxValue)
     {
-        if (!IsOwner) return;
         taxRate.text = "Tax rate: \n " + (newTaxValue * 100).ToString() + "%";
     }
+
+    [Rpc(SendTo.Owner)]
+    public void DisplayProgressBarOwnerRpc(int amountOfTime)
+    {
+        progressBar.gameObject.SetActive(true);
+        progressBar.value = 0;
+        progressBarCoroutine = StartCoroutine(FillProgressBar(amountOfTime));
+    }
+
+    IEnumerator FillProgressBar(int totalAmountOfTime)
+    {
+        bool isBarFilled = false;
+        while (!isBarFilled)
+        {
+            progressBar.value++;
+            yield return new WaitForSeconds(totalAmountOfTime / 100f);
+
+            if (progressBar.value >= 100)
+            {
+                progressBar.gameObject.SetActive(false);
+                isBarFilled = true;
+            }
+        }
+        progressBarCoroutine = null;
+    }
+
+    [Rpc(SendTo.Owner)]
+    public void ForceStopProgressBarOwnerRpc()
+    {
+        progressBar.gameObject.SetActive(false);
+        if(progressBarCoroutine != null)
+            StopCoroutine(progressBarCoroutine);
+    }
+
 }

@@ -40,9 +40,13 @@ public class LeaderMenu : NetworkBehaviour
     {
         if(!IsServer) { throw new Exception("This function uses server side only TownData. It needs to be called on server"); }
         List<Shop> shopsControlledByLeader = GameManager.Instance.TownData[playerData.TownId.Value].shopsControlledByLeader;
+        List<ItemData.ItemProperties> itemsSoldByShops = new();
         foreach(Shop shop in shopsControlledByLeader)
         {
             ItemData.ItemProperties itemProperties = shop.SoldItem;
+            if (itemsSoldByShops.Contains(itemProperties))
+                continue;
+            itemsSoldByShops.Add(itemProperties);
             AddItemToShopManagmentPanelClientRpc(itemProperties, numberOfShopItems);
             numberOfShopItems++;
         }

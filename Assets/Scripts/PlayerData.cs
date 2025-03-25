@@ -68,15 +68,6 @@ public class PlayerData : NetworkBehaviour
 
     private void Update()
     {
-        //TESTING ONLY!!!!! DELETE AFTER ROLES ARE IMPLEMENTED!!
-        if (Input.GetKeyDown(KeyCode.X))
-        {
-            if (IsServer)
-                GameManager.Instance.ChangePlayerAffiliation(gameObject, PlayerRole.Citizen ,0);
-            else
-                AddToTownClientRpc();
-        }
-
         if (!IsServer) { return; }
 
         //If running decrease hunger faster
@@ -90,12 +81,6 @@ public class PlayerData : NetworkBehaviour
         else
             decreaseHealth = false;
 
-    }
-
-    [Rpc(SendTo.Server)]
-    private void AddToTownClientRpc()//UNSAFE TESTING FUNCTION DELETE FOR SAFETY!!!
-    {
-        GameManager.Instance.ChangePlayerAffiliation(gameObject, PlayerRole.Citizen, 0);
     }
     //[WARNING !] This is unsafe, because it makes that nickname is de facto Owner controlled and can be changed any time by client by calling this method
     //It is that way, because otherwise nickname would need to be send to server on player join and server would need to assign it only one time and I don't really know how to do this and this will be assigned by client anyways, so I don't care
