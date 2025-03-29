@@ -21,22 +21,66 @@ public class Shop : NetworkBehaviour
     [SerializeField] bool isUsingFood; //Change into enum if you want to add more raw materials (or maybe dictionary with different materials and amounts?)
     [SerializeField] int amountOfFoodNeeded;
 
+    [SerializeField] bool isBuyingRole;
+    [SerializeField] PlayerData.PlayerRole playerRole; //is not used when isChangingRole = true
+
+    [SerializeField] bool noWorkerRequiredOnEmptyTown; //makes that if there is no people in town, you can still buy things (used admission building, so first player can join town)
+
+    public string HoverText { get; private set; }
     //server side variables (not used on client)
-    [SerializeField] int price;
-    readonly NetworkVariable<bool> isSomeoneWorking = new(false); //readonly, because it is best practise here
+    [SerializeField] float _price;
+    public float Price {
+        get => _price;
+        set
+        {
+            if (_price != value)
+            {
+                _price = value < 0 ? 0 : value;
+                _price = MathF.Round(_price, 2);
+                OnPriceChange.Invoke(_price);
+            }
+        }
+    }
+    Action<float> OnPriceChange;
+    [SerializeField] bool isPriceChangable;
+
+    readonly NetworkVariable<bool> isShopOpen = new(); //readonly, because it is best practise here
     GameObject buyingPlayerReference; //this refrence is needed to force buyingPlayer to stop sitting if workingPlayer no longer works
 
-    public ItemData.ItemProperties ItemToSell { private set; get; } = new();
+    public ItemData.ItemProperties SoldItem { private set; get; } = new();
 
     public override void OnNetworkSpawn()
     {
-        if(soldItemType != ItemData.ItemType.Null )
-            ItemToSell = new ItemData.ItemProperties() { itemTier = soldItemTier, itemType = soldItemType };
+        if (IsServer)
+        {
+            isShopOpen.Value = noWorkerRequiredOnEmptyTown;
+            if (noWorkerRequiredOnEmptyTown)
+                GameManager.Instance.OnPlayerTownChange += UpdateIsShopOpen;
+            if (isPriceChangable)
+                GameManager.Instance.TownData[townId].shopsControlledByLeader.Add(this);
 
-        shopText.text = $"{ItemToSell.itemTier} {ItemToSell.itemType}\n for {price}$";
-        ChangeCurretInfoTextRpc(isSomeoneWorking.Value, isSomeoneWorking.Value);
-        isSomeoneWorking.OnValueChanged += ChangeCurretInfoTextRpc;
+            OnPriceChange += ChangeCurrentItemTextRpc;
+        }
 
+        if (soldItemType != ItemData.ItemType.Null )
+            SoldItem = new ItemData.ItemProperties() { itemTier = soldItemTier, itemType = soldItemType };
+
+        ChangeCurrentItemTextRpc(Price);
+        ChangeCurretOpenInfoTextRpc(isShopOpen.Value, isShopOpen.Value);
+        isShopOpen.OnValueChanged += ChangeCurretOpenInfoTextRpc;
+
+    }
+
+    //this function exists, so if noWorkerRequiredOnEmptyTown == true and there is empty town, isShopOpen will always be true (making this is less complicated then setter getter)
+    public void UpdateIsShopOpen(GameObject player, int playerTownId)
+    {
+        if (playerTownId != townId)
+            return;
+
+        if (GameManager.Instance.TownData[townId].townMembers.Count == 0)
+            isShopOpen.Value = true;
+        else
+            isShopOpen.Value = false;
     }
 
     public async void BuyFromShop(GameObject buyingPlayer)
@@ -49,7 +93,7 @@ public class Shop : NetworkBehaviour
         if (playerMovement == null || playerData == null)
             Debug.LogWarning("Client does not have playerMovement or playerData script and is trying to buy something!");
 
-        if(playerData.Money.Value < price)
+        if(playerData.Money.Value < Price)
         {
             if (playerUI)
                 playerUI.DisplayErrorOwnerRpc("Go get some money first!");
@@ -62,14 +106,12 @@ public class Shop : NetworkBehaviour
                 playerUI.DisplayErrorOwnerRpc("Inventory full!");
             return;
         }
-
-        if (!isSomeoneWorking.Value)
+        if (!isShopOpen.Value && !(noWorkerRequiredOnEmptyTown && GameManager.Instance.TownData[townId].townMembers.Count == 0))
         {
             if (playerUI)
                 playerUI.DisplayErrorOwnerRpc("Nobody is working in the shop!");
             return;
         }
-
         if (buyingPlayerReference != null)
         {
             if (playerUI)
@@ -77,25 +119,41 @@ public class Shop : NetworkBehaviour
             return;
         }
 
-        if (isUsingFood && GameManager.Instance.TownData[townId].foodSupply - amountOfFoodNeeded < 0)
+        if (isUsingFood && GameManager.Instance.TownData[townId].FoodSupply - amountOfFoodNeeded < 0)
         {
             if (playerUI)
                 playerUI.DisplayErrorOwnerRpc("There is no food in town storage!");
             return;
         }
 
-        buyingPlayerReference = buyingPlayer;
-        playerMovement.TeleportPlayerToPosition(customerChair.transform.position + new Vector3(0, 1, 0.5f));
+        buyingPlayerReference = buyingPlayer; //used only in checking if someone is buying in the shop, use buyingPlayer otherwise
+        playerMovement.TeleportPlayerToPosition(customerChair.transform.position + transform.localRotation * customerChair.transform.localRotation * new Vector3(0, 0.75f, 0.5f));
+        if(playerUI)
+            playerUI.DisplayProgressBarOwnerRpc(5);
         bool didBuy = await playerMovement.MakePlayerSit(5);
         buyingPlayerReference = null;
-        if (!didBuy || (isUsingFood && GameManager.Instance.TownData[townId].foodSupply - amountOfFoodNeeded < 0)) //if there was food when started buying, but someone used it and there is no food in storage you wont be able to buy
+        //if there was food when started buying, but someone used it and there is no food in storage you wont be able to buy
+        if (!didBuy || (isUsingFood && GameManager.Instance.TownData[townId].FoodSupply - amountOfFoodNeeded < 0))
+        {
+            if (playerUI)
+                playerUI.ForceStopProgressBarOwnerRpc();
             return;
-        bool didAddToInventory = playerData.AddItemToInventory(ItemToSell);
-        if (didAddToInventory)
+        }
+            
+
+        if (SoldItem.itemType != ItemData.ItemType.Null)
+            didBuy = playerData.AddItemToInventory(SoldItem);
+
+        if (isBuyingRole) //did buy is true by default at this point, so I dont need to set it
+            GameManager.Instance.ChangePlayerAffiliation(buyingPlayer, playerRole, townId); 
+
+        if (didBuy)
         {
             if (isUsingFood)
-                GameManager.Instance.ChangeFoodSupply(-amountOfFoodNeeded);
-            playerData.ChangeMoney(-price);
+                GameManager.Instance.ChangeFoodSupply(-amountOfFoodNeeded, townId);
+
+            playerData.ChangeMoney(-Price);
+            GameManager.Instance.TownData[townId].townMembers[0].GetComponent<PlayerData>().ChangeMoney(Price);
         }
             
         
@@ -110,28 +168,27 @@ public class Shop : NetworkBehaviour
         if (playerMovement == null || playerData == null)
             Debug.LogWarning("Client does not have playerMovement or playerData script and is trying to buy something!");
 
-        if (isSomeoneWorking.Value)
+        if (isShopOpen.Value)
         {
             if (playerUI)
                 playerUI.DisplayErrorOwnerRpc("Somebody is already working here!");
             return;
         }
 
-        playerMovement.TeleportPlayerToPosition(workerChair.transform.position + workerChair.transform.localRotation * new Vector3(0, 1, 0.5f));
-        isSomeoneWorking.Value = true;
+        playerMovement.TeleportPlayerToPosition(workerChair.transform.position + transform.localRotation * workerChair.transform.localRotation * new Vector3(0, 0.75f, 0.5f));
+        isShopOpen.Value = true;
         while (true)
         {
             bool isStillSelling = await playerMovement.MakePlayerSit(1);
             if (!isStillSelling)
             {
-                isSomeoneWorking.Value = false;
+                isShopOpen.Value = false;
                 if(buyingPlayerReference != null)
                 {
                     Movement buyingPlayerMovement = buyingPlayerReference.GetComponent<Movement>();
                     buyingPlayerMovement.sittingCourutineCancellationToken.Cancel();
                     buyingPlayerMovement.IsSitting.Value = false;
                 }
-                    
                 return;
             }
             playerData.ChangeMoney(0.1f);
@@ -139,7 +196,27 @@ public class Shop : NetworkBehaviour
     }
 
     [Rpc(SendTo.Everyone)]
-    private void ChangeCurretInfoTextRpc(bool wasOpen, bool isOpen)
+    private void ChangeCurrentItemTextRpc(float newPrice)
+    {
+        if (soldItemType != ItemData.ItemType.Null)
+        {
+            shopText.text = $"{SoldItem.itemTier} {SoldItem.itemType}\n for {Price}$";
+            HoverText = $"{SoldItem.itemTier} {SoldItem.itemType} Shop";
+        }
+        else if (isBuyingRole == true)
+        {
+            shopText.text = $"Become {playerRole}\n for {Price}$";
+            HoverText = $"{playerRole} Admission";
+        }
+        else
+        {
+            shopText.text = $"This shop sells nothing\n for {Price}";
+            HoverText = $"Sigma Ligma Skibidi Shop";
+        }
+    }
+
+    [Rpc(SendTo.Everyone)]
+    private void ChangeCurretOpenInfoTextRpc(bool wasOpen, bool isOpen)
     {
         if (isOpen)
         {

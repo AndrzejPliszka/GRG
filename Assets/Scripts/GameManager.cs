@@ -1,6 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Xml;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -8,17 +11,74 @@ using static ItemData;
 
 public class GameManager : NetworkBehaviour
 {
+    //TownProperties and TownData are server only!
+    public class TownProperties
+    {
+        //first value foodSupply, second - value maximumFoodSupply
+        int _foodSupply; //needed for setter getter
+        public int FoodSupply { //setter getter so event on change exists
+            get => _foodSupply;
+            set
+            {
+                if (_foodSupply != value)
+                {
+                    _foodSupply = value;
+                    OnFoodChange.Invoke(_foodSupply, _maximumFoodSupply);
+                }
+            }
+        }
+
+        int _maximumFoodSupply;
+        public int MaximumFoodSupply
+        { //setter getter so I can inform when food amount changes
+            get => _maximumFoodSupply;
+            set
+            {
+                if (_maximumFoodSupply != value)
+                {
+                    _maximumFoodSupply = value;
+                    OnFoodChange.Invoke(_foodSupply, _maximumFoodSupply);
+                }
+            }
+        }
+        public float _taxRate = 0.25f;
+        public float TaxRate
+        {
+            get => _taxRate;
+            set
+            {
+                if (value < 0)
+                    value = 0;
+                if (value > 1)
+                    value = 1;
+
+                if (_taxRate != value)
+                {
+                    _taxRate = value;
+                    OnTaxRateChange.Invoke(_taxRate);
+                }
+            }
+        }
+        public event Action<int, int> OnFoodChange = delegate { };
+        public event Action<float> OnTaxRateChange = delegate { };
+        public List<GameObject> townMembers = new();
+        public List<Shop> shopsControlledByLeader = new();
+    }
+
+    public event Action<GameObject, PlayerData.PlayerRole> OnPlayerRoleChange = delegate { };
+    public event Action<GameObject, int> OnPlayerTownChange = delegate { }; //this event is unused but it is kept cos it may be handy later
+
+
+    public List<TownProperties> TownData { get; private set; } = new();
+    public List<GameObject> PlayersWithoutTown { get; private set; } = new();
+
     //Making this script singleton
     public static GameManager Instance { get; private set; }
-
-    public NetworkList<TownProperties> TownData { get; private set; }
 
     [SerializeField] ItemTypeData itemTypeData; //used for spawning items
 
     private void Awake()
     {
-        TownData = new(); //Initializing here and not on declaration, because memory leak
-
         if (Instance == null)
         {
             Instance = this;
@@ -27,16 +87,18 @@ public class GameManager : NetworkBehaviour
         {
             Destroy(gameObject);
         }
+
+        for (int i = 0; i < 1; i++)
+        {
+            TownData.Add(new TownProperties() { FoodSupply = 0, MaximumFoodSupply = 100 });
+        }
     }
 
     override public void OnNetworkSpawn()
     {
         if (!IsServer) { return; }
 
-        for (int i = 0; i < 1; i++)
-        {
-            TownData.Add(new TownProperties() { foodSupply = 0, maximumFoodSupply = 100 });
-        }
+        OnPlayerTownChange += ChangeLeader;
 
         //Spawn all items in the game for testing purposes
         int itemSpawnZPos = 0;
@@ -54,35 +116,130 @@ public class GameManager : NetworkBehaviour
             }
         }
     }
-    //To make NetworkList out of struct I need to serialize it this way and implement IEquatable
-    [Serializable]
-    public struct TownProperties : INetworkSerializable, IEquatable<TownProperties>
-    {
-        public int foodSupply;
-        public int maximumFoodSupply;
-        public readonly bool Equals(TownProperties other) //this function is required for marking function IEquatable
-        {
-            return false;
-        }
-        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
-        {
-            serializer.SerializeValue(ref foodSupply);
-            serializer.SerializeValue(ref maximumFoodSupply);
-        }
-    }
 
     //Functions to manage data
-    public void ChangeFoodSupply(int amountToChange) //TO DO: make that you can change it in every city (currently only in 1st one)
+    public void ChangeFoodSupply(int amountToChange, int townId) //TO DO: make that you can change it in every city (currently only in 1st one)
     {
         if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); };
-        TownProperties targetTownData = TownData[0];
-        targetTownData.foodSupply += amountToChange;
+        TownProperties targetTownData = TownData[townId];
+        targetTownData.FoodSupply += amountToChange;
 
-        if(targetTownData.foodSupply < 0)
-            targetTownData.foodSupply = 0;
-        if(targetTownData.foodSupply > targetTownData.maximumFoodSupply)
-            targetTownData.foodSupply = targetTownData.maximumFoodSupply;
+        if (targetTownData.FoodSupply < 0)
+            targetTownData.FoodSupply = 0;
+        if (targetTownData.FoodSupply > targetTownData.MaximumFoodSupply)
+            targetTownData.FoodSupply = targetTownData.MaximumFoodSupply;
 
-        TownData[0] = targetTownData;
+        TownData[townId] = targetTownData;
+    }
+
+    public void ChangeLeader(GameObject player, int townId)
+    {
+        if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); }
+        if (TownData[townId].townMembers.Count == 0)
+            return;
+        ChangePlayerAffiliation(TownData[townId].townMembers[0], PlayerData.PlayerRole.Leader, townId);
+    }
+
+    //used to put player in PlayersWithoutTown list
+    public void AddPlayerToRegistry(GameObject playerGameObject)
+    {
+        if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); };
+        PlayersWithoutTown.Add(playerGameObject);
+        //This event is called so every time someone joins this method is called (used in RoleBasedColliders)
+        OnPlayerRoleChange.Invoke(playerGameObject, PlayerData.PlayerRole.Peasant);
+    }
+    //remove player from all lists
+    public void RemovePlayerFromRegistry(GameObject playerGameObject)
+    {
+        if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); };
+        PlayerData playerData = playerGameObject.GetComponent<PlayerData>();
+        if (playerData.TownId.Value == -1) //this means that player should be transported in PlayersWithoutTown
+        {
+            PlayersWithoutTown.Remove(playerGameObject);
+        }
+        else {
+            TownData[playerData.TownId.Value].townMembers.Remove(playerGameObject);
+        }
+    }
+    void AddPlayerToTown(GameObject playerGameObject, int townId) 
+    {
+        if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); };
+        PlayerData playerData = playerGameObject.GetComponent<PlayerData>();
+        if(townId == -1) //this means that player should be transported in PlayersWithoutTown
+        {
+            RemovePlayerFromTown(playerGameObject);
+            return;
+        }
+
+        TownData[townId].townMembers.Add(playerGameObject);
+        if(playerData.TownId.Value >= 0)
+            TownData[playerData.TownId.Value].townMembers.Remove(playerGameObject);
+        PlayersWithoutTown.Remove(playerGameObject);
+
+        playerData.TownId.Value = townId;
+
+    }
+
+    void RemovePlayerFromTown(GameObject playerGameObject)
+    {
+        if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); };
+
+        PlayerData playerData = playerGameObject.GetComponent<PlayerData>();
+        TownData[playerData.TownId.Value].townMembers.Remove(playerGameObject);
+        PlayersWithoutTown.Add(playerGameObject);
+
+        //if are so there are no redundant event calls 
+        if (playerData.TownId.Value != -1)
+        {
+            playerData.TownId.Value = -1;
+            OnPlayerTownChange.Invoke(playerGameObject, -1);
+        }
+        
+        if (playerData.Role.Value != PlayerData.PlayerRole.Peasant)
+        {
+            playerData.Role.Value = PlayerData.PlayerRole.Peasant;
+            OnPlayerRoleChange.Invoke(playerGameObject, PlayerData.PlayerRole.Peasant);
+        }
+            
+    }
+
+    public void ChangePlayerAffiliation(GameObject playerGameObject, PlayerData.PlayerRole role, int townId)
+    {
+        if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); };
+        PlayerData playerData = playerGameObject.GetComponent<PlayerData>();
+
+        if (playerData.Role.Value == role && playerData.TownId.Value == townId)
+            return;
+
+        if (role == PlayerData.PlayerRole.Peasant) //if peasant then remove from any town
+        {
+            RemovePlayerFromTown(playerGameObject);
+            return;
+        }
+
+        bool townChanged = false; //flags so events are always invoked after changes
+        bool roleChanged = false;
+
+        if (playerData.TownId.Value != townId)
+        {
+            AddPlayerToTown(playerGameObject, townId);
+            playerData.TownId.Value = townId; // Upewnij siê, ¿e zmieniasz wartoœæ TownId, jeœli ma to sens
+            townChanged = true;
+        }
+
+        if (playerData.Role.Value != role && townId >= 0)
+        {
+            playerData.Role.Value = role;
+            roleChanged = true;
+        }
+
+        if (townChanged || roleChanged)
+        {
+            if (townChanged)
+                OnPlayerTownChange.Invoke(playerGameObject, townId);
+
+            if (roleChanged)
+                OnPlayerRoleChange.Invoke(playerGameObject, role);
+        }
     }
 }

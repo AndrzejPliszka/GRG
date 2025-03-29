@@ -26,19 +26,24 @@ public class PlayerUI : NetworkBehaviour
     TMP_Text hungerBarText;
     TMP_Text healthBarText;
     TMP_Text moneyCount;
+    TMP_Text taxRate;
     Image hitmark;
     Image cooldownMarker;
     Image micActivityIcon;
     Slider hungerBar;
     Slider healthBar;
+    Slider progressBar;
     readonly List<GameObject> inventorySlots = new();
+    Coroutine progressBarCoroutine;
     public override void OnNetworkSpawn()
     {
+
         centerText = GameObject.Find("CenterText").GetComponent<TMP_Text>();
         errorText = GameObject.Find("ErrorText").GetComponent<TMP_Text>();
         hungerBarText = GameObject.Find("HungerBarText").GetComponent<TMP_Text>();
         healthBarText = GameObject.Find("HealthBarText").GetComponent<TMP_Text>();
         moneyCount = GameObject.Find("MoneyCount").GetComponent<TMP_Text>();
+        taxRate = GameObject.Find("TaxRate").GetComponent<TMP_Text>();
 
         hitmark = GameObject.Find("Hitmark").GetComponent<Image>();
         cooldownMarker = GameObject.Find("CooldownMarker").GetComponent<Image>();
@@ -53,17 +58,34 @@ public class PlayerUI : NetworkBehaviour
         for (int i = 0; i < inventorySlotsContainer.transform.childCount; i++) {
             inventorySlots.Add(inventorySlotsContainer.transform.GetChild(i).gameObject);
         }
-        
-        objectInteraction = GetComponent<ObjectInteraction>();
         PlayerData playerData = GetComponent<PlayerData>();
-        playerData.SelectedInventorySlot.OnValueChanged += ChangeInventorySlot;
-        playerData.Inventory.OnListChanged += DisplayInventory;
-        playerData.Hunger.OnValueChanged += ModifyHungerBar;
-        playerData.Health.OnValueChanged += ModifyHealthBar;
-        playerData.Money.OnValueChanged += ModifyMoneyCount;
+        objectInteraction = GetComponent<ObjectInteraction>();
 
-        objectInteraction.OnHittingSomething += DisplayHitmarkOwnerRpc;
-        objectInteraction.OnPunch += DisplayCooldownCircleOwnerRpc;
+        if (IsOwner)
+        {
+            progressBar = GameObject.Find("ProgressBar").GetComponent<Slider>();
+            progressBar.gameObject.SetActive(false);
+            playerData.SelectedInventorySlot.OnValueChanged += ChangeInventorySlot;
+            playerData.Inventory.OnListChanged += DisplayInventory;
+            playerData.Hunger.OnValueChanged += ModifyHungerBar;
+            playerData.Health.OnValueChanged += ModifyHealthBar;
+            playerData.Money.OnValueChanged += ModifyMoneyCount;
+        }
+
+        if (IsServer)
+        {
+            //Here are only server side events which call RPCs
+            objectInteraction.OnHittingSomething += DisplayHitmarkOwnerRpc;
+            objectInteraction.OnPunch += DisplayCooldownCircleOwnerRpc;
+            playerData.TownId.OnValueChanged += (int oldTownId, int newTownId) => { //MOVE TO OTHER FUNCTION IF IT GROWS TOO MUCH !!!
+                ModifyTaxRateTextOwnerRpc(GameManager.Instance.TownData[newTownId].TaxRate);
+                if(oldTownId >= 0 && oldTownId < GameManager.Instance.TownData.Count)
+                    GameManager.Instance.TownData[oldTownId].OnTaxRateChange -= ModifyTaxRateTextOwnerRpc;
+                if (newTownId >= 0 && newTownId < GameManager.Instance.TownData.Count)
+                    GameManager.Instance.TownData[newTownId].OnTaxRateChange += ModifyTaxRateTextOwnerRpc;
+            };
+        }
+        
 
         voiceChat = gameObject.GetComponent<VoiceChat>();
     }
@@ -89,8 +111,9 @@ public class PlayerUI : NetworkBehaviour
         //declare these here to avoid scope issues
         Shop shopScript;
         BreakableStructure breakableStructure;
+        Storage storage;
         int currentHealth, maxHealth;
-         switch (targetObject.tag)
+        switch (targetObject.tag)
         {
             case "Player":
                 PlayerData playerData = targetObject.GetComponent<PlayerData>();
@@ -113,21 +136,22 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "Buy":
                 shopScript = targetObject.transform.parent.GetComponent<Shop>();
-                centerText.text = $"Buy {shopScript.ItemToSell.itemTier} {shopScript.ItemToSell.itemType}";
+                centerText.text = $"Buy {shopScript.HoverText[..shopScript.HoverText.LastIndexOf(' ')].TrimEnd()}"; //Display without last word which is either shop or admission
                 break;
             case "Work":
                 shopScript = targetObject.transform.parent.GetComponent<Shop>();
-                centerText.text = $"Work in {shopScript.ItemToSell.itemTier} {shopScript.ItemToSell.itemType} Shop";
+                centerText.text = $"Work in {shopScript.HoverText}";
                 break;
             case "Shop":
                 shopScript = targetObject.GetComponent<Shop>();
                 breakableStructure = targetObject.GetComponent<BreakableStructure>();
                 currentHealth = breakableStructure.Health.Value;
                 maxHealth = breakableStructure.MaximumHealth;
-                centerText.text = $"{shopScript.ItemToSell.itemTier} {shopScript.ItemToSell.itemType} Shop\n{currentHealth}/{maxHealth}";
+                centerText.text = $"{shopScript.HoverText}\n{currentHealth}/{maxHealth}";
                 break;
             case "Storage":
-                centerText.text = $"Supply:\n{GameManager.Instance.TownData[0].foodSupply}/{GameManager.Instance.TownData[0].maximumFoodSupply}";
+                storage = targetObject.transform.parent.GetComponent<Storage>();
+                centerText.text = $"Supply:\n{storage.FoodSupply}/{storage.MaximumFoodSupply}";
                 break;
             default:
                 centerText.text = "";
@@ -266,4 +290,45 @@ public class PlayerUI : NetworkBehaviour
     {
         micActivityIcon.enabled = shouldBeEnabled;
     }
+
+    //Rpc because taxRate is only server side and needs to be sent manually
+    [Rpc(SendTo.Owner)]
+    public void ModifyTaxRateTextOwnerRpc(float newTaxValue)
+    {
+        taxRate.text = "Tax rate: \n " + (newTaxValue * 100).ToString() + "%";
+    }
+
+    [Rpc(SendTo.Owner)]
+    public void DisplayProgressBarOwnerRpc(int amountOfTime)
+    {
+        progressBar.gameObject.SetActive(true);
+        progressBar.value = 0;
+        progressBarCoroutine = StartCoroutine(FillProgressBar(amountOfTime));
+    }
+
+    IEnumerator FillProgressBar(int totalAmountOfTime)
+    {
+        bool isBarFilled = false;
+        while (!isBarFilled)
+        {
+            progressBar.value++;
+            yield return new WaitForSeconds(totalAmountOfTime / 100f);
+
+            if (progressBar.value >= 100)
+            {
+                progressBar.gameObject.SetActive(false);
+                isBarFilled = true;
+            }
+        }
+        progressBarCoroutine = null;
+    }
+
+    [Rpc(SendTo.Owner)]
+    public void ForceStopProgressBarOwnerRpc()
+    {
+        progressBar.gameObject.SetActive(false);
+        if(progressBarCoroutine != null)
+            StopCoroutine(progressBarCoroutine);
+    }
+
 }

@@ -35,6 +35,16 @@ public class Death : NetworkBehaviour
     void Die()
     {
         if (!IsServer) { throw new Exception("Client cannot decide to kill himself, only server can do that!"); };
+
+        if(playerData.Role.Value == PlayerData.PlayerRole.Leader)
+        {
+            int townId = playerData.TownId.Value;
+            GameManager.Instance.RemovePlayerFromRegistry(gameObject);
+            GameManager.Instance.ChangeLeader(gameObject, townId);
+        }
+        else
+            GameManager.Instance.RemovePlayerFromRegistry(gameObject);
+
         DestroyLocalPlayerModelOwnerRpc();
         playerMovement.sittingCourutineCancellationToken?.Cancel(); //If player is killed during sitting in shop, stop using it before dying
         //drop items from inventory

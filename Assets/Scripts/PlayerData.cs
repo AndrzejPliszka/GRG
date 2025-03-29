@@ -7,6 +7,13 @@ using UnityEngine;
 
 public class PlayerData : NetworkBehaviour
 {
+    public enum PlayerRole
+    {
+        Peasant,
+        Citizen,
+        Leader
+    }
+
     public NetworkVariable<FixedString32Bytes> Nickname { get;  private set; } = new();
 
     public NetworkList<ItemData.ItemProperties> Inventory { get; private set; }
@@ -18,6 +25,10 @@ public class PlayerData : NetworkBehaviour
     public NetworkVariable<int> Health { get; private set; } = new(100);
 
     public NetworkVariable<float> Money { get; private set; } = new(0);
+
+    public NetworkVariable<PlayerRole> Role { get; private set; } = new(PlayerRole.Peasant); //Remember that "real" role of player will be in GameManager and this is just for easier access to that info
+
+    public NetworkVariable<int> TownId { get; private set; } = new(-1);
 
     //Variables that hold things related to managing data above
     bool decreaseHungerFaster = false;
@@ -36,6 +47,8 @@ public class PlayerData : NetworkBehaviour
     {
         if (IsServer)
         {
+            GameManager.Instance.AddPlayerToRegistry(gameObject);
+
             Health.OnValueChanged += InvokeDeath;
             //move to game manager or player manager??
             StartCoroutine(ReduceHunger());
@@ -68,8 +81,6 @@ public class PlayerData : NetworkBehaviour
         else
             decreaseHealth = false;
 
-            
-            
     }
     //[WARNING !] This is unsafe, because it makes that nickname is de facto Owner controlled and can be changed any time by client by calling this method
     //It is that way, because otherwise nickname would need to be send to server on player join and server would need to assign it only one time and I don't really know how to do this and this will be assigned by client anyways, so I don't care
@@ -206,6 +217,15 @@ public class PlayerData : NetworkBehaviour
         if (!IsServer) { throw new Exception("Trying to modify money amount on client!"); };
         if (Money.Value + amountToIncrease < 0)
             return false;
+
+        //pay tax
+        if (amountToIncrease > 0 && !(Role.Value == PlayerRole.Leader || Role.Value == PlayerRole.Peasant))
+        { 
+            float taxMoney = GameManager.Instance.TownData[TownId.Value].TaxRate * amountToIncrease;
+            amountToIncrease -= taxMoney;
+            GameManager.Instance.TownData[TownId.Value].townMembers[0].GetComponent<PlayerData>().ChangeMoney(taxMoney); //give tax money to leader
+        }
+
         Money.Value += amountToIncrease;
         Money.Value = (Mathf.Round(Money.Value * 100)) / 100.0f; //ensure amountToIncrease has max 2 digits after colon
         return true;

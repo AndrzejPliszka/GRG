@@ -97,13 +97,12 @@ public class ObjectInteraction : NetworkBehaviour
             lagCompensation = gameObject.GetComponent<LagCompensation>();
             lagCompensation.SimulatePlayersOnGivenTime(timeWhenHit);
         }
-
-        Quaternion verticalRotation = Quaternion.Euler(cameraXRotation, transform.rotation.eulerAngles.y, 0);
-        Vector3 rayDirection = verticalRotation * Vector3.forward; //Changing quaternion into vector3, because Ray takes Vector3
-
         Vector3 currentPosition = IsServer ? transform.position : movement.LocalPlayerModel.transform.position; //if not on server use localmodel with more "Up to date" position and rotation
         Quaternion currentRotation = IsServer ? transform.rotation : movement.LocalPlayerModel.transform.rotation;
         Vector3 cameraPosition = currentPosition + new Vector3(0, cameraOffset.y) + currentRotation * new Vector3(0, 0, cameraOffset.z);
+
+        Quaternion verticalRotation = Quaternion.Euler(cameraXRotation, currentRotation.eulerAngles.y, 0);
+        Vector3 rayDirection = verticalRotation * Vector3.forward; //Changing quaternion into vector3, because Ray takes Vector3
 
         Ray ray = new(cameraPosition, rayDirection);
         Debug.DrawRay(cameraPosition, rayDirection * 100f, Color.red, 0.01f);
@@ -310,7 +309,8 @@ public class ObjectInteraction : NetworkBehaviour
 
                 if (targetObject.GetComponent<BreakableStructure>().Health.Value + baseAttack <= 0) //If we predict crop will be cut, then give money [MAY CAUSE ERRORS] (this will be deleted may I add circular economy)
                 {
-                    GameManager.Instance.ChangeFoodSupply(1);
+                    if(playerData.TownId.Value >= 0)
+                        GameManager.Instance.ChangeFoodSupply(1, playerData.TownId.Value);
                     playerData.ChangeMoney(5);
                 }
 

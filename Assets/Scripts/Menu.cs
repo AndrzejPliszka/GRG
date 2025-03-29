@@ -28,6 +28,7 @@ public class Menu : NetworkBehaviour
     Button resumeGameButton;
     Button exitServerButton;
 
+    public int amountOfDisplayedMenus; //used, because there can be multiple menus displayed at once
     public FixedString32Bytes Nickname { get; private set; }
     private void Awake()
     {
@@ -42,10 +43,10 @@ public class Menu : NetworkBehaviour
 
         resumeGameButton = GameObject.Find("ResumeGameButton").GetComponent<Button>();
         exitServerButton = GameObject.Find("ExitServerButton").GetComponent<Button>();
-        exitServerButton = GameObject.Find("ExitServerButton").GetComponent<Button>();
     }
     void Start()
     {
+        amountOfDisplayedMenus = 1; //there is pause menu visible at start, so we can set up refrences to it
         //removing listeners, so methods are never called twice (maybe there is cleaner solution)
         serverButton.onClick.RemoveAllListeners();
         clientButton.onClick.RemoveAllListeners();
@@ -81,10 +82,10 @@ public class Menu : NetworkBehaviour
 
         resumeGameButton.onClick.AddListener(() =>
         {
-            ResumeGame();
+            ResumeGame(true);
         });
         exitServerButton.onClick.AddListener(QuitServer);
-        pauseMenu.SetActive(false);
+        pauseMenu.SetActive(false); //hide pause menu before joining server
     }
 
 
@@ -100,16 +101,25 @@ public class Menu : NetworkBehaviour
         Cursor.visible = true;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name); //change if different scene for menu
     }
-    public void ResumeGame()
+    public void ResumeGame(bool hidePauseMenu) //bool used, because this function is also called along side closing other menus
     {
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
-        isGamePaused = false;
-        pauseMenu.SetActive(false);
+        amountOfDisplayedMenus--;
+
+        pauseMenu.SetActive(!hidePauseMenu);
+        if (hidePauseMenu) //if hidePauseMenu == True, then this function was called to stop pausing and not close other menu, therefore we stop pausing to avoid bugs [Maybe rewrite code if more menus added]
+            isGamePaused = false;
+
+        if (amountOfDisplayedMenus <= 0)
+        {
+            Cursor.visible = false;
+            Cursor.lockState = CursorLockMode.Locked;
+            pauseMenu.SetActive(false);
+        }
 
     }
     public void PauseGame()
     {
+        amountOfDisplayedMenus++;
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
         isGamePaused = true;
