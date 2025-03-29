@@ -34,10 +34,10 @@ public class PlayerUI : NetworkBehaviour
     Slider healthBar;
     Slider progressBar;
     readonly List<GameObject> inventorySlots = new();
-
     Coroutine progressBarCoroutine;
     public override void OnNetworkSpawn()
     {
+
         centerText = GameObject.Find("CenterText").GetComponent<TMP_Text>();
         errorText = GameObject.Find("ErrorText").GetComponent<TMP_Text>();
         hungerBarText = GameObject.Find("HungerBarText").GetComponent<TMP_Text>();
@@ -99,7 +99,6 @@ public class PlayerUI : NetworkBehaviour
 
     }
 
-    
     //This function will update text which tells player what is he looking at. It needs X Camera Rotation from client (in "Vector3 form") (server doesn't have camera - it is only on client)
     void UpdateLookedAtObjectText()
     {
@@ -114,7 +113,7 @@ public class PlayerUI : NetworkBehaviour
         BreakableStructure breakableStructure;
         Storage storage;
         int currentHealth, maxHealth;
-         switch (targetObject.tag)
+        switch (targetObject.tag)
         {
             case "Player":
                 PlayerData playerData = targetObject.GetComponent<PlayerData>();

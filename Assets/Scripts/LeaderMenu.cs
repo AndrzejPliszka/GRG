@@ -96,16 +96,16 @@ public class LeaderMenu : NetworkBehaviour
             {
                 Cursor.visible = true;
                 Cursor.lockState = CursorLockMode.None;
-                menuManager.isGamePaused = true;
+                GetComponent<Movement>().blockRotation = true;
+                menuManager.amountOfDisplayedMenus++;
             }
             else
             {
-                Cursor.visible = false;
-                Cursor.lockState = CursorLockMode.Locked;
-                menuManager.isGamePaused = false;
+                menuManager.ResumeGame(false);
+                GetComponent<Movement>().blockRotation = false;
             }
 
-            leaderMenu.SetActive(!leaderMenu.activeSelf);
+            leaderMenu.SetActive(shouldDisplay);
         }
     }
 

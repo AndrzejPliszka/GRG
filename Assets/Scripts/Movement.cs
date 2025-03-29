@@ -38,6 +38,7 @@ public class Movement : NetworkBehaviour
     VoiceChat voiceChat;
 
     bool shouldReconciliate = true;
+    public bool blockRotation = false;
 
     //set up references
     private void Awake()
@@ -88,7 +89,8 @@ public class Movement : NetworkBehaviour
         playerCamera.transform.position = LocalPlayerModel.transform.position + CameraOffset;
         playerCamera.transform.parent = LocalPlayerModel.transform;
 
-        menuManager.ResumeGame(); //lock cursor in place
+
+        menuManager.ResumeGame(true); //lock cursor in place AFTER player is spawned
     }
 
     //all things that use time.fixedDeltaTime or need to contact server regulary
@@ -115,7 +117,7 @@ public class Movement : NetworkBehaviour
         if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.V)) //v to test pause menu in unity editor
         {
             if (menuManager.isGamePaused)
-                menuManager.ResumeGame();
+                menuManager.ResumeGame(true);
             else
                 menuManager.PauseGame();
         }
@@ -152,7 +154,7 @@ public class Movement : NetworkBehaviour
 
     //Function dealing with camera, rotation of both player and camera and sending mouse input to server
     private void HandleRotation() {
-        if (menuManager.isGamePaused) { return; }
+        if (menuManager.isGamePaused || blockRotation) { return; }
         float mouseY = Input.GetAxis("Mouse Y");
         float mouseX = Input.GetAxis("Mouse X");
 
