@@ -68,7 +68,9 @@ PrefabInstance:
       propertyPath: m_Name
       value: MedkitHolded
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 3951031072440664797, guid: dcf811b04a611b74fb541ed8b9e8b684, type: 3}
+    - {fileID: -3678024369428191160, guid: dcf811b04a611b74fb541ed8b9e8b684, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
