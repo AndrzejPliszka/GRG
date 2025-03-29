@@ -12,8 +12,9 @@ public class Death : NetworkBehaviour
     PlayerData playerData;
     Movement playerMovement;
     Menu menuScript;
-    [SerializeField] GameObject Ragdoll;
+    [SerializeField] GameObject ragdoll;
     [SerializeField] ItemTypeData itemTypeData;
+    [SerializeField] GameObject moneyObject;
 
     void Start()
     {
@@ -60,10 +61,17 @@ public class Death : NetworkBehaviour
             newItem.GetComponent<NetworkObject>().Spawn();
             newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;
         }
+        if(playerData.Money.Value > 0)
+        {
+            GameObject spawnedMoneyObject = Instantiate(moneyObject, transform.position + transform.forward, new Quaternion());
+            spawnedMoneyObject.GetComponent<NetworkObject>().Spawn();
+            spawnedMoneyObject.GetComponent<MoneyObject>().moneyAmount.Value = playerData.Money.Value;
+        }
+        
 
         //instantainte ragdoll
-        GameObject ragdoll = Instantiate(Ragdoll, transform.position, transform.rotation);
-        ragdoll.GetComponent<NetworkObject>().Spawn();
+        GameObject ragdollObject = Instantiate(ragdoll, transform.position, transform.rotation);
+        ragdollObject.GetComponent<NetworkObject>().Spawn();
     }
 
     [Rpc(SendTo.Owner)]

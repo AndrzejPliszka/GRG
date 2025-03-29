@@ -189,6 +189,7 @@ public class ObjectInteraction : NetworkBehaviour
         if (targetObject == null) { return; }
         string targetObjectTag = targetObject.tag;
         Shop shopScript; //declared here to avoid scope issues
+        MoneyObject moneyObject;
         //first see if is looking at interactive object
         switch (targetObjectTag)
         {
@@ -217,6 +218,14 @@ public class ObjectInteraction : NetworkBehaviour
                 if (shopScript == null)
                     throw new Exception("Parent of object with BuyingPlace, does not have Shop script, modify hierarchy or this script accordingly!");
                 shopScript.WorkInShop(gameObject);
+                return;
+            case "Money":
+                moneyObject = targetObject.transform.GetComponent<MoneyObject>();
+                float moneyAmount = moneyObject.moneyAmount.Value;
+                playerData.ChangeMoney(moneyAmount);
+
+                targetObject.GetComponent<NetworkObject>().Despawn();
+                Destroy(targetObject);
                 return;
 
         }
