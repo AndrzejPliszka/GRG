@@ -11,7 +11,8 @@ public class DynamicObjectSpawning : NetworkBehaviour
     [SerializeField] GameObject objectToSpawn;
     [SerializeField] int targetNumberOfObjects;
     [SerializeField] float minimalRadius; //Object cannot spawn in radius (lower than this )
-    [SerializeField] float MinimalCooldownBetweenSpawns; //specifies seconds seconds after which object will try to spawn, but it may not succeed (so there is no maximum cooldown) (Also if there is no objects on plate it is guaranteed that one will spawn after this amount of time)
+    [SerializeField] float minimalCooldownBetweenSpawns; //specifies seconds seconds after which object will try to spawn, but it may not succeed (so there is no maximum cooldown) (Also if there is no objects on plate it is guaranteed that one will spawn after this amount of time)
+    [SerializeField] float rayHeight; //height from which ray will be casted
     int currentNumberOfSpawnedObjects = 0;
     Bounds bounds;
     public override void OnNetworkSpawn()
@@ -32,7 +33,7 @@ public class DynamicObjectSpawning : NetworkBehaviour
         while (IsServer) {
             if(currentNumberOfSpawnedObjects < targetNumberOfObjects)
                 TrySpawnSingleObject();
-            yield return new WaitForSeconds(MinimalCooldownBetweenSpawns);
+            yield return new WaitForSeconds(minimalCooldownBetweenSpawns);
         }
     }
 
@@ -41,11 +42,11 @@ public class DynamicObjectSpawning : NetworkBehaviour
         if(!IsServer) { throw new System.Exception("Client cannot spawn objects!"); }
         float randomX = Random.Range(bounds.min.x, bounds.max.x);
         float randomZ = Random.Range(bounds.min.z, bounds.max.z);
-        Vector3 rayStart = new(randomX, bounds.max.y + 1, randomZ);
+        Vector3 rayStart = new(randomX, bounds.max.y + rayHeight, randomZ);
 
-        if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, 10))
+        if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, 10 + rayHeight))
         {
-            if (CanSpawn(hit.point + new Vector3(0, 1, 0)))
+            if (CanSpawn(hit.point + new Vector3(0, 1, 0)) && hit.transform.gameObject == gameObject)
             {
                 GameObject spawnedObject = Instantiate(objectToSpawn, hit.point, Quaternion.Euler(new Vector3(0, Random.Range(0, 360), 0)));
                 spawnedObject.GetComponent<NetworkObject>().Spawn();
