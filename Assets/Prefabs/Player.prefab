@@ -897,7 +897,7 @@ MonoBehaviour:
   sensitivity: 5
   reconciliationThreshold: 0
   <CameraOffset>k__BackingField: {x: 0, y: 0.9, z: 0.2}
-  startingPosition: {x: 0, y: 3, z: 0}
+  startingPosition: {x: -140, y: 15, z: 0}
   jumpHeight: 2
   renderOrginalModel: 0
   <LocalPlayerModel>k__BackingField: {fileID: 8116827039790958487, guid: 719e5dcc23b23bc43aec4ca8af7d580c, type: 3}
@@ -1107,3 +1107,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   SingularShopItemUI: {fileID: 4392729184747963158, guid: 9e247c8490524e54aa442e88d5fec668, type: 3}
+  SingularLandUnitUI: {fileID: 4392729184747963158, guid: dacf5a3f5c920744698df5663ee4c6c9, type: 3}

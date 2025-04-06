@@ -10,6 +10,7 @@ using UnityEngine.UI;
 public class LeaderMenu : NetworkBehaviour
 {
     [SerializeField] GameObject SingularShopItemUI;
+    [SerializeField] GameObject SingularLandUnitUI;
 
     PlayerData playerData;
     Menu menuManager;
@@ -17,6 +18,7 @@ public class LeaderMenu : NetworkBehaviour
     GameObject leaderMenu;
 
     GameObject shopManagmentItemsContainer;
+    GameObject landManagmentItemsContainer;
     int numberOfShopItems;
 
     Button taxRateApproveButton;
@@ -26,6 +28,7 @@ public class LeaderMenu : NetworkBehaviour
         playerData = GetComponent<PlayerData>();
         menuManager = GameObject.Find("Canvas").GetComponent<Menu>();
         shopManagmentItemsContainer = GameObject.Find("ShopManagmentItemsContainer");
+        landManagmentItemsContainer = GameObject.Find("LandManagmentItemsContainer");
         if (!IsOwner) { return; }
         taxRateApproveButton = GameObject.Find("TaxApproveButton").GetComponent<Button>();
         taxRateInputField = GameObject.Find("TaxInputField").GetComponent<TMP_InputField>();
@@ -34,6 +37,28 @@ public class LeaderMenu : NetworkBehaviour
         taxRateApproveButton.onClick.AddListener(OnTaxRateApproveButtonClick);
 
         leaderMenu.SetActive(false);
+    }
+
+    void SetUpLandManagmentPanel()
+    {
+        if (!IsServer) { throw new Exception("This function uses server side only TownData. It needs to be called on server"); }
+        List<LandScript> landInTown = GameManager.Instance.TownData[playerData.TownId.Value].landInTown;
+        foreach (LandScript land in landInTown)
+        {
+            AddItemToLandManagmentPanelClientRpc(land.menuXPos, land.menuYPos, land.menuDisplayText);
+        }
+    }
+
+    [Rpc(SendTo.Owner)]
+    void AddItemToLandManagmentPanelClientRpc(int xPos, int yPos, string text) //numberOfItemsBefore used for upper padding
+    {
+        int offset = 100; //Offset between items
+        int firstItemXOffset = 50;
+        string textName = "Text";
+        GameObject singularLandTileUI = Instantiate(SingularLandUnitUI, landManagmentItemsContainer.transform);
+        singularLandTileUI.transform.position = new Vector2(xPos * offset + firstItemXOffset, yPos * offset);
+        singularLandTileUI.transform.Find(textName).GetComponent<TMP_Text>().text = text;
+
     }
 
     void SetUpShopManagmentPanel()
@@ -55,7 +80,7 @@ public class LeaderMenu : NetworkBehaviour
     [Rpc(SendTo.Owner)]
     void AddItemToShopManagmentPanelClientRpc(ItemData.ItemProperties soldItemProperties, int numberOfItemsBefore) //numberOfItemsBefore used for upper padding
     {
-        int offset = -100;
+        int offset = -100; //Offset between items
         string textName = "Text";
         string inputFieldName = "InputField";
         string buttonName = "Button";
@@ -86,6 +111,7 @@ public class LeaderMenu : NetworkBehaviour
         if (IsServer && numberOfShopItems == 0 && Input.GetKeyDown(KeyCode.F) && playerData.Role.Value == PlayerData.PlayerRole.Leader)
         {
             SetUpShopManagmentPanel();
+            SetUpLandManagmentPanel();
         }
         if (!IsOwner) { return; }
 
