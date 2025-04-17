@@ -840,7 +840,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 3068023499
+  GlobalObjectIdHash: 1566467498
   InScenePlacedSourceGlobalObjectIdHash: 0
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -1106,5 +1106,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0c1df2010f0e874a95b0b8ac88288bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  SingularShopItemUI: {fileID: 4392729184747963158, guid: 9e247c8490524e54aa442e88d5fec668, type: 3}
-  SingularLandUnitUI: {fileID: 4392729184747963158, guid: dacf5a3f5c920744698df5663ee4c6c9, type: 3}
+  singularShopItemUI: {fileID: 4392729184747963158, guid: 9e247c8490524e54aa442e88d5fec668, type: 3}
+  singularLandUnitUI: {fileID: 4392729184747963158, guid: dacf5a3f5c920744698df5663ee4c6c9, type: 3}
+  buildMenuUI: {fileID: 5993387815824996974, guid: 2e77f94b9f0da3e4988cd7c3a4415c4c, type: 3}

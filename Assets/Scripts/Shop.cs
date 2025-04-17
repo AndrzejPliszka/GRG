@@ -37,11 +37,11 @@ public class Shop : NetworkBehaviour
             {
                 _price = value < 0 ? 0 : value;
                 _price = MathF.Round(_price, 2);
-                OnPriceChange.Invoke(_price);
+                OnShopChange.Invoke(_price, SoldItem);
             }
         }
     }
-    Action<float> OnPriceChange;
+    Action<float, ItemData.ItemProperties> OnShopChange;
     [SerializeField] bool isPriceChangable;
 
     readonly NetworkVariable<bool> isShopOpen = new(); //readonly, because it is best practise here
@@ -59,14 +59,17 @@ public class Shop : NetworkBehaviour
             if (isPriceChangable)
                 GameManager.Instance.TownData[townId].shopsControlledByLeader.Add(this);
 
-            OnPriceChange += ChangeCurrentItemTextRpc;
+            OnShopChange += ChangeCurrentItemTextRpc;
         }
 
         if (soldItemType != ItemData.ItemType.Null )
             SoldItem = new ItemData.ItemProperties() { itemTier = soldItemTier, itemType = soldItemType };
 
-        ChangeCurrentItemTextRpc(Price);
-        ChangeCurretOpenInfoTextRpc(isShopOpen.Value, isShopOpen.Value);
+        if ((SoldItem.itemType != ItemData.ItemType.Null || Price != 0) || isBuyingRole)
+        {
+            ChangeCurrentItemTextRpc(Price, SoldItem);
+            ChangeCurretOpenInfoTextRpc(isShopOpen.Value, isShopOpen.Value);
+        }
         isShopOpen.OnValueChanged += ChangeCurretOpenInfoTextRpc;
 
     }
@@ -83,6 +86,27 @@ public class Shop : NetworkBehaviour
             isShopOpen.Value = false;
     }
 
+    public void SetUpShop(ItemData.ItemProperties itemToSell)
+    {
+        if (!IsServer) { throw new Exception("Only server can modify shops!"); }
+
+        GameManager.TownProperties townData = GameManager.Instance.TownData[townId];
+        SoldItem = itemToSell; //used to set up global var used elsewhere 
+        ChangeCurrentItemTextRpc(Price, itemToSell);
+
+        if (!townData.itemPrices.ContainsKey(itemToSell))
+        {
+            townData.itemPrices.Add(itemToSell, 0);
+            LeaderMenu leaderMenu = townData.townMembers[0].GetComponent<LeaderMenu>();
+            if(leaderMenu)
+                leaderMenu.AddItemToShopManagmentPanelClientRpc(itemToSell, townData.itemPrices.Count); 
+        }
+        else
+            Price = townData.itemPrices[itemToSell];
+
+        townData.shopsControlledByLeader.Add(this);
+    }
+
     public async void BuyFromShop(GameObject buyingPlayer)
     {
         if (!IsServer) { throw new Exception("Client cannot buy anything by himself, call this method on server!"); } 
@@ -92,6 +116,13 @@ public class Shop : NetworkBehaviour
 
         if (playerMovement == null || playerData == null)
             Debug.LogWarning("Client does not have playerMovement or playerData script and is trying to buy something!");
+
+        if (playerMovement.IsSitting.Value)
+        {
+            if (playerUI)
+                playerUI.DisplayErrorOwnerRpc("You cannot buy things\nwhen you are working!");
+            return;
+        }
 
         if(playerData.Money.Value < Price)
         {
@@ -126,6 +157,13 @@ public class Shop : NetworkBehaviour
             return;
         }
 
+        if(isBuyingRole && (buyingPlayer.GetComponent<PlayerData>().Role.Value >= playerRole))
+        {
+            if (playerUI)
+                playerUI.DisplayErrorOwnerRpc("You already have this or better role!");
+            return;
+        }
+
         buyingPlayerReference = buyingPlayer; //used only in checking if someone is buying in the shop, use buyingPlayer otherwise
         playerMovement.TeleportPlayerToPosition(customerChair.transform.position + transform.localRotation * customerChair.transform.localRotation * new Vector3(0, 0.75f, 0.5f));
         if(playerUI)
@@ -144,7 +182,8 @@ public class Shop : NetworkBehaviour
         if (SoldItem.itemType != ItemData.ItemType.Null)
             didBuy = playerData.AddItemToInventory(SoldItem);
 
-        if (isBuyingRole) //did buy is true by default at this point, so I dont need to set it
+        //did buy is true by default at this point, so I dont need to check it
+        if (isBuyingRole) 
             GameManager.Instance.ChangePlayerAffiliation(buyingPlayer, playerRole, townId); 
 
         if (didBuy)
@@ -196,12 +235,12 @@ public class Shop : NetworkBehaviour
     }
 
     [Rpc(SendTo.Everyone)]
-    private void ChangeCurrentItemTextRpc(float newPrice)
+    private void ChangeCurrentItemTextRpc(float newPrice, ItemData.ItemProperties newItem)
     {
-        if (soldItemType != ItemData.ItemType.Null)
+        if (newItem.itemType != ItemData.ItemType.Null)
         {
-            shopText.text = $"{SoldItem.itemTier} {SoldItem.itemType}\n for {Price}$";
-            HoverText = $"{SoldItem.itemTier} {SoldItem.itemType} Shop";
+            shopText.text = $"{newItem.itemTier} {newItem.itemType}\n for {newPrice}$";
+            HoverText = $"{newItem.itemTier} {newItem.itemType} Shop";
         }
         else if (isBuyingRole == true)
         {

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Xml;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -61,9 +62,11 @@ public class GameManager : NetworkBehaviour
         }
         public event Action<int, int> OnFoodChange = delegate { };
         public event Action<float> OnTaxRateChange = delegate { };
+        public Action<int, int, LandScript.Building, FixedString128Bytes> OnLandChange = delegate { }; //Used for displaying land in leader menu
         public List<GameObject> townMembers = new();
         public List<Shop> shopsControlledByLeader = new();
         public List<LandScript> landInTown = new();
+        public Dictionary<ItemProperties, float> itemPrices = new();
     }
 
     public event Action<GameObject, PlayerData.PlayerRole> OnPlayerRoleChange = delegate { };
@@ -99,7 +102,7 @@ public class GameManager : NetworkBehaviour
     override public void OnNetworkSpawn()
     {
         if (!IsServer) { return; }
-        GenerateTownLand(0, 20, 13, -10);
+        GenerateTownLand(0, 10, 5, -5);
         OnPlayerTownChange += ChangeLeader;
 
         //Spawn all items in the game for testing purposes
@@ -134,9 +137,9 @@ public class GameManager : NetworkBehaviour
                 landTile.GetComponent<NetworkObject>().Spawn();
                 LandScript landScript = landTile.GetComponent<LandScript>();
                 TownData[townId].landInTown.Add(landScript);
-                landScript.menuXPos = i;
-                landScript.menuYPos = j;
-                landScript.menuDisplayText = $"Land {i} {j}";
+                landScript.menuXPos.Value = i;
+                landScript.menuYPos.Value = j;
+                landScript.menuDisplayText.Value = $"Empty Land";
             }
         }
     }
