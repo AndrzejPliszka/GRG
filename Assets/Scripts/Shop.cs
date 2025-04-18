@@ -86,6 +86,7 @@ public class Shop : NetworkBehaviour
             isShopOpen.Value = false;
     }
 
+
     public void SetUpShop(ItemData.ItemProperties itemToSell)
     {
         if (!IsServer) { throw new Exception("Only server can modify shops!"); }
@@ -99,7 +100,8 @@ public class Shop : NetworkBehaviour
             townData.itemPrices.Add(itemToSell, 0);
             LeaderMenu leaderMenu = townData.townMembers[0].GetComponent<LeaderMenu>();
             if(leaderMenu)
-                leaderMenu.AddItemToShopManagmentPanelClientRpc(itemToSell, townData.itemPrices.Count); 
+                leaderMenu.AddItemToShopManagmentPanelClientRpc(itemToSell, townData.itemPrices.Count);
+            
         }
         else
             Price = townData.itemPrices[itemToSell];
@@ -131,7 +133,7 @@ public class Shop : NetworkBehaviour
             return;
         }
 
-        if (playerData.FindFreeInventorySlot() == -1)
+        if (playerData.FindFreeInventorySlot() == -1  && SoldItem.itemType != ItemData.ItemType.Null)
         {
             if (playerUI)
                 playerUI.DisplayErrorOwnerRpc("Inventory full!");

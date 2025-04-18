@@ -2,11 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class ZoomToMouse : MonoBehaviour, IScrollHandler
 {
-    [SerializeField] RectTransform content; // To, co zoomujesz
-    [SerializeField] RectTransform viewport; // Widoczny obszar ScrollRect
+    [SerializeField] RectTransform content;
+    [SerializeField] RectTransform viewport;
     [SerializeField] float zoomSpeed = 0.1f;
     [SerializeField] float minZoom = 0.5f;
     [SerializeField] float maxZoom = 2f;

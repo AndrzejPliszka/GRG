@@ -840,7 +840,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1566467498
+  GlobalObjectIdHash: 3068023499
   InScenePlacedSourceGlobalObjectIdHash: 0
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -977,6 +977,7 @@ MonoBehaviour:
   localRightHandPath: rig/metarig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R
   itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}
   itemTierData: {fileID: 11400000, guid: e6c211ddcaf602045b55cbfd0c77ed64, type: 2}
+  canInteract: 1
 --- !u!136 &-5647826904980089932
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1109,3 +1110,4 @@ MonoBehaviour:
   singularShopItemUI: {fileID: 4392729184747963158, guid: 9e247c8490524e54aa442e88d5fec668, type: 3}
   singularLandUnitUI: {fileID: 4392729184747963158, guid: dacf5a3f5c920744698df5663ee4c6c9, type: 3}
   buildMenuUI: {fileID: 5993387815824996974, guid: 2e77f94b9f0da3e4988cd7c3a4415c4c, type: 3}
+  upgradeShopMenuUI: {fileID: 5993387815824996974, guid: 34ce338c5ad3b2640a67dc31236eee98, type: 3}

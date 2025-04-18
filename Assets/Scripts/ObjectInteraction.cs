@@ -35,6 +35,8 @@ public class ObjectInteraction : NetworkBehaviour
     public event Action<float> OnPunch; //event used in Animations to play animation of punching, float is cooldown, so it can be used to display cooldown slider
     public event Action OnHittingSomething; //event used in playerUI to display hitmark
 
+    public bool canInteract = true;
+
     private void Awake()
     {
         playerData = GetComponent<PlayerData>();
@@ -48,6 +50,9 @@ public class ObjectInteraction : NetworkBehaviour
     {
         if (!IsOwner) {  return; }
         float cameraXRotation = GameObject.Find("Camera").transform.rotation.eulerAngles.x;
+        if (!canInteract)
+            return;
+
         if (Input.GetKeyDown(KeyCode.E)) //E is interaction key (for now only for picking up items)
             InteractWithObjectServerRpc(cameraXRotation);
 

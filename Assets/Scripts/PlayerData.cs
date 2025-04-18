@@ -58,7 +58,7 @@ public class PlayerData : NetworkBehaviour
 
             for (int i = 0; i < 3; i++) //we want to have 3 inventory slots in the beginning
             {
-                Inventory.Add(new ItemData.ItemProperties());
+                Inventory.Add(new ItemData.ItemProperties() { itemTier = ItemData.ItemTier.Stone, itemType = ItemData.ItemType.Sword});
             }
         }
         //Reset inventory on server
