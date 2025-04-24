@@ -25,6 +25,10 @@ public class LeaderMenu : NetworkBehaviour
     GameObject shopManagmentItemsContainer;
     GameObject landManagmentItemsContainer;
     GameObject currentPopUpMenu;
+
+    Transform buildShopMenuUI;
+    Transform buildHouseMenuUI;
+
     int numberOfShopItems;
     bool isMenuSetUp = false;
     Button taxRateApproveButton;
@@ -116,9 +120,16 @@ public class LeaderMenu : NetworkBehaviour
 
     void DisplayBuildMenu(ulong landObjectId) //I need id, so I can use it in button listener
     {
+
+        string buildShopPanelName = "BuildShopPanel";
+        string buildHousePanelName = "BuildHousePanel";
+        string buildShopUIActivationButtonName = "ShopButton";
+        string buildHouseUIActivationButtonName = "HouseButton";
+
+
         string itemTypeDropdownName = "SoldItemTypeDropdown";
         string itemTierDropdownName = "SoldItemTierDropdown";
-        string buildButtonName = "BuildButton";
+        string buildShopButtonName = "BuildButton";
 
         if (currentPopUpMenu != null)
             Destroy(currentPopUpMenu);
@@ -129,17 +140,21 @@ public class LeaderMenu : NetworkBehaviour
         currentPopUpMenu = Instantiate(buildMenuUI, leaderMenu.transform);
         currentPopUpMenu.GetComponent<RectTransform>().anchoredPosition = mousePosition;
 
-        TMP_Dropdown itemTierDropdown = currentPopUpMenu.transform.Find(itemTierDropdownName).GetComponent<TMP_Dropdown>();
+        buildShopMenuUI = currentPopUpMenu.transform.Find(buildShopPanelName);
+        buildHouseMenuUI = currentPopUpMenu.transform.Find(buildHousePanelName);
+
+        //Shop menu set up (maybe move to switch, but then you neet to delete listeners on building change)
+        TMP_Dropdown itemTierDropdown = buildShopMenuUI.transform.Find(itemTierDropdownName).GetComponent<TMP_Dropdown>();
         foreach (ItemData.ItemTier itemTier in Enum.GetValues(typeof(ItemData.ItemTier)))
             itemTierDropdown.options.Add(new TMP_Dropdown.OptionData(itemTier.ToString()));
 
-        TMP_Dropdown itemTypeDropdown = currentPopUpMenu.transform.Find(itemTypeDropdownName).GetComponent<TMP_Dropdown>();
+        TMP_Dropdown itemTypeDropdown = buildShopMenuUI.transform.Find(itemTypeDropdownName).GetComponent<TMP_Dropdown>();
         foreach (ItemData.ItemType itemType in Enum.GetValues(typeof(ItemData.ItemType)))
             if(itemType != ItemData.ItemType.Null)
                 itemTypeDropdown.options.Add(new TMP_Dropdown.OptionData(itemType.ToString()));
 
-        Button buildButton = currentPopUpMenu.transform.Find(buildButtonName).GetComponent<Button>();
-        buildButton.onClick.AddListener(() =>
+        Button buildShopButton = buildShopMenuUI.transform.Find(buildShopButtonName).GetComponent<Button>();
+        buildShopButton.onClick.AddListener(() =>
         {
             ItemData.ItemProperties itemProperties = new()
             {
@@ -149,6 +164,40 @@ public class LeaderMenu : NetworkBehaviour
             BuildOnSingularPlotServerRpc(landObjectId, itemProperties);
             Destroy(currentPopUpMenu);
         });
+
+        Button buildHouseButton = buildHouseMenuUI.transform.Find(buildShopButtonName).GetComponent<Button>();
+        buildShopButton.onClick.AddListener(() =>
+        {
+            //BuildOnSingularPlotServerRpc(landObjectId, itemProperties);
+            Destroy(currentPopUpMenu);
+        });
+
+
+        currentPopUpMenu.transform.Find(buildShopUIActivationButtonName).GetComponent<Button>().onClick.AddListener(
+            () => ChangeBuildingBuildMenu(Building.Shop));
+
+        currentPopUpMenu.transform.Find(buildHouseUIActivationButtonName).GetComponent<Button>().onClick.AddListener(
+            () => ChangeBuildingBuildMenu(Building.House));
+
+        buildShopMenuUI.gameObject.SetActive(false);
+        buildHouseMenuUI.gameObject.SetActive(false);
+    }
+
+    void ChangeBuildingBuildMenu(Building targetBuilding)
+    {
+        switch (targetBuilding)
+        {
+            case Building.Null:
+                throw new Exception("Somehow targetBuilding is null, fix that");
+            case Building.Shop:
+                buildShopMenuUI.gameObject.SetActive(true);
+                buildHouseMenuUI.gameObject.SetActive(false);
+                break;
+            case Building.House:
+                buildShopMenuUI.gameObject.SetActive(false);
+                buildHouseMenuUI.gameObject.SetActive(true);
+                break;
+        }
 
     }
 

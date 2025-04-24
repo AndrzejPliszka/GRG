@@ -10,7 +10,8 @@ public class LandScript : NetworkBehaviour
     public enum Building
     {
         Null, //Used for empty land
-        Shop
+        Shop,
+        House
     }
 
     [SerializeField] GameObject shopAsset;
