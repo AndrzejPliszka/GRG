@@ -15,6 +15,7 @@ public class LandScript : NetworkBehaviour
     }
 
     [SerializeField] GameObject shopAsset;
+    [SerializeField] GameObject houseAsset;
 
     public NetworkVariable<int> townId = new(0);
     public NetworkVariable<int> menuXPos = new(0);
@@ -38,9 +39,13 @@ public class LandScript : NetworkBehaviour
                 menuDisplayText.Value = $"{itemSoldByShop.itemTier} {itemSoldByShop.itemType} Shop";
                 BuildingType = Building.Shop;
             }
-                
+            else //Update to else if when characteristic of House is added
+            {
+                menuDisplayText.Value = $"House";
+                BuildingType = Building.House;
+            }
 
-            if(value != _buildingOnLand)
+            if (value != _buildingOnLand)
             {
                 GameManager.Instance.TownData[townId.Value].OnLandChange.Invoke(menuXPos.Value, menuYPos.Value, BuildingType, menuDisplayText.Value);
             }
@@ -64,8 +69,25 @@ public class LandScript : NetworkBehaviour
         Shop shopScript = shop.GetComponent<Shop>();
         shopScript.SetUpShop(itemSoldByShop);
         BuildingOnLand = shop;
-        BreakableStructure breakableStructure = shop.GetComponent<BreakableStructure>();
-        if (breakableStructure != null)
+        if (shop.TryGetComponent<BreakableStructure>(out var breakableStructure))
+            breakableStructure.land = this;
+
+    }
+
+    public void BuildHouseOnLand()
+    {
+        if (!IsServer) { throw new Exception("Only server can modify land!"); }
+
+        if (BuildingOnLand != null)
+        {
+            Debug.LogWarning("Called building function, when there is building already");
+            return;
+        }
+
+        GameObject house = Instantiate(houseAsset, transform.position, transform.rotation);
+        house.GetComponent<NetworkObject>().Spawn();
+        BuildingOnLand = house;
+        if (house.TryGetComponent<BreakableStructure>(out var breakableStructure))
             breakableStructure.land = this;
 
     }

@@ -33,6 +33,8 @@ public class LeaderMenu : NetworkBehaviour
     bool isMenuSetUp = false;
     Button taxRateApproveButton;
     TMP_InputField taxRateInputField;
+
+    readonly NetworkVariable<ItemData.ItemProperties> selectedShopSoldItemProperties = new(); //Defined to make BuildOnSingularPlotServerRpc not take this as argument and to (in future) make, so this settings saves between building menus
     public override void OnNetworkSpawn()
     {
         playerData = GetComponent<PlayerData>();
@@ -110,11 +112,17 @@ public class LeaderMenu : NetworkBehaviour
             destroyButton.gameObject.SetActive(false);
             upgradeButton.gameObject.SetActive(false);
         }
-        else
+        else if(building == Building.Shop)
         {
             buildButton.gameObject.SetActive(false);
             destroyButton.gameObject.SetActive(true);
             upgradeButton.gameObject.SetActive(true);
+        }
+        else //for building that cannot be upgraded
+        {
+            buildButton.gameObject.SetActive(false);
+            destroyButton.gameObject.SetActive(true);
+            upgradeButton.gameObject.SetActive(false);
         }
     }
 
@@ -126,11 +134,11 @@ public class LeaderMenu : NetworkBehaviour
         string buildShopUIActivationButtonName = "ShopButton";
         string buildHouseUIActivationButtonName = "HouseButton";
 
-
         string itemTypeDropdownName = "SoldItemTypeDropdown";
         string itemTierDropdownName = "SoldItemTierDropdown";
         string buildShopButtonName = "BuildButton";
-
+        //Parents are different in this object (then in case above)
+        string buildHouseButtonName = "BuildButton";
         if (currentPopUpMenu != null)
             Destroy(currentPopUpMenu);
 
@@ -156,19 +164,19 @@ public class LeaderMenu : NetworkBehaviour
         Button buildShopButton = buildShopMenuUI.transform.Find(buildShopButtonName).GetComponent<Button>();
         buildShopButton.onClick.AddListener(() =>
         {
-            ItemData.ItemProperties itemProperties = new()
+            selectedShopSoldItemProperties.Value = new()
             {
                 itemTier = (ItemData.ItemTier)itemTierDropdown.value,
                 itemType = (ItemData.ItemType)itemTypeDropdown.value + 1 //there exists null type on index 0
             };
-            BuildOnSingularPlotServerRpc(landObjectId, itemProperties);
+            BuildOnSingularPlotServerRpc(landObjectId, Building.Shop);
             Destroy(currentPopUpMenu);
         });
 
-        Button buildHouseButton = buildHouseMenuUI.transform.Find(buildShopButtonName).GetComponent<Button>();
-        buildShopButton.onClick.AddListener(() =>
+        Button buildHouseButton = buildHouseMenuUI.transform.Find(buildHouseButtonName).GetComponent<Button>();
+        buildHouseButton.onClick.AddListener(() =>
         {
-            //BuildOnSingularPlotServerRpc(landObjectId, itemProperties);
+            BuildOnSingularPlotServerRpc(landObjectId, Building.House);
             Destroy(currentPopUpMenu);
         });
 
@@ -251,7 +259,7 @@ public class LeaderMenu : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server)]
-    void BuildOnSingularPlotServerRpc(ulong landPlotId, ItemData.ItemProperties itemProperties) //TO DO: CHANGE SO THIS SUPPORTS OTHER BUILDINGS (probably by setting building specific vars outside this function)
+    void BuildOnSingularPlotServerRpc(ulong landPlotId, Building buildingToBuild) //TO DO: CHANGE SO THIS SUPPORTS OTHER BUILDINGS (probably by setting building specific vars outside this function)
     {
         if (playerData.Role.Value != PlayerData.PlayerRole.Leader)
             throw new Exception("Sus behaviour, non leader is trying to manage land plot" + playerData.Role.Value.ToString() + " " + playerData.TownId.Value.ToString() + " " + landPlotId.ToString());
@@ -261,15 +269,28 @@ public class LeaderMenu : NetworkBehaviour
             LandScript landScript = foundObject.GetComponent<LandScript>();
             if (playerData.TownId.Value != landScript.townId.Value)
                 throw new Exception("Sus behaviour, leader from different town is trying to modify other towns plot");
-            //TODO: Make logic to how much money building costs
-            /*
-            bool didBuy = playerData.ChangeMoney(-10);
-            if (!didBuy)
+
+            switch (buildingToBuild)
             {
-                transform.GetComponent<PlayerUI>().DisplayErrorOwnerRpc("Get more money before building this shop!");
-                return;
-            }*/
-            landScript.BuildShopOnLand(itemProperties);
+                case Building.Null:
+                    throw new Exception("You want to build Null dum dum, fix that");
+                case Building.Shop:
+                    //TODO: Make logic to how much money building costs
+                    /*
+                    bool didBuy = playerData.ChangeMoney(-10);
+                    if (!didBuy)
+                    {
+                        transform.GetComponent<PlayerUI>().DisplayErrorOwnerRpc("Get more money before building this shop!");
+                        return;
+                    }*/
+                    landScript.BuildShopOnLand(selectedShopSoldItemProperties.Value);
+                    break;
+                case Building.House:
+                    landScript.BuildHouseOnLand();
+                    break;
+                default:
+                    throw new Exception("You want to build " + buildingToBuild.ToString() + ", but it is not coded yet");
+            }
         }
     }
     [Rpc(SendTo.Server)]

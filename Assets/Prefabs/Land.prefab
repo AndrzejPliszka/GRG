@@ -119,7 +119,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 199724237
+  GlobalObjectIdHash: 218569455
   InScenePlacedSourceGlobalObjectIdHash: 0
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -141,6 +141,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   shopAsset: {fileID: 4068853293296777764, guid: 1078b3a81a0478944b58dccda565722e, type: 3}
+  houseAsset: {fileID: 556309344900322051, guid: 592bff101c39aa34c8971592716da115, type: 3}
   townId:
     m_InternalValue: 0
   menuXPos:
@@ -284,4 +285,3 @@ MonoBehaviour:
         byte0123: 0
         byte0124: 0
         byte0125: 0
-  buildingOnLand: {fileID: 0}
