@@ -113,6 +113,7 @@ public class PlayerUI : NetworkBehaviour
         BreakableStructure breakableStructure;
         Storage storage;
         MoneyObject moneyObject;
+        House house;
         int currentHealth, maxHealth;
         switch (targetObject.tag)
         {
@@ -157,6 +158,10 @@ public class PlayerUI : NetworkBehaviour
             case "Money":
                 moneyObject = targetObject.GetComponent<MoneyObject>();
                 centerText.text = $"{moneyObject.moneyAmount.Value}$";
+                break;
+            case "House":
+                house = targetObject.GetComponent<House>();
+                centerText.text = $"{house.displayedText.Value}";
                 break;
             default:
                 centerText.text = "";

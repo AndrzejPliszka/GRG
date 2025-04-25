@@ -34,7 +34,8 @@ public class LeaderMenu : NetworkBehaviour
     Button taxRateApproveButton;
     TMP_InputField taxRateInputField;
 
-    readonly NetworkVariable<ItemData.ItemProperties> selectedShopSoldItemProperties = new(); //Defined to make BuildOnSingularPlotServerRpc not take this as argument and to (in future) make, so this settings saves between building menus
+    readonly NetworkVariable<ItemData.ItemProperties> selectedShopSoldItemProperties = new(default,
+        NetworkVariableReadPermission.Owner, NetworkVariableWritePermission.Owner); //Defined to make BuildOnSingularPlotServerRpc not take this as argument and to (in future) make, so this settings saves between building menus (client side because it is used in menu and as arguments, so doesnt require validation)
     public override void OnNetworkSpawn()
     {
         playerData = GetComponent<PlayerData>();
@@ -249,11 +250,19 @@ public class LeaderMenu : NetworkBehaviour
     {
         if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(landPlotId, out NetworkObject landObject)) //find land object
         {
+            /* MAKING THAT UPGRADING COSTS MONEY TODO: move this to shop script!
+             * 
+            bool didBuy = playerData.ChangeMoney(-10 * (int)itemTier);//better tier more expensive 
+            if (!didBuy)
+            {
+                transform.GetComponent<PlayerUI>().DisplayErrorOwnerRpc("Get more money before upgrading this shop!");
+                return;
+            }*/
             LandScript landScript = landObject.transform.GetComponent<LandScript>();
             Shop shop = landScript.BuildingOnLand.GetComponent<Shop>();
             ItemData.ItemProperties newItem = shop.SoldItem;
             newItem.itemTier = itemTier;
-            GameManager.Instance.TownData[playerData.TownId.Value].OnLandChange.Invoke(landScript.menuXPos.Value, landScript.menuYPos.Value, LandScript.Building.Shop, $"{newItem.itemTier} {newItem.itemType} Shop");
+            GameManager.Instance.TownData[playerData.TownId.Value].OnLandChange.Invoke(landScript.menuXPos.Value, landScript.menuYPos.Value, Building.Shop, $"{newItem.itemTier} {newItem.itemType} Shop");
             shop.SetUpShop(newItem);
         }
     }
@@ -275,7 +284,7 @@ public class LeaderMenu : NetworkBehaviour
                 case Building.Null:
                     throw new Exception("You want to build Null dum dum, fix that");
                 case Building.Shop:
-                    //TODO: Make logic to how much money building costs
+                    //TODO: Make logic to how much money building costs (make this in shop script!)
                     /*
                     bool didBuy = playerData.ChangeMoney(-10);
                     if (!didBuy)

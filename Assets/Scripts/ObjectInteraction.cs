@@ -195,6 +195,7 @@ public class ObjectInteraction : NetworkBehaviour
         string targetObjectTag = targetObject.tag;
         Shop shopScript; //declared here to avoid scope issues
         MoneyObject moneyObject;
+        House houseScript;
         //first see if is looking at interactive object
         switch (targetObjectTag)
         {
@@ -232,6 +233,10 @@ public class ObjectInteraction : NetworkBehaviour
                 targetObject.GetComponent<NetworkObject>().Despawn();
                 Destroy(targetObject);
                 return;
+            case "House":
+                houseScript = targetObject.GetComponent<House>();
+                houseScript.BuyHouse(gameObject);
+                break;
 
         }
 
