@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Xml;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -61,8 +62,11 @@ public class GameManager : NetworkBehaviour
         }
         public event Action<int, int> OnFoodChange = delegate { };
         public event Action<float> OnTaxRateChange = delegate { };
+        public Action<int, int, LandScript.Building, FixedString128Bytes> OnLandChange = delegate { }; //Used for displaying land in leader menu
         public List<GameObject> townMembers = new();
         public List<Shop> shopsControlledByLeader = new();
+        public List<LandScript> landInTown = new();
+        public Dictionary<ItemProperties, float> itemPrices = new();
     }
 
     public event Action<GameObject, PlayerData.PlayerRole> OnPlayerRoleChange = delegate { };
@@ -76,6 +80,7 @@ public class GameManager : NetworkBehaviour
     public static GameManager Instance { get; private set; }
 
     [SerializeField] ItemTypeData itemTypeData; //used for spawning items
+    [SerializeField] GameObject landObject;
 
     private void Awake()
     {
@@ -97,7 +102,7 @@ public class GameManager : NetworkBehaviour
     override public void OnNetworkSpawn()
     {
         if (!IsServer) { return; }
-
+        GenerateTownLand(0, 10, 5, -5);
         OnPlayerTownChange += ChangeLeader;
 
         //Spawn all items in the game for testing purposes
@@ -113,6 +118,28 @@ public class GameManager : NetworkBehaviour
                 item.GetComponent<NetworkObject>().Spawn();
                 item.GetComponent<ItemData>().itemProperties.Value = new ItemProperties { itemTier = itemTier, itemType = itemType };
                 itemSpawnZPos += 2;
+            }
+        }
+    }
+
+    void GenerateTownLand(int townId, int width, int length, int startingOffset)
+    {
+        if (!IsServer) { throw new Exception("This is generating fucntion calling this on server is impossible"); }
+
+        Transform landContainer = GameObject.Find($"Town{townId}").transform.Find("LandContainer");
+        Debug.Log(landContainer);
+        float offsetBetweenTiles = 10f;
+        for(int i = startingOffset; i < startingOffset + width; i++)
+        {
+            for(int j = 0; j < length; j++)
+            {
+                GameObject landTile = Instantiate(landObject, landContainer.position + landContainer.rotation * new Vector3(j * offsetBetweenTiles, 0, i * offsetBetweenTiles), new Quaternion());
+                landTile.GetComponent<NetworkObject>().Spawn();
+                LandScript landScript = landTile.GetComponent<LandScript>();
+                TownData[townId].landInTown.Add(landScript);
+                landScript.menuXPos.Value = i;
+                landScript.menuYPos.Value = j;
+                landScript.menuDisplayText.Value = $"Empty Land";
             }
         }
     }

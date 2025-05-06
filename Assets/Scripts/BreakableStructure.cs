@@ -8,6 +8,7 @@ public class BreakableStructure : NetworkBehaviour
     [field: SerializeField] public int MaximumHealth { get; private set; } = new();
     public NetworkVariable<int> Health { get; private set; } = new();
     public DynamicObjectSpawning spawner; //this is used to communicate with spawner. it may be empty if object was put manually itp.
+    public LandScript land; //also used to communicate with spawner, but in case of land plot in town
 
     public override void OnNetworkSpawn()
     {
@@ -35,5 +36,7 @@ public class BreakableStructure : NetworkBehaviour
     {
         if (spawner != null)
             spawner.DecreaseNumberOfSpawnedObjects();
+        if (land != null)
+            land.BuildingOnLand = null;
     }
 }

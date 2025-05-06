@@ -35,6 +35,8 @@ public class ObjectInteraction : NetworkBehaviour
     public event Action<float> OnPunch; //event used in Animations to play animation of punching, float is cooldown, so it can be used to display cooldown slider
     public event Action OnHittingSomething; //event used in playerUI to display hitmark
 
+    public bool canInteract = true;
+
     private void Awake()
     {
         playerData = GetComponent<PlayerData>();
@@ -48,6 +50,9 @@ public class ObjectInteraction : NetworkBehaviour
     {
         if (!IsOwner) {  return; }
         float cameraXRotation = GameObject.Find("Camera").transform.rotation.eulerAngles.x;
+        if (!canInteract)
+            return;
+
         if (Input.GetKeyDown(KeyCode.E)) //E is interaction key (for now only for picking up items)
             InteractWithObjectServerRpc(cameraXRotation);
 
@@ -189,6 +194,8 @@ public class ObjectInteraction : NetworkBehaviour
         if (targetObject == null) { return; }
         string targetObjectTag = targetObject.tag;
         Shop shopScript; //declared here to avoid scope issues
+        MoneyObject moneyObject;
+        House houseScript;
         //first see if is looking at interactive object
         switch (targetObjectTag)
         {
@@ -218,6 +225,18 @@ public class ObjectInteraction : NetworkBehaviour
                     throw new Exception("Parent of object with BuyingPlace, does not have Shop script, modify hierarchy or this script accordingly!");
                 shopScript.WorkInShop(gameObject);
                 return;
+            case "Money":
+                moneyObject = targetObject.transform.GetComponent<MoneyObject>();
+                float moneyAmount = moneyObject.moneyAmount.Value;
+                playerData.ChangeMoney(moneyAmount);
+
+                targetObject.GetComponent<NetworkObject>().Despawn();
+                Destroy(targetObject);
+                return;
+            case "House":
+                houseScript = targetObject.GetComponent<House>();
+                houseScript.BuyHouse(gameObject);
+                break;
 
         }
 

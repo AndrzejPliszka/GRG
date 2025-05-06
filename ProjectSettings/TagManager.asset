@@ -13,6 +13,8 @@ TagManager:
   - Work
   - Crop
   - Storage
+  - Money
+  - House
   layers:
   - Default
   - TransparentFX

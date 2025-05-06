@@ -840,7 +840,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1566467498
+  GlobalObjectIdHash: 3068023499
   InScenePlacedSourceGlobalObjectIdHash: 0
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -897,10 +897,11 @@ MonoBehaviour:
   sensitivity: 5
   reconciliationThreshold: 0
   <CameraOffset>k__BackingField: {x: 0, y: 0.9, z: 0.2}
-  startingPosition: {x: 0, y: 1, z: 0}
+  startingPosition: {x: -140, y: 15, z: 0}
   jumpHeight: 2
   renderOrginalModel: 0
   <LocalPlayerModel>k__BackingField: {fileID: 8116827039790958487, guid: 719e5dcc23b23bc43aec4ca8af7d580c, type: 3}
+  blockRotation: 0
 --- !u!95 &-624391764889253703
 Animator:
   serializedVersion: 5
@@ -976,6 +977,7 @@ MonoBehaviour:
   localRightHandPath: rig/metarig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R
   itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}
   itemTierData: {fileID: 11400000, guid: e6c211ddcaf602045b55cbfd0c77ed64, type: 2}
+  canInteract: 1
 --- !u!136 &-5647826904980089932
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1027,8 +1029,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcb782558a28d8e4387592afafca031f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Ragdoll: {fileID: 47492354796517529, guid: 3a08e0566eadc794da932e8fb77951ba, type: 3}
+  ragdoll: {fileID: 47492354796517529, guid: 3a08e0566eadc794da932e8fb77951ba, type: 3}
   itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}
+  moneyObject: {fileID: 3550086742576351476, guid: f270bd44ff5ced7459367d6d8ec87db2, type: 3}
 --- !u!114 &1470687310601860555
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1104,4 +1107,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0c1df2010f0e874a95b0b8ac88288bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  SingularShopItemUI: {fileID: 4392729184747963158, guid: 9e247c8490524e54aa442e88d5fec668, type: 3}
+  singularShopItemUI: {fileID: 4392729184747963158, guid: 9e247c8490524e54aa442e88d5fec668, type: 3}
+  singularLandUnitUI: {fileID: 4392729184747963158, guid: dacf5a3f5c920744698df5663ee4c6c9, type: 3}
+  buildMenuUI: {fileID: 5993387815824996974, guid: 2e77f94b9f0da3e4988cd7c3a4415c4c, type: 3}
+  upgradeShopMenuUI: {fileID: 5993387815824996974, guid: 34ce338c5ad3b2640a67dc31236eee98, type: 3}

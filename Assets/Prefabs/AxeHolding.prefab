@@ -68,7 +68,9 @@ PrefabInstance:
       propertyPath: m_Name
       value: AxeHolding
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: -3692351505483143382, guid: 9c8c3e93771c01f40a7b08f482427aac, type: 3}
+    - {fileID: -4917496797002561851, guid: 9c8c3e93771c01f40a7b08f482427aac, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
