@@ -75,9 +75,9 @@ public class Shop : NetworkBehaviour
     }
 
     //this function exists, so if noWorkerRequiredOnEmptyTown == true and there is empty town, isShopOpen will always be true (making this is less complicated then setter getter)
-    public void UpdateIsShopOpen(GameObject player, int playerTownId)
+    public void UpdateIsShopOpen(GameObject player, int oldPlayerTownId,int currentPlayerTownId)
     {
-        if (playerTownId != townId)
+        if (currentPlayerTownId != townId)
             return;
 
         if (GameManager.Instance.TownData[townId].townMembers.Count == 0)

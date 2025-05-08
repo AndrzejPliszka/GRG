@@ -78,11 +78,13 @@ public class PlayerUI : NetworkBehaviour
             objectInteraction.OnHittingSomething += DisplayHitmarkOwnerRpc;
             objectInteraction.OnPunch += DisplayCooldownCircleOwnerRpc;
             playerData.TownId.OnValueChanged += (int oldTownId, int newTownId) => { //MOVE TO OTHER FUNCTION IF IT GROWS TOO MUCH !!!
-                ModifyTaxRateTextOwnerRpc(GameManager.Instance.TownData[newTownId].TaxRate);
                 if(oldTownId >= 0 && oldTownId < GameManager.Instance.TownData.Count)
                     GameManager.Instance.TownData[oldTownId].OnTaxRateChange -= ModifyTaxRateTextOwnerRpc;
                 if (newTownId >= 0 && newTownId < GameManager.Instance.TownData.Count)
+                {
+                    ModifyTaxRateTextOwnerRpc(GameManager.Instance.TownData[newTownId].TaxRate);
                     GameManager.Instance.TownData[newTownId].OnTaxRateChange += ModifyTaxRateTextOwnerRpc;
+                }
             };
         }
         

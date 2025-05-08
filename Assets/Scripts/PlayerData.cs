@@ -27,9 +27,11 @@ public class PlayerData : NetworkBehaviour
 
     public NetworkVariable<float> Money { get; private set; } = new(0);
 
-    public NetworkVariable<PlayerRole> Role { get; private set; } = new(PlayerRole.Peasant); //Remember that "real" role of player will be in GameManager and this is just for easier access to that info
+    public NetworkVariable<PlayerRole> Role { get; private set; } = new(PlayerRole.Peasant);
 
     public NetworkVariable<int> TownId { get; private set; } = new(-1);
+
+    public NetworkVariable<bool> IsCriminal { get; private set; } = new(true);
 
     //Variables that hold things related to managing data above
     bool decreaseHungerFaster = false;
