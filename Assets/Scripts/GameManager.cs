@@ -68,6 +68,7 @@ public class GameManager : NetworkBehaviour
         public List<Shop> shopsControlledByLeader = new();
         public List<LandScript> landInTown = new();
         public Dictionary<ItemProperties, float> itemPrices = new();
+        public Transform townBase; //for now used to check if player is physically in town
     }
 
     public event Action<GameObject, PlayerData.PlayerRole> OnPlayerRoleChange = delegate { };
@@ -96,7 +97,7 @@ public class GameManager : NetworkBehaviour
 
         for (int i = 0; i < 1; i++)
         {
-            TownData.Add(new TownProperties() { FoodSupply = 0, MaximumFoodSupply = 100 });
+            TownData.Add(new TownProperties() { FoodSupply = 0, MaximumFoodSupply = 100, townBase = GameObject.Find("Town" + i).transform.Find("Pavement") }); //Pavement cos it has approperiate size (at least for now)
         }
     }
 

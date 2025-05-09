@@ -53,14 +53,8 @@ public class Guard : NetworkBehaviour
             GameManager.Instance.TownData[playerData.TownId.Value].OnPlayerArrest.Invoke(hitPlayerData.transform);
             GameManager.Instance.ChangePlayerAffiliation(objectInFrontOfCamera, PlayerData.PlayerRole.Peasant, -1);
             hitPlayerData.IsCriminal.Value = false;
-            GuardResponseOwnerRpc();
+            playerData.ChangeMoney(10);
+            GetComponent<PlayerUI>().DisplayErrorOwnerRpc("Arrested criminal!");
         }
-    }
-
-    [Rpc(SendTo.Owner)]
-    void GuardResponseOwnerRpc()
-    {
-        GetComponent<PlayerUI>().DisplayErrorOwnerRpc("Player hit!!!!!");
-        Debug.Log("Player hit");
     }
 }

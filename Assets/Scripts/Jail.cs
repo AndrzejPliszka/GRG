@@ -10,10 +10,7 @@ public class Jail : NetworkBehaviour
     [SerializeField] Vector3 prisonSpawnOffset;
     public override void OnNetworkSpawn()
     {
-
-        Debug.Log("Set up 123");
         if (!IsServer) { return; }
-        Debug.Log("Set up succesfull");
         GameManager.Instance.TownData[townId].OnPlayerArrest += TeleportPlayerToJail;
     }
 

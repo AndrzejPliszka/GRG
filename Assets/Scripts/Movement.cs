@@ -214,7 +214,6 @@ public class Movement : NetworkBehaviour
     public void TeleportPlayerToPosition(Vector3 position)
     {
         if (!IsServer) { throw new Exception("No teleporting on client side!"); }
-        Debug.Log("SImga");
         if(sittingCourutineCancellationToken != null) //If sitting then stop
         {
             sittingCourutineCancellationToken.Cancel();

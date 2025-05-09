@@ -27,6 +27,7 @@ public class PlayerUI : NetworkBehaviour
     TMP_Text healthBarText;
     TMP_Text moneyCount;
     TMP_Text taxRate;
+    TMP_Text criminalText;
     Image hitmark;
     Image cooldownMarker;
     Image micActivityIcon;
@@ -44,6 +45,7 @@ public class PlayerUI : NetworkBehaviour
         healthBarText = GameObject.Find("HealthBarText").GetComponent<TMP_Text>();
         moneyCount = GameObject.Find("MoneyCount").GetComponent<TMP_Text>();
         taxRate = GameObject.Find("TaxRate").GetComponent<TMP_Text>();
+        criminalText = GameObject.Find("CriminalText").GetComponent<TMP_Text>();
 
         hitmark = GameObject.Find("Hitmark").GetComponent<Image>();
         cooldownMarker = GameObject.Find("CooldownMarker").GetComponent<Image>();
@@ -53,6 +55,7 @@ public class PlayerUI : NetworkBehaviour
         healthBar = GameObject.Find("HealthBar").GetComponent<Slider>();
 
         errorText.enabled = false; //We do this so DisplayError() works (see function)
+        criminalText.enabled = false;
 
         GameObject inventorySlotsContainer = GameObject.Find("InventorySlots");
         for (int i = 0; i < inventorySlotsContainer.transform.childCount; i++) {
@@ -70,12 +73,13 @@ public class PlayerUI : NetworkBehaviour
             playerData.Hunger.OnValueChanged += ModifyHungerBar;
             playerData.Health.OnValueChanged += ModifyHealthBar;
             playerData.Money.OnValueChanged += ModifyMoneyCount;
+            playerData.IsCriminal.OnValueChanged += DisplayIsCriminalText;
         }
 
         if (IsServer)
         {
             //Here are only server side events which call RPCs
-            objectInteraction.OnHittingSomething += DisplayHitmarkOwnerRpc;
+            objectInteraction.OnHittingSomething += (GameObject hitGameObject) => { DisplayHitmarkOwnerRpc(); };
             objectInteraction.OnPunch += DisplayCooldownCircleOwnerRpc;
             playerData.TownId.OnValueChanged += (int oldTownId, int newTownId) => { //MOVE TO OTHER FUNCTION IF IT GROWS TOO MUCH !!!
                 if(oldTownId >= 0 && oldTownId < GameManager.Instance.TownData.Count)
@@ -302,7 +306,11 @@ public class PlayerUI : NetworkBehaviour
     {
         micActivityIcon.enabled = shouldBeEnabled;
     }
-
+    public void DisplayIsCriminalText(bool oldIsCriminal, bool isCriminal)
+    {
+        if (!IsOwner) return;
+        criminalText.enabled = isCriminal;
+    }
     //Rpc because taxRate is only server side and needs to be sent manually
     [Rpc(SendTo.Owner)]
     public void ModifyTaxRateTextOwnerRpc(float newTaxValue)

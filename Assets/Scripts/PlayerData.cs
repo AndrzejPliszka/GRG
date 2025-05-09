@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -31,7 +32,9 @@ public class PlayerData : NetworkBehaviour
 
     public NetworkVariable<int> TownId { get; private set; } = new(-1);
 
-    public NetworkVariable<bool> IsCriminal { get; private set; } = new(true);
+    public NetworkVariable<bool> IsCriminal { get; private set; } = new(false);
+
+    public NetworkVariable<int> TownPlayerIsIn { get; private set; } = new(-1); //physical location, -1 means no town
 
     //Variables that hold things related to managing data above
     bool decreaseHungerFaster = false;
@@ -63,6 +66,13 @@ public class PlayerData : NetworkBehaviour
             {
                 Inventory.Add(new ItemData.ItemProperties());
             }
+
+            ObjectInteraction objectInteraction = GetComponent<ObjectInteraction>();
+            if (objectInteraction != null)
+                objectInteraction.OnHittingSomething += CheckIfHitIsIllegal;
+
+            StartCoroutine(CheckTownPlayerIsIn());
+            TownPlayerIsIn.OnValueChanged += CheckIfPlayerIsIllegalInTown;
         }
         //Reset inventory on server
         if (!IsOwner) { return; }
@@ -238,5 +248,64 @@ public class PlayerData : NetworkBehaviour
     {
         if(newValue == 0)
             OnDeath.Invoke();
+    }
+
+    void CheckIfHitIsIllegal(GameObject hitObject)
+    {
+        string hitTag = hitObject.tag;
+        if (hitTag == "Shop")
+            IsCriminal.Value = true;
+        else if (hitTag == "Player")
+        {
+            PlayerData playerData = hitObject.GetComponent<PlayerData>();
+            if (!playerData.IsCriminal.Value)
+            {
+                IsCriminal.Value = true;
+            }
+        }
+    }
+
+    void CheckIfPlayerIsIllegalInTown(int oldTownPlayerWasIn, int newTownPlayerIsIn)
+    {
+        Debug.Log("Listener zadzialal");
+        if (newTownPlayerIsIn != -1 && Role.Value == PlayerRole.Peasant)
+        {
+            Debug.Log("Widzisz czerwony komuniakt");
+            IsCriminal.Value = true;
+            return;
+        }
+        if (newTownPlayerIsIn != -1 && newTownPlayerIsIn != TownId.Value)
+        {
+            IsCriminal.Value = true;
+            return;
+        }
+    }
+
+    IEnumerator CheckTownPlayerIsIn()
+    {
+        while (true)
+        {
+            int i = 0;
+            Debug.Log("jest funkcja");
+            foreach (GameManager.TownProperties town in GameManager.Instance.TownData)
+            {
+                Debug.Log("jest petla" + i);
+
+                Bounds bounds = town.townBase.GetComponent<Collider>().bounds;
+                Vector3 min = bounds.min;
+                Vector3 max = bounds.max;
+
+                Vector3 playerPos = transform.position;
+                if (playerPos.x >= min.x && playerPos.x <= max.x && playerPos.z >= min.z && playerPos.z <= max.z)
+                {
+                    Debug.Log("gracz jest w miescie");
+                    TownPlayerIsIn.Value = i;
+                    break;
+                }
+                i++;
+            }
+            TownPlayerIsIn.Value = -1;
+            yield return new WaitForSeconds(1f); //check if this changes every second
+        }
     }
 }
