@@ -55,7 +55,6 @@ public class PlayerUI : NetworkBehaviour
         healthBar = GameObject.Find("HealthBar").GetComponent<Slider>();
 
         errorText.enabled = false; //We do this so DisplayError() works (see function)
-        criminalText.enabled = false;
 
         GameObject inventorySlotsContainer = GameObject.Find("InventorySlots");
         for (int i = 0; i < inventorySlotsContainer.transform.childCount; i++) {
@@ -73,7 +72,8 @@ public class PlayerUI : NetworkBehaviour
             playerData.Hunger.OnValueChanged += ModifyHungerBar;
             playerData.Health.OnValueChanged += ModifyHealthBar;
             playerData.Money.OnValueChanged += ModifyMoneyCount;
-            playerData.IsCriminal.OnValueChanged += DisplayIsCriminalText;
+            playerData.CriminalCooldown.OnValueChanged += DisplayIsCriminalText;
+            playerData.JailCooldown.OnValueChanged += DisplayInPrisonText;
         }
 
         if (IsServer)
@@ -306,10 +306,21 @@ public class PlayerUI : NetworkBehaviour
     {
         micActivityIcon.enabled = shouldBeEnabled;
     }
-    public void DisplayIsCriminalText(bool oldIsCriminal, bool isCriminal)
+    public void DisplayIsCriminalText(int oldCooldown, int newCooldown) //this is criminal cooldown
     {
         if (!IsOwner) return;
-        criminalText.enabled = isCriminal;
+        if (newCooldown == 0)
+            criminalText.text = "";
+        else
+            criminalText.text = "You are criminal: " + newCooldown.ToString() + "s left";
+    }
+    public void DisplayInPrisonText(int oldCooldown, int newCooldown) //this is jail cooldown
+    {
+        if (!IsOwner) return;
+        if (newCooldown == 0)
+            criminalText.text = "";
+        else
+            criminalText.text = "You are in jail: " + newCooldown.ToString() + "s left";
     }
     //Rpc because taxRate is only server side and needs to be sent manually
     [Rpc(SendTo.Owner)]

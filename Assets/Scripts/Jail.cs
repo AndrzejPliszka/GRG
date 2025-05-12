@@ -17,7 +17,7 @@ public class Jail : NetworkBehaviour
     void TeleportPlayerToJail(Transform player)
     {
         if (!IsServer) { throw new System.Exception("Teleporting on client?"); }
-        Debug.Log(player + "  Teleporting"  + transform.position);
+        
         player.GetComponent<Movement>().TeleportPlayerToPosition(transform.position + prisonSpawnOffset);
     }
 }

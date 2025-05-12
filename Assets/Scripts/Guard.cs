@@ -47,12 +47,14 @@ public class Guard : NetworkBehaviour
         Movement hitPlayerMovement = objectInFrontOfCamera.GetComponent<Movement>();
         if (!hitPlayerData && !hitPlayerMovement)
             return;
-        if (hitPlayerData.IsCriminal.Value)
+        if (hitPlayerData.IsCriminal.Value && !hitPlayerData.IsInJail.Value) //This being in jail is temporary, because it should never make you criminal in the first place!
         {
             //Put here code related to arresting player
             GameManager.Instance.TownData[playerData.TownId.Value].OnPlayerArrest.Invoke(hitPlayerData.transform);
             GameManager.Instance.ChangePlayerAffiliation(objectInFrontOfCamera, PlayerData.PlayerRole.Peasant, -1);
             hitPlayerData.IsCriminal.Value = false;
+            hitPlayerData.JailCooldown.Value = 10;
+            hitPlayerData.IsInJail.Value = true;
             playerData.ChangeMoney(10);
             GetComponent<PlayerUI>().DisplayErrorOwnerRpc("Arrested criminal!");
         }
