@@ -62,15 +62,17 @@ public class GameManager : NetworkBehaviour
         }
         public event Action<int, int> OnFoodChange = delegate { };
         public event Action<float> OnTaxRateChange = delegate { };
+        public Action<Transform> OnPlayerArrest = delegate { }; //Used for teleporting player to jail (transform is player transform)
         public Action<int, int, LandScript.Building, FixedString128Bytes> OnLandChange = delegate { }; //Used for displaying land in leader menu
         public List<GameObject> townMembers = new();
         public List<Shop> shopsControlledByLeader = new();
         public List<LandScript> landInTown = new();
         public Dictionary<ItemProperties, float> itemPrices = new();
+        public Transform townBase; //for now used to check if player is physically in town
     }
 
     public event Action<GameObject, PlayerData.PlayerRole> OnPlayerRoleChange = delegate { };
-    public event Action<GameObject, int> OnPlayerTownChange = delegate { }; //this event is unused but it is kept cos it may be handy later
+    public event Action<GameObject, int, int> OnPlayerTownChange = delegate { };
 
 
     public List<TownProperties> TownData { get; private set; } = new();
@@ -95,7 +97,7 @@ public class GameManager : NetworkBehaviour
 
         for (int i = 0; i < 1; i++)
         {
-            TownData.Add(new TownProperties() { FoodSupply = 0, MaximumFoodSupply = 100 });
+            TownData.Add(new TownProperties() { FoodSupply = 0, MaximumFoodSupply = 100, townBase = GameObject.Find("Town" + i).transform.Find("Pavement") }); //Pavement cos it has approperiate size (at least for now)
         }
     }
 
@@ -159,12 +161,15 @@ public class GameManager : NetworkBehaviour
         TownData[townId] = targetTownData;
     }
 
-    public void ChangeLeader(GameObject player, int townId)
+
+    //TO DO: FIX THIS FUNCTION (there are two ids, and in both I check if leader is good)
+    public void ChangeLeader(GameObject player, int oldTownId, int newTownId = 0)
     {
         if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); }
-        if (TownData[townId].townMembers.Count == 0)
-            return;
-        ChangePlayerAffiliation(TownData[townId].townMembers[0], PlayerData.PlayerRole.Leader, townId);
+        if (oldTownId >= 0 && TownData[oldTownId].townMembers.Count != 0)
+            ChangePlayerAffiliation(TownData[oldTownId].townMembers[0], PlayerData.PlayerRole.Leader, oldTownId);
+        if (newTownId >= 0 && TownData[newTownId].townMembers.Count != 0)
+            ChangePlayerAffiliation(TownData[newTownId].townMembers[0], PlayerData.PlayerRole.Leader, newTownId);
     }
 
     //used to put player in PlayersWithoutTown list
@@ -218,8 +223,9 @@ public class GameManager : NetworkBehaviour
         //if are so there are no redundant event calls 
         if (playerData.TownId.Value != -1)
         {
+
+            OnPlayerTownChange.Invoke(playerGameObject, playerData.TownId.Value, -1);
             playerData.TownId.Value = -1;
-            OnPlayerTownChange.Invoke(playerGameObject, -1);
         }
         
         if (playerData.Role.Value != PlayerData.PlayerRole.Peasant)
@@ -229,7 +235,7 @@ public class GameManager : NetworkBehaviour
         }
             
     }
-
+    //townId is town that player is going to
     public void ChangePlayerAffiliation(GameObject playerGameObject, PlayerData.PlayerRole role, int townId)
     {
         if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); };
@@ -246,11 +252,12 @@ public class GameManager : NetworkBehaviour
 
         bool townChanged = false; //flags so events are always invoked after changes
         bool roleChanged = false;
+        int originalTownId = playerData.TownId.Value;
 
         if (playerData.TownId.Value != townId)
         {
             AddPlayerToTown(playerGameObject, townId);
-            playerData.TownId.Value = townId; // Upewnij siê, ¿e zmieniasz wartoœæ TownId, jeœli ma to sens
+            playerData.TownId.Value = townId;
             townChanged = true;
         }
 
@@ -263,7 +270,7 @@ public class GameManager : NetworkBehaviour
         if (townChanged || roleChanged)
         {
             if (townChanged)
-                OnPlayerTownChange.Invoke(playerGameObject, townId);
+                OnPlayerTownChange.Invoke(playerGameObject,originalTownId ,townId);
 
             if (roleChanged)
                 OnPlayerRoleChange.Invoke(playerGameObject, role);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -11,7 +12,8 @@ public class PlayerData : NetworkBehaviour
     {
         Peasant,
         Citizen,
-        Leader
+        Leader,
+        Guard
     }
 
     public NetworkVariable<FixedString32Bytes> Nickname { get;  private set; } = new();
@@ -26,9 +28,19 @@ public class PlayerData : NetworkBehaviour
 
     public NetworkVariable<float> Money { get; private set; } = new(0);
 
-    public NetworkVariable<PlayerRole> Role { get; private set; } = new(PlayerRole.Peasant); //Remember that "real" role of player will be in GameManager and this is just for easier access to that info
+    public NetworkVariable<PlayerRole> Role { get; private set; } = new(PlayerRole.Peasant);
 
     public NetworkVariable<int> TownId { get; private set; } = new(-1);
+
+    public NetworkVariable<bool> IsCriminal { get; private set; } = new(false);
+
+    public NetworkVariable<int> CriminalCooldown { get; private set; } = new(0); //relevant only when IsCriminal == true  (seconds until stops being criminal)
+
+    public NetworkVariable<bool> IsInJail { get; private set; } = new(false);
+
+    public NetworkVariable<int> JailCooldown { get; private set; } = new(0);
+
+    public NetworkVariable<int> TownPlayerIsIn { get; private set; } = new(-1); //physical location, -1 means no town
 
     //Variables that hold things related to managing data above
     bool decreaseHungerFaster = false;
@@ -37,10 +49,14 @@ public class PlayerData : NetworkBehaviour
     //Event variables
     public event Action OnDeath;
 
+    Movement playerMovement; //You can use this, but you need to check if it is null, because it is not needed to be attached to player
+
     public void Awake()
     {
         //we need to do this before connection (so before Start()/OnNetworkSpawn()), but not on declaration, because there will be memory leak
         Inventory = new NetworkList<ItemData.ItemProperties>();
+
+        playerMovement = GetComponent<Movement>();
     }
 
     private void Start()
@@ -60,6 +76,29 @@ public class PlayerData : NetworkBehaviour
             {
                 Inventory.Add(new ItemData.ItemProperties());
             }
+
+            if (TryGetComponent<ObjectInteraction>(out var objectInteraction))
+                objectInteraction.OnHittingSomething += CheckIfHitIsIllegal;
+
+            StartCoroutine(CheckTownPlayerIsIn());
+            TownPlayerIsIn.OnValueChanged += CheckIfPlayerIsIllegalInTown;
+            IsCriminal.OnValueChanged += (oldValue, isCriminal) =>
+            {
+                if (isCriminal)
+                    if (!IsInJail.Value)
+                        StartCoroutine(IsCriminalCooldown());
+                    else
+                        IsCriminal.Value = false; //if player is in jail, he cannot be criminal
+                else
+                    CriminalCooldown.Value = 0;
+            };
+            IsInJail.OnValueChanged += (oldValue, isInJail) =>
+            {
+                if (isInJail)
+                    StartCoroutine(IsInJailCooldown());
+                else
+                    JailCooldown.Value = 0;
+            };
         }
         //Reset inventory on server
         if (!IsOwner) { return; }
@@ -71,7 +110,7 @@ public class PlayerData : NetworkBehaviour
         if (!IsServer) { return; }
 
         //If running decrease hunger faster
-        if (gameObject.GetComponent<Movement>() && gameObject.GetComponent<Movement>().IsRunning) //Movement may not be attached to gameObject so remember to check
+        if (playerMovement && playerMovement.IsRunning) //Movement may not be attached to gameObject so remember to check
             decreaseHungerFaster = true;
         else
             decreaseHungerFaster = false;
@@ -235,5 +274,87 @@ public class PlayerData : NetworkBehaviour
     {
         if(newValue == 0)
             OnDeath.Invoke();
+    }
+
+    void CheckIfHitIsIllegal(GameObject hitObject)
+    {
+        if(IsInJail.Value) //if player is in jail, he cannot be criminal
+            return;
+        string hitTag = hitObject.tag;
+        if (hitTag == "Shop")
+        {
+            CriminalCooldown.Value = 30;
+            IsCriminal.Value = true;
+        }
+        else if (hitTag == "Player")
+        {
+            PlayerData playerData = hitObject.GetComponent<PlayerData>();
+            if (!playerData.IsCriminal.Value)
+            {
+                CriminalCooldown.Value = 30;
+                IsCriminal.Value = true;
+            }
+        }
+    }
+
+    void CheckIfPlayerIsIllegalInTown(int oldTownPlayerWasIn, int newTownPlayerIsIn)
+    {
+        if (IsInJail.Value) //if player is in jail, he cannot be criminal
+            return;
+        if ((newTownPlayerIsIn != -1 && Role.Value == PlayerRole.Peasant) || (newTownPlayerIsIn != -1 && newTownPlayerIsIn != TownId.Value))
+        {
+            CriminalCooldown.Value = 10;
+            IsCriminal.Value = true;
+        }
+    }
+
+    IEnumerator CheckTownPlayerIsIn()
+    {
+        while (true)
+        {
+            int i = 0;
+            TownPlayerIsIn.Value = -1; //if is in town it gets imidiatelly changed into other number, may cause problems on listeners!
+            foreach (GameManager.TownProperties town in GameManager.Instance.TownData)
+            {
+                Bounds bounds = town.townBase.GetComponent<Collider>().bounds;
+                Vector3 min = bounds.min;
+                Vector3 max = bounds.max;
+
+                Vector3 playerPos = transform.position;
+                if (playerPos.x >= min.x && playerPos.x <= max.x && playerPos.z >= min.z && playerPos.z <= max.z)
+                {
+                    TownPlayerIsIn.Value = i;
+                    break;
+                }
+                i++;
+            }
+            yield return new WaitForSeconds(1f); //check if this changes every second
+        }
+    }
+
+    IEnumerator IsCriminalCooldown()
+    {
+        while(CriminalCooldown.Value > 0)
+        {
+            if(IsInJail.Value) //dont change cooldown because it is not relevant, as the player is in jail
+                break;
+
+            CriminalCooldown.Value--;
+            yield return new WaitForSeconds(1);
+        }
+        IsCriminal.Value = false;
+    }
+
+    IEnumerator IsInJailCooldown()
+    {
+        while (JailCooldown.Value > 0)
+        {
+            JailCooldown.Value--;
+            yield return new WaitForSeconds(1);
+        }
+        //Maybe move to another function???
+        if (playerMovement)
+            playerMovement.TeleportPlayerToPosition(playerMovement.StartingPosition);
+        IsInJail.Value = false;
     }
 }

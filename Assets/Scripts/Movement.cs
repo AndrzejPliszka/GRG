@@ -19,7 +19,7 @@ public class Movement : NetworkBehaviour
 
     [field: SerializeField] 
     public Vector3 CameraOffset { get; private set; } = Vector3.zero; //getter setter, because objectInteraction needs this
-    [SerializeField] Vector3 startingPosition = new(0, 1, 0);  
+    [field: SerializeField] public Vector3 StartingPosition { get; private set; } = new(0, 1, 0);  
     float currentCameraXRotation = 0;
     float currentVelocity = 0f;
     const float yVelocityOnGround = -2f; //y velocity that is applied when standing on the ground (cannot be zero, because characterController.OnGround doesn't work properly without it)
@@ -56,7 +56,7 @@ public class Movement : NetworkBehaviour
         if (IsServer) //here will be movement set done on server, because only it can manage positions
         {
             characterController.enabled = false; //temporary disabling characterController because otherwise it will move from (0, 0, 0) on .Move()
-            transform.position = startingPosition;
+            transform.position = StartingPosition;
             characterController.enabled = true;
         }
 
@@ -67,7 +67,7 @@ public class Movement : NetworkBehaviour
         LocalPlayerModel.name = "LocalPlayerModel";
         localCharacterController = LocalPlayerModel.GetComponent<CharacterController>();
         localCharacterController.enabled = false;  // move character controller into starting position (without disabling character controller, it may warp character to previous position on update)
-        LocalPlayerModel.transform.position = startingPosition;
+        LocalPlayerModel.transform.position = StartingPosition;
         localCharacterController.enabled = true;
 
         //Disable rendering of server-side model
@@ -214,6 +214,12 @@ public class Movement : NetworkBehaviour
     public void TeleportPlayerToPosition(Vector3 position)
     {
         if (!IsServer) { throw new Exception("No teleporting on client side!"); }
+        if(sittingCourutineCancellationToken != null) //If sitting then stop
+        {
+            sittingCourutineCancellationToken.Cancel();
+            IsSitting.Value = false;
+        }
+
         characterController.enabled = false;
         transform.position = position;
         characterController.enabled = true;

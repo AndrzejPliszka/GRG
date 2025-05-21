@@ -33,7 +33,7 @@ public class ObjectInteraction : NetworkBehaviour
     public float AttackingCooldown { get; private set; }
 
     public event Action<float> OnPunch; //event used in Animations to play animation of punching, float is cooldown, so it can be used to display cooldown slider
-    public event Action OnHittingSomething; //event used in playerUI to display hitmark
+    public event Action<GameObject> OnHittingSomething; //event used in playerUI to display hitmark, atribute is tag of hit object
 
     public bool canInteract = true;
 
@@ -53,7 +53,7 @@ public class ObjectInteraction : NetworkBehaviour
         if (!canInteract)
             return;
 
-        if (Input.GetKeyDown(KeyCode.E)) //E is interaction key (for now only for picking up items)
+        if (Input.GetKeyDown(KeyCode.E)) //E is interaction key
             InteractWithObjectServerRpc(cameraXRotation);
 
         if (Input.GetKeyDown(KeyCode.T)) //T is dropping items key
@@ -294,7 +294,7 @@ public class ObjectInteraction : NetworkBehaviour
                     break;
 
                 targetObject.GetComponent<PlayerData>().ChangeHealth(baseAttack);
-                OnHittingSomething.Invoke();
+                OnHittingSomething.Invoke(targetObject);
                 break;
             case "Tree":
                 if (heldItem.itemType == ItemData.ItemType.Axe)
@@ -306,7 +306,7 @@ public class ObjectInteraction : NetworkBehaviour
                     playerData.ChangeMoney(10);
 
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
-                OnHittingSomething.Invoke();
+                OnHittingSomething.Invoke(targetObject);
 
                 break;
             case "Shop":
@@ -318,7 +318,7 @@ public class ObjectInteraction : NetworkBehaviour
                     break;
 
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
-                OnHittingSomething.Invoke();
+                OnHittingSomething.Invoke(targetObject);
                 break;
             case "Crop":
                 if (heldItem.itemType == ItemData.ItemType.Sickle)
@@ -334,7 +334,7 @@ public class ObjectInteraction : NetworkBehaviour
                 }
 
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
-                OnHittingSomething.Invoke();
+                OnHittingSomething.Invoke(targetObject);
                 break;
         }
     }

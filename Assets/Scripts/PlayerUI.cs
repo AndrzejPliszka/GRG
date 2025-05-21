@@ -27,6 +27,7 @@ public class PlayerUI : NetworkBehaviour
     TMP_Text healthBarText;
     TMP_Text moneyCount;
     TMP_Text taxRate;
+    TMP_Text criminalText;
     Image hitmark;
     Image cooldownMarker;
     Image micActivityIcon;
@@ -44,6 +45,7 @@ public class PlayerUI : NetworkBehaviour
         healthBarText = GameObject.Find("HealthBarText").GetComponent<TMP_Text>();
         moneyCount = GameObject.Find("MoneyCount").GetComponent<TMP_Text>();
         taxRate = GameObject.Find("TaxRate").GetComponent<TMP_Text>();
+        criminalText = GameObject.Find("CriminalText").GetComponent<TMP_Text>();
 
         hitmark = GameObject.Find("Hitmark").GetComponent<Image>();
         cooldownMarker = GameObject.Find("CooldownMarker").GetComponent<Image>();
@@ -70,19 +72,23 @@ public class PlayerUI : NetworkBehaviour
             playerData.Hunger.OnValueChanged += ModifyHungerBar;
             playerData.Health.OnValueChanged += ModifyHealthBar;
             playerData.Money.OnValueChanged += ModifyMoneyCount;
+            playerData.CriminalCooldown.OnValueChanged += DisplayIsCriminalText;
+            playerData.JailCooldown.OnValueChanged += DisplayInPrisonText;
         }
 
         if (IsServer)
         {
             //Here are only server side events which call RPCs
-            objectInteraction.OnHittingSomething += DisplayHitmarkOwnerRpc;
+            objectInteraction.OnHittingSomething += (GameObject hitGameObject) => { DisplayHitmarkOwnerRpc(); };
             objectInteraction.OnPunch += DisplayCooldownCircleOwnerRpc;
             playerData.TownId.OnValueChanged += (int oldTownId, int newTownId) => { //MOVE TO OTHER FUNCTION IF IT GROWS TOO MUCH !!!
-                ModifyTaxRateTextOwnerRpc(GameManager.Instance.TownData[newTownId].TaxRate);
                 if(oldTownId >= 0 && oldTownId < GameManager.Instance.TownData.Count)
                     GameManager.Instance.TownData[oldTownId].OnTaxRateChange -= ModifyTaxRateTextOwnerRpc;
                 if (newTownId >= 0 && newTownId < GameManager.Instance.TownData.Count)
+                {
+                    ModifyTaxRateTextOwnerRpc(GameManager.Instance.TownData[newTownId].TaxRate);
                     GameManager.Instance.TownData[newTownId].OnTaxRateChange += ModifyTaxRateTextOwnerRpc;
+                }
             };
         }
         
@@ -300,7 +306,22 @@ public class PlayerUI : NetworkBehaviour
     {
         micActivityIcon.enabled = shouldBeEnabled;
     }
-
+    public void DisplayIsCriminalText(int oldCooldown, int newCooldown) //this is criminal cooldown
+    {
+        if (!IsOwner) return;
+        if (newCooldown == 0)
+            criminalText.text = "";
+        else
+            criminalText.text = "You are criminal: " + newCooldown.ToString() + "s left";
+    }
+    public void DisplayInPrisonText(int oldCooldown, int newCooldown) //this is jail cooldown
+    {
+        if (!IsOwner) return;
+        if (newCooldown == 0)
+            criminalText.text = "";
+        else
+            criminalText.text = "You are in jail: " + newCooldown.ToString() + "s left";
+    }
     //Rpc because taxRate is only server side and needs to be sent manually
     [Rpc(SendTo.Owner)]
     public void ModifyTaxRateTextOwnerRpc(float newTaxValue)

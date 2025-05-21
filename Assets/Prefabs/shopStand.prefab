@@ -562,6 +562,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   <MaximumHealth>k__BackingField: 100
   spawner: {fileID: 0}
+  land: {fileID: 0}
 --- !u!114 &2063323180561659438
 MonoBehaviour:
   m_ObjectHideFlags: 0
