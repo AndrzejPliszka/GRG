@@ -313,6 +313,7 @@ public class PlayerData : NetworkBehaviour
         while (true)
         {
             int i = 0;
+            TownPlayerIsIn.Value = -1; //if is in town it gets imidiatelly changed into other number, may cause problems on listeners!
             foreach (GameManager.TownProperties town in GameManager.Instance.TownData)
             {
                 Bounds bounds = town.townBase.GetComponent<Collider>().bounds;
@@ -327,7 +328,6 @@ public class PlayerData : NetworkBehaviour
                 }
                 i++;
             }
-            TownPlayerIsIn.Value = -1;
             yield return new WaitForSeconds(1f); //check if this changes every second
         }
     }

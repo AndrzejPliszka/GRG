@@ -44,11 +44,19 @@ public class Guard : NetworkBehaviour
 
         GameObject objectInFrontOfCamera = objectInteraction.GetObjectInFrontOfCamera(cameraXRotation, currentTick);
         PlayerData hitPlayerData = objectInFrontOfCamera.GetComponent<PlayerData>();
-        Movement hitPlayerMovement = objectInFrontOfCamera.GetComponent<Movement>();
+        Movement hitPlayerMovement = objectInFrontOfCamera.GetComponent<Movement>();            
         if (!hitPlayerData && !hitPlayerMovement)
             return;
         if (hitPlayerData.IsCriminal.Value && !hitPlayerData.IsInJail.Value) //This being in jail is temporary, because it should never make you criminal in the first place!
         {
+            PlayerUI playerUI = GetComponent<PlayerUI>();
+            if (playerData.TownPlayerIsIn.Value != playerData.TownId.Value)
+            {
+                if (playerUI)
+                    playerUI.DisplayErrorOwnerRpc("To arrest criminal, you need to be in town!");
+                return;
+            }
+
             //Put here code related to arresting player
             GameManager.Instance.TownData[playerData.TownId.Value].OnPlayerArrest.Invoke(hitPlayerData.transform);
             GameManager.Instance.ChangePlayerAffiliation(objectInFrontOfCamera, PlayerData.PlayerRole.Peasant, -1);
@@ -56,7 +64,8 @@ public class Guard : NetworkBehaviour
             hitPlayerData.JailCooldown.Value = 10;
             hitPlayerData.IsInJail.Value = true;
             playerData.ChangeMoney(10);
-            GetComponent<PlayerUI>().DisplayErrorOwnerRpc("Arrested criminal!");
+            if(playerUI)
+                playerUI.DisplayErrorOwnerRpc("Arrested criminal!");
         }
     }
 }
