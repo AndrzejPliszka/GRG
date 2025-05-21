@@ -843,7 +843,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 3068023499
+  GlobalObjectIdHash: 1566467498
   InScenePlacedSourceGlobalObjectIdHash: 0
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -1093,6 +1093,8 @@ MonoBehaviour:
     roleTexture: {fileID: 2800000, guid: f38664dd0372535429807fcc21387c46, type: 3}
   - playerRole: 3
     roleTexture: {fileID: 2800000, guid: 5edb9aae9a1b21f4c81cce5fa0beebc4, type: 3}
+  - playerRole: 4
+    roleTexture: {fileID: 2800000, guid: a10b0b9cb111edd4383c9a733abc508d, type: 3}
   LocalRoleTextures:
   - playerRole: 0
     roleTexture: {fileID: 2800000, guid: 0b6c7c87d766b8549a56e6deacf3956c, type: 3}
@@ -1102,6 +1104,8 @@ MonoBehaviour:
     roleTexture: {fileID: 2800000, guid: 1e7b59345620ab0418b6852aa1658e88, type: 3}
   - playerRole: 3
     roleTexture: {fileID: 2800000, guid: c779ebd94d0efee42a5403999bc69181, type: 3}
+  - playerRole: 4
+    roleTexture: {fileID: 2800000, guid: 0e5483b61a63f6240bc932c67fa835af, type: 3}
 --- !u!114 &1347559879818425976
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -13,7 +13,8 @@ public class PlayerData : NetworkBehaviour
         Peasant,
         Citizen,
         Leader,
-        Guard
+        Guard,
+        Councilor
     }
 
     public NetworkVariable<FixedString32Bytes> Nickname { get;  private set; } = new();
