@@ -158,8 +158,8 @@ public class Shop : NetworkBehaviour
                 playerUI.DisplayErrorOwnerRpc("There is no food in town storage!");
             return;
         }
-
-        if(isBuyingRole && (buyingPlayer.GetComponent<PlayerData>().Role.Value >= playerRole))
+        PlayerData.PlayerRole buyingPlayerRole = buyingPlayer.GetComponent<PlayerData>().Role.Value;
+        if (isBuyingRole && (buyingPlayerRole == PlayerData.PlayerRole.Leader || buyingPlayerRole == playerRole))
         {
             if (playerUI)
                 playerUI.DisplayErrorOwnerRpc("You already have this or better role!");

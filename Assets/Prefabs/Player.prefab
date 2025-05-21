@@ -843,7 +843,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1566467498
+  GlobalObjectIdHash: 3068023499
   InScenePlacedSourceGlobalObjectIdHash: 0
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -900,7 +900,7 @@ MonoBehaviour:
   sensitivity: 5
   reconciliationThreshold: 0
   <CameraOffset>k__BackingField: {x: 0, y: 0.9, z: 0.2}
-  <StartingPosition>k__BackingField: {x: -130, y: 40, z: 0}
+  <StartingPosition>k__BackingField: {x: -130, y: 14, z: 0}
   jumpHeight: 2
   renderOrginalModel: 0
   <LocalPlayerModel>k__BackingField: {fileID: 8116827039790958487, guid: 719e5dcc23b23bc43aec4ca8af7d580c, type: 3}
