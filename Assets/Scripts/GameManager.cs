@@ -12,6 +12,11 @@ using static ItemData;
 
 public class GameManager : NetworkBehaviour
 {
+    public enum Laws
+    {
+        AllowViolence,
+        AllowPeasants,
+    }
     //TownProperties and TownData are server only!
     public class TownProperties
     {
@@ -64,11 +69,18 @@ public class GameManager : NetworkBehaviour
         public event Action<float> OnTaxRateChange = delegate { };
         public Action<Transform> OnPlayerArrest = delegate { }; //Used for teleporting player to jail (transform is player transform)
         public Action<int, int, LandScript.Building, FixedString128Bytes> OnLandChange = delegate { }; //Used for displaying land in leader menu
+        public Action<int, int, LandScript.Building, FixedString128Bytes> OnLawChange = delegate { }; //Used for displaying laws
         public List<GameObject> townMembers = new();
         public List<Shop> shopsControlledByLeader = new();
         public List<LandScript> landInTown = new();
         public Dictionary<ItemProperties, float> itemPrices = new();
         public Transform townBase; //for now used to check if player is physically in town
+
+        public Dictionary<Laws, bool> townLaw = new()
+        {
+            { Laws.AllowViolence, false },
+            { Laws.AllowPeasants, false }
+        };
     }
 
     public event Action<GameObject, PlayerData.PlayerRole> OnPlayerRoleChange = delegate { };
