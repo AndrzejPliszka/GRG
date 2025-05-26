@@ -286,7 +286,7 @@ public class PlayerData : NetworkBehaviour
         if (hitTag == "Shop")
         {
             int shopId = hitObject.GetComponent<Shop>().TownId;
-            if (GameManager.Instance.TownData[shopId].townLaw[GameManager.Laws.AllowViolence] == true) //violence is allowed, so player didn't do anything wrong
+            if (GameManager.Instance.TownData[shopId].townLaw[GameManager.Law.AllowViolence] == true) //violence is allowed, so player didn't do anything wrong
                 return; 
             CriminalCooldown.Value = 30;
             IsCriminal.Value = true;
@@ -294,7 +294,7 @@ public class PlayerData : NetworkBehaviour
         else if (hitTag == "Player")
         {
             PlayerData playerData = hitObject.GetComponent<PlayerData>();
-            if (playerData.TownId.Value != -1 && GameManager.Instance.TownData[playerData.TownId.Value].townLaw[GameManager.Laws.AllowViolence] == true) //violence is allowed
+            if (playerData.TownId.Value != -1 && GameManager.Instance.TownData[playerData.TownId.Value].townLaw[GameManager.Law.AllowViolence] == true) //violence is allowed
                 return;
 
             if (!playerData.IsCriminal.Value)
@@ -309,7 +309,7 @@ public class PlayerData : NetworkBehaviour
     {
         if (IsInJail.Value) //if player is in jail, he cannot be criminal
             return;
-        if (newTownPlayerIsIn != -1 && GameManager.Instance.TownData[newTownPlayerIsIn].townLaw[GameManager.Laws.AllowPeasants] == true)
+        if (newTownPlayerIsIn != -1 && GameManager.Instance.TownData[newTownPlayerIsIn].townLaw[GameManager.Law.AllowPeasants] == true)
             return; //if peasants are allowed in town, do not criminalize them
         if ((newTownPlayerIsIn != -1 && Role.Value == PlayerRole.Peasant) || (newTownPlayerIsIn != -1 && newTownPlayerIsIn != TownId.Value))
         {

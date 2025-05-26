@@ -173,6 +173,9 @@ public class PlayerUI : NetworkBehaviour
                 house = targetObject.GetComponent<House>();
                 centerText.text = $"{house.displayedText.Value}";
                 break;
+            case "Parliament":
+                centerText.text = $"Parliament";
+                break;
             default:
                 centerText.text = "";
                 break;

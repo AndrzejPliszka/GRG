@@ -12,7 +12,7 @@ using static ItemData;
 
 public class GameManager : NetworkBehaviour
 {
-    public enum Laws
+    public enum Law
     {
         AllowViolence,
         AllowPeasants,
@@ -70,16 +70,22 @@ public class GameManager : NetworkBehaviour
         public Action<Transform> OnPlayerArrest = delegate { }; //Used for teleporting player to jail (transform is player transform)
         public Action<int, int, LandScript.Building, FixedString128Bytes> OnLandChange = delegate { }; //Used for displaying land in leader menu
         public Action<int, int, LandScript.Building, FixedString128Bytes> OnLawChange = delegate { }; //Used for displaying laws
+        //Used for managing laws
+        public Action<Law> OnLawAddedToQueue = delegate { };
+        public Action<int, bool> OnPlayerVote = delegate { }; //int - playerId, bool vote (true for yes, false for no)
+        public Action<int> OnVotingStart = delegate { }; //int - cooldown time for voting
+        public Action<int> OnVotingEnd = delegate { }; //int - cooldown time between voting
+
         public List<GameObject> townMembers = new();
         public List<Shop> shopsControlledByLeader = new();
         public List<LandScript> landInTown = new();
         public Dictionary<ItemProperties, float> itemPrices = new();
         public Transform townBase; //for now used to check if player is physically in town
 
-        public Dictionary<Laws, bool> townLaw = new()
+        public Dictionary<Law, bool> townLaw = new()
         {
-            { Laws.AllowViolence, false },
-            { Laws.AllowPeasants, false }
+            { Law.AllowViolence, false },
+            { Law.AllowPeasants, false }
         };
     }
 
