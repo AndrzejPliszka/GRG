@@ -12,6 +12,11 @@ using static ItemData;
 
 public class GameManager : NetworkBehaviour
 {
+    public enum Law
+    {
+        AllowViolence,
+        AllowPeasants
+    }
     //TownProperties and TownData are server only!
     public class TownProperties
     {
@@ -64,11 +69,25 @@ public class GameManager : NetworkBehaviour
         public event Action<float> OnTaxRateChange = delegate { };
         public Action<Transform> OnPlayerArrest = delegate { }; //Used for teleporting player to jail (transform is player transform)
         public Action<int, int, LandScript.Building, FixedString128Bytes> OnLandChange = delegate { }; //Used for displaying land in leader menu
+        public Action<int, int, LandScript.Building, FixedString128Bytes> OnLawChange = delegate { }; //Used for displaying laws
+        //Used for managing laws
+        public Action<Law> OnLawAddedToQueue = delegate { };
+        public Action<ulong, bool> OnPlayerVote = delegate { }; //ulong - playerId, bool vote (true for yes, false for no)
+        public Action<int, bool, Law> OnVotingStateChange = delegate { }; //int - cooldown time for voting, bool - true for start voting, false for end voting, Law - if bool is true, this is law being voted on, if false this is law that passed
+        public Action<int, int> OnVoteCountChange = delegate { }; //int1 - votes for no, int2 - votes for yes
+
+
         public List<GameObject> townMembers = new();
         public List<Shop> shopsControlledByLeader = new();
         public List<LandScript> landInTown = new();
         public Dictionary<ItemProperties, float> itemPrices = new();
         public Transform townBase; //for now used to check if player is physically in town
+
+        public Dictionary<Law, bool> townLaw = new()
+        {
+            { Law.AllowViolence, false },
+            { Law.AllowPeasants, false }
+        };
     }
 
     public event Action<GameObject, PlayerData.PlayerRole> OnPlayerRoleChange = delegate { };

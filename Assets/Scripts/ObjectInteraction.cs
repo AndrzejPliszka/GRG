@@ -237,6 +237,9 @@ public class ObjectInteraction : NetworkBehaviour
                 houseScript = targetObject.GetComponent<House>();
                 houseScript.BuyHouse(gameObject);
                 break;
+            case "Parliament":
+                GetComponent<CouncilorMenu>().InitiateMenuOwnerRpc();
+                break;
 
         }
 

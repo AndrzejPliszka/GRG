@@ -44,12 +44,19 @@ public class Guard : NetworkBehaviour
 
         GameObject objectInFrontOfCamera = objectInteraction.GetObjectInFrontOfCamera(cameraXRotation, currentTick);
         PlayerData hitPlayerData = objectInFrontOfCamera.GetComponent<PlayerData>();
-        Movement hitPlayerMovement = objectInFrontOfCamera.GetComponent<Movement>();            
+        Movement hitPlayerMovement = objectInFrontOfCamera.GetComponent<Movement>();
+        PlayerUI playerUI = GetComponent<PlayerUI>();
         if (!hitPlayerData && !hitPlayerMovement)
             return;
+        if (hitPlayerData.Role.Value == PlayerData.PlayerRole.Leader)
+        {
+            if (playerUI)
+                playerUI.DisplayErrorOwnerRpc("Leader cannot be arrested!");
+            return;
+        }
+            
         if (hitPlayerData.IsCriminal.Value && !hitPlayerData.IsInJail.Value) //This being in jail is temporary, because it should never make you criminal in the first place!
         {
-            PlayerUI playerUI = GetComponent<PlayerUI>();
             if (playerData.TownPlayerIsIn.Value != playerData.TownId.Value)
             {
                 if (playerUI)

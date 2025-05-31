@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 
 public class Shop : NetworkBehaviour
 {
-    [SerializeField] int townId;
+    [field: SerializeField] public int TownId { private set; get; }
 
     [SerializeField] TMP_Text shopText;
     [SerializeField] TMP_Text workerInfoText;
@@ -57,7 +57,7 @@ public class Shop : NetworkBehaviour
             if (noWorkerRequiredOnEmptyTown)
                 GameManager.Instance.OnPlayerTownChange += UpdateIsShopOpen;
             if (isPriceChangable)
-                GameManager.Instance.TownData[townId].shopsControlledByLeader.Add(this);
+                GameManager.Instance.TownData[TownId].shopsControlledByLeader.Add(this);
 
             OnShopChange += ChangeCurrentItemTextRpc;
         }
@@ -77,10 +77,10 @@ public class Shop : NetworkBehaviour
     //this function exists, so if noWorkerRequiredOnEmptyTown == true and there is empty town, isShopOpen will always be true (making this is less complicated then setter getter)
     public void UpdateIsShopOpen(GameObject player, int oldPlayerTownId,int currentPlayerTownId)
     {
-        if (currentPlayerTownId != townId)
+        if (currentPlayerTownId != TownId)
             return;
 
-        if (GameManager.Instance.TownData[townId].townMembers.Count == 0)
+        if (GameManager.Instance.TownData[TownId].townMembers.Count == 0)
             isShopOpen.Value = true;
         else
             isShopOpen.Value = false;
@@ -91,7 +91,7 @@ public class Shop : NetworkBehaviour
     {
         if (!IsServer) { throw new Exception("Only server can modify shops!"); }
 
-        GameManager.TownProperties townData = GameManager.Instance.TownData[townId];
+        GameManager.TownProperties townData = GameManager.Instance.TownData[TownId];
         SoldItem = itemToSell; //used to set up global var used elsewhere 
         ChangeCurrentItemTextRpc(Price, itemToSell);
 
@@ -139,7 +139,7 @@ public class Shop : NetworkBehaviour
                 playerUI.DisplayErrorOwnerRpc("Inventory full!");
             return;
         }
-        if (!isShopOpen.Value && !(noWorkerRequiredOnEmptyTown && GameManager.Instance.TownData[townId].townMembers.Count == 0))
+        if (!isShopOpen.Value && !(noWorkerRequiredOnEmptyTown && GameManager.Instance.TownData[TownId].townMembers.Count == 0))
         {
             if (playerUI)
                 playerUI.DisplayErrorOwnerRpc("Nobody is working in the shop!");
@@ -152,14 +152,14 @@ public class Shop : NetworkBehaviour
             return;
         }
 
-        if (isUsingFood && GameManager.Instance.TownData[townId].FoodSupply - amountOfFoodNeeded < 0)
+        if (isUsingFood && GameManager.Instance.TownData[TownId].FoodSupply - amountOfFoodNeeded < 0)
         {
             if (playerUI)
                 playerUI.DisplayErrorOwnerRpc("There is no food in town storage!");
             return;
         }
-
-        if(isBuyingRole && (buyingPlayer.GetComponent<PlayerData>().Role.Value >= playerRole))
+        PlayerData.PlayerRole buyingPlayerRole = buyingPlayer.GetComponent<PlayerData>().Role.Value;
+        if (isBuyingRole && (buyingPlayerRole == PlayerData.PlayerRole.Leader || buyingPlayerRole == playerRole))
         {
             if (playerUI)
                 playerUI.DisplayErrorOwnerRpc("You already have this or better role!");
@@ -173,7 +173,7 @@ public class Shop : NetworkBehaviour
         bool didBuy = await playerMovement.MakePlayerSit(5);
         buyingPlayerReference = null;
         //if there was food when started buying, but someone used it and there is no food in storage you wont be able to buy
-        if (!didBuy || (isUsingFood && GameManager.Instance.TownData[townId].FoodSupply - amountOfFoodNeeded < 0))
+        if (!didBuy || (isUsingFood && GameManager.Instance.TownData[TownId].FoodSupply - amountOfFoodNeeded < 0))
         {
             if (playerUI)
                 playerUI.ForceStopProgressBarOwnerRpc();
@@ -186,15 +186,15 @@ public class Shop : NetworkBehaviour
 
         //did buy is true by default at this point, so I dont need to check it
         if (isBuyingRole) 
-            GameManager.Instance.ChangePlayerAffiliation(buyingPlayer, playerRole, townId); 
+            GameManager.Instance.ChangePlayerAffiliation(buyingPlayer, playerRole, TownId); 
 
         if (didBuy)
         {
             if (isUsingFood)
-                GameManager.Instance.ChangeFoodSupply(-amountOfFoodNeeded, townId);
+                GameManager.Instance.ChangeFoodSupply(-amountOfFoodNeeded, TownId);
 
             playerData.ChangeMoney(-Price);
-            GameManager.Instance.TownData[townId].townMembers[0].GetComponent<PlayerData>().ChangeMoney(Price);
+            GameManager.Instance.TownData[TownId].townMembers[0].GetComponent<PlayerData>().ChangeMoney(Price);
         }
             
         

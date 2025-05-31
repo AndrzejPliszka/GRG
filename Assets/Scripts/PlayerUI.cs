@@ -36,6 +36,8 @@ public class PlayerUI : NetworkBehaviour
     Slider progressBar;
     readonly List<GameObject> inventorySlots = new();
     Coroutine progressBarCoroutine;
+
+    PlayerData playerData;
     public override void OnNetworkSpawn()
     {
 
@@ -60,7 +62,9 @@ public class PlayerUI : NetworkBehaviour
         for (int i = 0; i < inventorySlotsContainer.transform.childCount; i++) {
             inventorySlots.Add(inventorySlotsContainer.transform.GetChild(i).gameObject);
         }
-        PlayerData playerData = GetComponent<PlayerData>();
+
+
+        playerData = GetComponent<PlayerData>();
         objectInteraction = GetComponent<ObjectInteraction>();
 
         if (IsOwner)
@@ -168,6 +172,9 @@ public class PlayerUI : NetworkBehaviour
             case "House":
                 house = targetObject.GetComponent<House>();
                 centerText.text = $"{house.displayedText.Value}";
+                break;
+            case "Parliament":
+                centerText.text = $"Parliament";
                 break;
             default:
                 centerText.text = "";
@@ -312,7 +319,13 @@ public class PlayerUI : NetworkBehaviour
         if (newCooldown == 0)
             criminalText.text = "";
         else
-            criminalText.text = "You are criminal: " + newCooldown.ToString() + "s left";
+        {
+            if (playerData.Role.Value == PlayerData.PlayerRole.Leader)
+                criminalText.text = "You broke law: " + newCooldown.ToString() + "s left";
+            else
+                criminalText.text = "You are criminal: " + newCooldown.ToString() + "s left";
+        }
+            
     }
     public void DisplayInPrisonText(int oldCooldown, int newCooldown) //this is jail cooldown
     {
