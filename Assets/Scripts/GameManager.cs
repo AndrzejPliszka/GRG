@@ -15,7 +15,7 @@ public class GameManager : NetworkBehaviour
     public enum Law
     {
         AllowViolence,
-        AllowPeasants,
+        AllowPeasants
     }
     //TownProperties and TownData are server only!
     public class TownProperties
@@ -72,9 +72,10 @@ public class GameManager : NetworkBehaviour
         public Action<int, int, LandScript.Building, FixedString128Bytes> OnLawChange = delegate { }; //Used for displaying laws
         //Used for managing laws
         public Action<Law> OnLawAddedToQueue = delegate { };
-        public Action<int, bool> OnPlayerVote = delegate { }; //int - playerId, bool vote (true for yes, false for no)
-        public Action<int> OnVotingStart = delegate { }; //int - cooldown time for voting
-        public Action<int> OnVotingEnd = delegate { }; //int - cooldown time between voting
+        public Action<ulong, bool> OnPlayerVote = delegate { }; //ulong - playerId, bool vote (true for yes, false for no)
+        public Action<int, bool, Law> OnVotingStateChange = delegate { }; //int - cooldown time for voting, bool - true for start voting, false for end voting, Law - if bool is true, this is law being voted on, if false this is law that passed
+        public Action<int, int> OnVoteCountChange = delegate { }; //int1 - votes for no, int2 - votes for yes
+
 
         public List<GameObject> townMembers = new();
         public List<Shop> shopsControlledByLeader = new();

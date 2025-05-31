@@ -15,6 +15,7 @@ TagManager:
   - Storage
   - Money
   - House
+  - Parliament
   layers:
   - Default
   - TransparentFX
