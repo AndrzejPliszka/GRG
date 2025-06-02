@@ -17,7 +17,8 @@ public class ItemData : NetworkBehaviour
         Medkit,
         Food,
         Hammer,
-        Sickle
+        Sickle,
+        FishingRod
     }
 
     public enum ItemTier

@@ -903,7 +903,7 @@ MonoBehaviour:
   sensitivity: 5
   reconciliationThreshold: 0
   <CameraOffset>k__BackingField: {x: 0, y: 0.9, z: 0.2}
-  <StartingPosition>k__BackingField: {x: -130, y: 14, z: 0}
+  <StartingPosition>k__BackingField: {x: 0, y: 4, z: 0}
   jumpHeight: 2
   renderOrginalModel: 0
   <LocalPlayerModel>k__BackingField: {fileID: 8116827039790958487, guid: 719e5dcc23b23bc43aec4ca8af7d580c, type: 3}
