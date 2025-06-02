@@ -339,6 +339,49 @@ public class ObjectInteraction : NetworkBehaviour
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;
+            default: //here put all things that don't require punching at specific object
+                if(heldItem.itemType == ItemData.ItemType.FishingRod)
+                {
+                    if (!GetComponent<Collider>())
+                        return;
+
+                    //Check if is in/near water (currently works kinda weird)
+                    Collider[] collisionResults = new Collider[10];
+                    CapsuleCollider collider = GetComponent<CapsuleCollider>();
+
+                    Vector3 center = collider.bounds.center;
+                    float radius = collider.radius;
+                    float height = collider.height * 0.5f - radius;
+                    Vector3 direction = Vector3.up;
+
+                    switch (collider.direction)
+                    {
+                        case 0: direction = Vector3.right; break;   // X-axis
+                        case 1: direction = Vector3.up; break;      // Y-axis
+                        case 2: direction = Vector3.forward; break; // Z-axis
+                    }
+
+                    Vector3 point1 = center + direction * height;
+                    Vector3 point2 = center - direction * height;
+
+                    int hitNumber = Physics.OverlapCapsuleNonAlloc(point1, point2, radius, collisionResults);
+
+                    for (int i = 0; i < hitNumber; i++)
+                    {
+                        if (collisionResults[i] != collider && collisionResults[i].CompareTag("Water"))
+                        {
+                            //Fishing successfull
+                            OnHittingSomething.Invoke(null);
+                            if (playerData)
+                                playerData.ChangeMoney(2f * itemTierValueMultiplier);
+                            return;
+                        }
+                    }
+                    PlayerUI playerUI = GetComponent<PlayerUI>();
+                    if (playerUI)
+                        playerUI.DisplayErrorOwnerRpc("You need to be near water to fish!");
+                }
+                break;
         }
     }
 
