@@ -43,3 +43,8 @@ MonoBehaviour:
     holdedItemPrefab: {fileID: 4100631407276537516, guid: 8f28359734aa8c340a0cb982f35888ba, type: 3}
     staticItemSprite: {fileID: 21300000, guid: 95b96ade105eeb74c85d5c8603dbd0a5, type: 3}
     coloredItemSprite: {fileID: 21300000, guid: 583587b12e03a7f49b568a9477c1ddfc, type: 3}
+  - itemType: 7
+    droppedItemPrefab: {fileID: 4100631407276537516, guid: 5384b09e7e47aed4ba37f38b352de953, type: 3}
+    holdedItemPrefab: {fileID: 4100631407276537516, guid: e9276c9c08140a24a82d4204c7d99e2a, type: 3}
+    staticItemSprite: {fileID: 21300000, guid: ce474ebb59d3975429ff79de01df25f4, type: 3}
+    coloredItemSprite: {fileID: 21300000, guid: fbfded06f78b5704d88e9159c79c3bd2, type: 3}

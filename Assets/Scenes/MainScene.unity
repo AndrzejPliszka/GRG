@@ -3248,7 +3248,7 @@ GameObject:
   - component: {fileID: 289251408}
   m_Layer: 0
   m_Name: Water
-  m_TagString: Untagged
+  m_TagString: Water
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -4011,6 +4011,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   isGamePaused: 0
   amountOfDisplayedMenus: 0
+  playerPrefab: {fileID: 4635584588995661503, guid: f74ecaeb5b383674e836ea75bbc6c895, type: 3}
 --- !u!114 &357062830
 MonoBehaviour:
   m_ObjectHideFlags: 0

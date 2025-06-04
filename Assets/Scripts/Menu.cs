@@ -10,6 +10,7 @@ using UnityEngine.SceneManagement;
 using Unity.Services.Vivox;
 using Unity.Services.Authentication;
 using Unity.Collections;
+using UnityEditor.PackageManager;
 
 
 public class Menu : NetworkBehaviour
@@ -30,6 +31,7 @@ public class Menu : NetworkBehaviour
 
     public int amountOfDisplayedMenus; //used, because there can be multiple menus displayed at once
     public FixedString32Bytes Nickname { get; private set; }
+    [SerializeField] GameObject playerPrefab; //Used here, as without custom spawning, player would spawn in menu scene, which is not desired
     private void Awake()
     {
         mainMenu = GameObject.Find("MainMenu");
@@ -40,9 +42,6 @@ public class Menu : NetworkBehaviour
         hostButton = GameObject.Find("HostButton").GetComponent<Button>();
         ipInputField = GameObject.Find("IPInputField").GetComponent<TMP_InputField>();
         nicknameField = GameObject.Find("NicknameField").GetComponent<TMP_InputField>();
-
-        resumeGameButton = GameObject.Find("ResumeGameButton").GetComponent<Button>();
-        exitServerButton = GameObject.Find("ExitServerButton").GetComponent<Button>();
     }
     void Start()
     {
@@ -53,20 +52,21 @@ public class Menu : NetworkBehaviour
         hostButton.onClick.RemoveAllListeners();
         ipInputField.onValueChanged.RemoveAllListeners();
         nicknameField.onValueChanged.RemoveAllListeners();
-        resumeGameButton.onClick.RemoveAllListeners();
-        exitServerButton.onClick.RemoveAllListeners();
-
         serverButton.onClick.AddListener(() => {
             HideStartingMenu();
             NetworkManager.Singleton.StartServer();
+            SceneManager.LoadScene("MainScene");
         });
         clientButton.onClick.AddListener(() => {
+
             HideStartingMenu();
             NetworkManager.Singleton.StartClient();
+            SceneManager.LoadScene("MainScene");
         });
         hostButton.onClick.AddListener(() => {
             HideStartingMenu();
             NetworkManager.Singleton.StartHost();
+            NetworkManager.Singleton.SceneManager.LoadScene("MainScene", LoadSceneMode.Single);
         });
         ipInputField.onValueChanged.AddListener((string inputValue) =>
         {
@@ -80,12 +80,26 @@ public class Menu : NetworkBehaviour
             Nickname = inputValue;
         });
 
-        resumeGameButton.onClick.AddListener(() =>
+        if(IsClient || IsHost) //spawnes player, as it is disabled (it would spawn in menu scene otherwise)
         {
-            ResumeGame(true);
-        });
-        exitServerButton.onClick.AddListener(QuitServer);
-        pauseMenu.SetActive(false); //hide pause menu before joining server
+            resumeGameButton = GameObject.Find("ResumeGameButton").GetComponent<Button>();
+            exitServerButton = GameObject.Find("ExitServerButton").GetComponent<Button>();
+
+            GameObject player = Instantiate(playerPrefab);
+            player.GetComponent<NetworkObject>().SpawnAsPlayerObject(NetworkManager.Singleton.LocalClientId);
+
+            HideStartingMenu();
+
+            resumeGameButton.onClick.RemoveAllListeners();
+            exitServerButton.onClick.RemoveAllListeners();
+
+            resumeGameButton.onClick.AddListener(() =>
+            {
+                ResumeGame(true);
+            });
+            exitServerButton.onClick.AddListener(QuitServer);
+            pauseMenu.SetActive(false);//hide pause menu before joining server
+        }
     }
 
 
@@ -99,7 +113,7 @@ public class Menu : NetworkBehaviour
         NetworkManager.Singleton.Shutdown();
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name); //change if different scene for menu
+        SceneManager.LoadScene("MenuScene"); //change if different scene for menu
     }
     //set hidePauseMenu == true, when you want to close pause menu and not other menu
     public void ResumeGame(bool hidePauseMenu) //bool used, because this function is also called along side closing other menus

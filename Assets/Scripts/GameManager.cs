@@ -148,7 +148,6 @@ public class GameManager : NetworkBehaviour
         if (!IsServer) { throw new Exception("This is generating fucntion calling this on server is impossible"); }
 
         Transform landContainer = GameObject.Find($"Town{townId}").transform.Find("LandContainer");
-        Debug.Log(landContainer);
         float offsetBetweenTiles = 10f;
         for(int i = startingOffset; i < startingOffset + width; i++)
         {
