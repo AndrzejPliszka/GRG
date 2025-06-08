@@ -846,7 +846,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1566467498
+  GlobalObjectIdHash: 3068023499
   InScenePlacedSourceGlobalObjectIdHash: 0
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -1087,6 +1087,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9498108d364e4a48a82b9640ac8d1d7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  hats:
+  - {fileID: 2102908734449695956, guid: 7782cf2446c103a40b649c47e81a9522, type: 3}
+  - {fileID: 2894917916398187624, guid: a38ba8efae8057d4db7f79a1dfa96426, type: 3}
+  - {fileID: 1123285253291674768, guid: 4fbca4102852fd0498a8046f8907d1fd, type: 3}
   MainRoleTextures:
   - playerRole: 0
     roleTexture: {fileID: 2800000, guid: e73e5729d3d77d94391c163a7fb46a41, type: 3}

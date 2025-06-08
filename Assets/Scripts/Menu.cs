@@ -6,11 +6,6 @@ using UnityEngine.UI;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine.SceneManagement;
-//this is only because of logout
-using Unity.Services.Vivox;
-using Unity.Services.Authentication;
-using Unity.Collections;
-using UnityEditor.PackageManager;
 
 
 public class Menu : NetworkBehaviour
@@ -30,8 +25,6 @@ public class Menu : NetworkBehaviour
     Button exitServerButton;
 
     public int amountOfDisplayedMenus; //used, because there can be multiple menus displayed at once
-    public FixedString32Bytes Nickname { get; private set; }
-    [SerializeField] GameObject playerPrefab; //Used here, as without custom spawning, player would spawn in menu scene, which is not desired
     private void Awake()
     {
         mainMenu = GameObject.Find("MainMenu");
@@ -42,6 +35,12 @@ public class Menu : NetworkBehaviour
         hostButton = GameObject.Find("HostButton").GetComponent<Button>();
         ipInputField = GameObject.Find("IPInputField").GetComponent<TMP_InputField>();
         nicknameField = GameObject.Find("NicknameField").GetComponent<TMP_InputField>();
+
+        string nickname = PlayerPrefs.GetString("Nickname");
+        if (nickname != null)
+        {
+            nicknameField.text = nickname;
+        }
     }
     void Start()
     {
@@ -55,13 +54,13 @@ public class Menu : NetworkBehaviour
         serverButton.onClick.AddListener(() => {
             HideStartingMenu();
             NetworkManager.Singleton.StartServer();
-            SceneManager.LoadScene("MainScene");
+            NetworkManager.Singleton.SceneManager.LoadScene("MainScene", LoadSceneMode.Single);
         });
         clientButton.onClick.AddListener(() => {
 
             HideStartingMenu();
             NetworkManager.Singleton.StartClient();
-            SceneManager.LoadScene("MainScene");
+            //SceneManager.LoadScene("MainScene");
         });
         hostButton.onClick.AddListener(() => {
             HideStartingMenu();
@@ -77,16 +76,12 @@ public class Menu : NetworkBehaviour
         );
         });
         nicknameField.onValueChanged.AddListener((string inputValue) => {
-            Nickname = inputValue;
+            PlayerPrefs.SetString("Nickname", inputValue);
         });
-
-        if(IsClient || IsHost) //spawnes player, as it is disabled (it would spawn in menu scene otherwise)
+        if (IsClient || IsHost) //Code below is always executed in main scene (WARNING: IT IS EXECUTED AS MANY TIMES AS THERE ARE CLIENTS, but I don't know where to currently put it, as GameManager is not about menu managment)
         {
             resumeGameButton = GameObject.Find("ResumeGameButton").GetComponent<Button>();
             exitServerButton = GameObject.Find("ExitServerButton").GetComponent<Button>();
-
-            GameObject player = Instantiate(playerPrefab);
-            player.GetComponent<NetworkObject>().SpawnAsPlayerObject(NetworkManager.Singleton.LocalClientId);
 
             HideStartingMenu();
 
