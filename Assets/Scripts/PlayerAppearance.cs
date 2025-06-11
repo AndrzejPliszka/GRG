@@ -70,7 +70,6 @@ public class PlayerAppearance : NetworkBehaviour
     [Rpc(SendTo.Server)]
     void SetPlayerAppearanceServerRpc(int setHatId)
     {
-        Debug.Log("Ustawia sie na " + setHatId);
         //If skins are unlockable, add validation here
         hatId.Value = setHatId;
 

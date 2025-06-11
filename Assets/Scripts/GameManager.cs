@@ -126,6 +126,7 @@ public class GameManager : NetworkBehaviour
     override public void OnNetworkSpawn()
     {
         if (!IsServer) { return; }
+        NetworkManager.Singleton.OnClientConnectedCallback -= SpawnNewPlayer; //In case of reconnecting, remove old callback
         NetworkManager.Singleton.OnClientConnectedCallback += SpawnNewPlayer;
         if(IsHost)
             SpawnNewPlayer(NetworkManager.Singleton.LocalClientId);

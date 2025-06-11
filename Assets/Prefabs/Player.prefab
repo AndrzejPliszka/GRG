@@ -906,7 +906,7 @@ MonoBehaviour:
   <StartingPosition>k__BackingField: {x: 0, y: 4, z: 0}
   jumpHeight: 2
   renderOrginalModel: 0
-  <LocalPlayerModel>k__BackingField: {fileID: 8116827039790958487, guid: 719e5dcc23b23bc43aec4ca8af7d580c, type: 3}
+  <LocalPlayerModel>k__BackingField: {fileID: 4587169282220626499, guid: be6ac8aaaa322954aa9757aa6fb9ade4, type: 3}
   blockRotation: 0
 --- !u!95 &-624391764889253703
 Animator:
