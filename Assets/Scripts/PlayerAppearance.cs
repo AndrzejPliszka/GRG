@@ -108,6 +108,9 @@ public class PlayerAppearance : NetworkBehaviour
     [Rpc(SendTo.Everyone)]
     void ChangePlayerRoleTextureRpc(PlayerData.PlayerRole previousRole, PlayerData.PlayerRole currentRole)
     {
+        
+        //MAKE IT USE NEW SYSTEM FOR TEXTURES!
+        /*
         if (IsOwner)
         {
             //if is this player only change localTexture
@@ -118,6 +121,6 @@ public class PlayerAppearance : NetworkBehaviour
         {
             //if is other player change his texture
             playerRenderer.sharedMaterial.mainTexture = GetDataOfRole(MainRoleTextures, currentRole).roleTexture;
-        }
+        }*/
     }
 }

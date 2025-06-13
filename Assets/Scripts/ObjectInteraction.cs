@@ -279,7 +279,6 @@ public class ObjectInteraction : NetworkBehaviour
         InvokeOnPunchEventOwnerRpc(AttackingCooldown);
         StartCoroutine(DeacreaseCooldown());
 
-
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation, timeOfAttack);
         if (targetObject == null) { return; }
 

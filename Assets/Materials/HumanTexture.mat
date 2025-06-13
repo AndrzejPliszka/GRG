@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Sigma
+  m_Name: HumanTexture
   m_Shader: {fileID: -6465566751694194690, guid: 00dd892fb8d8e0a488c6b7ff787ba84c, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
