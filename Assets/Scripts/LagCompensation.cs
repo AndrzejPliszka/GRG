@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
+[RequireComponent(typeof(PastDataTracker))]
 public class LagCompensation : NetworkBehaviour
 {
     [SerializeField] GameObject simplifiedPlayer; //game object with collider same as player and no other data

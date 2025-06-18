@@ -6,7 +6,7 @@ public class SkinSelector : MonoBehaviour
 {
     [SerializeField] GameObject mockModel;
     [SerializeField] GameObject mainCamera;
-    readonly float rotatingSpeed = 2f;
+    readonly float rotatingSpeed = 3f;
 
     private void Start()
     {

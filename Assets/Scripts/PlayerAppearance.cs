@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 using static ItemData;
 
@@ -9,8 +10,8 @@ public class PlayerAppearance : NetworkBehaviour
     PlayerData playerData;
     Renderer playerRenderer;
 
-    [SerializeField] List<GameObject> hats;
-    readonly string headPath = "rig/metarig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/face_end";
+    [SerializeField] PlayerAppearanceData appearanceData;
+    readonly string headPath = "rig/ORG-spine/ORG-spine.001/ORG-spine.002/ORG-spine.003/ORG-spine.004/ORG-spine.005/ORG-spine.006/ORG-face/ORG-face_end";
     GameObject currentHat;
     //this not in scriptable object, because it is used only in this script 
     [System.Serializable]
@@ -20,80 +21,53 @@ public class PlayerAppearance : NetworkBehaviour
         public Texture roleTexture;
     }
 
-    
-    public List<RoleEntry> MainRoleTextures; //textures used when you see other players (and used on server)
-    public List<RoleEntry> LocalRoleTextures;
-
     //all textures data
-    NetworkVariable<int> hatId = new(-999, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-
-    public RoleEntry GetDataOfRole(List<RoleEntry> listToCheck, PlayerData.PlayerRole playerRole)
-    {
-        int indexToFind = listToCheck.FindIndex(item => item.playerRole == playerRole);
-        if (indexToFind < 0)
-        {
-            Debug.LogWarning($"Role {playerRole} not found");
-            return null;
-        }
-        else
-            return listToCheck[indexToFind];
-    }
-
+    readonly NetworkVariable<int> hatId = new(-999, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner); //Change into server if taken from serv
 
 
     private void Start()
     {
-        if (IsOwner)
-        {
-            SetPlayerAppearanceServerRpc(PlayerPrefs.GetInt("Hat"));
-        }
-
-
         //doing on all client on start because it needs to be synchronized
         playerRenderer = GetObjectRenderer(gameObject);
-        if (!IsOwner)
-        {
-            ChangePlayerHat(hatId.Value);
-        }
-        if (!IsServer) { return; }
-        if (!TryGetComponent<PlayerData>(out playerData))
+
+        if ((IsClient || IsServer) && (!TryGetComponent<PlayerData>(out playerData)))
         {
             Debug.LogError("PlayerData should be on this object when you are on the network");
             return;
         }
-        ChangePlayerRoleTextureRpc(playerData.Role.Value, playerData.Role.Value); //call this to sync texture with everyone
-        playerData.Role.OnValueChanged += ChangePlayerRoleTextureRpc;
 
+        if (IsOwner)
+        {
+            ChangePlayerRoleTextureRpc(playerData.Role.Value, playerData.Role.Value);
+            hatId.Value = PlayerPrefs.GetInt("Hat");
+        }
+        else
+        {
+            if(playerData)
+                playerRenderer.material.SetTexture("_Clothes", appearanceData.GetOutfit(playerData.Role.Value));
+
+            if (hatId.Value != -999)
+                ChangePlayerHat(hatId.Value);
+            else
+                hatId.OnValueChanged += (int oldId, int newId) => { ChangePlayerHat(newId); }; //If hatId is unset, then wait until it is set
+        }
+        if (IsServer)
+        {
+            playerData.Role.OnValueChanged += ChangePlayerRoleTextureRpc;
+        }
         
     }
-
-    [Rpc(SendTo.Server)]
-    void SetPlayerAppearanceServerRpc(int setHatId)
-    {
-        //If skins are unlockable, add validation here
-        hatId.Value = setHatId;
-
-
-        ChangePlayerAppearanceForEveryoneRpc();
-    }
-
-    [Rpc(SendTo.Everyone)]
-    void ChangePlayerAppearanceForEveryoneRpc()
-    {
-        if(IsOwner) { return; } //Owner needs to be set up independently (for example without hat etc.)
-        ChangePlayerHat(hatId.Value);
-    }
-
+    
     public void ChangePlayerHat(int hatId)
     {
         if (currentHat)
             Destroy(currentHat);
-        if(hatId < 0 || hatId >= hats.Count) //Hat that doesn't exist, don't try to spawn it
+        GameObject hatToSpawn = appearanceData.GetHat(hatId);
+        if (hatToSpawn == null)
             return;
-
-        GameObject hat = Instantiate(hats[hatId], transform.Find(headPath));
-        hat.transform.localPosition = new Vector3(0, 0.001f, -0.0003f);
-        hat.transform.localScale = hat.transform.localScale * 0.01f;
+        GameObject hat = Instantiate(hatToSpawn, transform.Find(headPath));
+        hat.transform.localPosition = new Vector3(0, 0.1f, -0.03f);
+        hat.transform.localScale = hat.transform.localScale;
         currentHat = hat;
     }
 
@@ -108,19 +82,17 @@ public class PlayerAppearance : NetworkBehaviour
     [Rpc(SendTo.Everyone)]
     void ChangePlayerRoleTextureRpc(PlayerData.PlayerRole previousRole, PlayerData.PlayerRole currentRole)
     {
-        
-        //MAKE IT USE NEW SYSTEM FOR TEXTURES!
-        /*
         if (IsOwner)
         {
             //if is this player only change localTexture
             Movement movement = GetComponent<Movement>();
-            GetObjectRenderer(movement.LocalPlayerModel).sharedMaterial.mainTexture = GetDataOfRole(LocalRoleTextures, currentRole).roleTexture;
+            if(movement.LocalPlayerModel.activeInHierarchy)
+                GetObjectRenderer(movement.LocalPlayerModel).material.SetTexture("_Clothes", appearanceData.GetOutfit(currentRole));
         }
         else
         {
             //if is other player change his texture
-            playerRenderer.sharedMaterial.mainTexture = GetDataOfRole(MainRoleTextures, currentRole).roleTexture;
-        }*/
+            playerRenderer.material.SetTexture("_Clothes", appearanceData.GetOutfit(currentRole));
+        }
     }
 }

@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d1547e2a74772048b38a63b2a403fb9, type: 3}
+  m_Name: PlayerAppearanceData
+  m_EditorClassIdentifier: 
+  hat:
+  - {fileID: 2102908734449695956, guid: 7782cf2446c103a40b649c47e81a9522, type: 3}
+  - {fileID: 2894917916398187624, guid: a38ba8efae8057d4db7f79a1dfa96426, type: 3}
+  - {fileID: 1123285253291674768, guid: 4fbca4102852fd0498a8046f8907d1fd, type: 3}
+  skin:
+  - {fileID: 2800000, guid: 1c8aed0b09a77e942b02d92721f3b612, type: 3}
+  - {fileID: 2800000, guid: 1487a34cd33c4fc45a8a1cf3ae34e373, type: 3}
+  - {fileID: 2800000, guid: d65ef87aba84d2441859cbb47ab2831b, type: 3}
+  - {fileID: 2800000, guid: c37370a27cbfa5d40b44e678f4d687c0, type: 3}
+  - {fileID: 2800000, guid: 370206d181e122d4984376007696368f, type: 3}
+  face:
+  - {fileID: 2800000, guid: ef0568ab4be4e4840a173b5cc6a06581, type: 3}
+  - {fileID: 2800000, guid: a98ba0545de61174485fcd836b9f29eb, type: 3}
+  - {fileID: 2800000, guid: c609058b5fa68b44f8bd4b5fd8cf4e40, type: 3}
+  - {fileID: 2800000, guid: 55023c51e14308e46b5392fa0faf93b4, type: 3}
+  - {fileID: 2800000, guid: c4f7b402f517f9d4ba558a0bbc78e1e4, type: 3}
+  - {fileID: 2800000, guid: 2a2b30a4f611d6d44af07fe010161ea3, type: 3}
+  inprint:
+  - {fileID: 2800000, guid: a91a5ecce1df519458e341befffd7d2b, type: 3}
+  outfit:
+  - playerRole: 0
+    texture: {fileID: 2800000, guid: 8ea756e637bbeae49a295033ce420270, type: 3}
+  - playerRole: 1
+    texture: {fileID: 2800000, guid: 0350ada2d3b800a43b31e106e23b55e1, type: 3}
+  - playerRole: 2
+    texture: {fileID: 2800000, guid: 383f9ac9d37cdba40984db733d053bbf, type: 3}
+  - playerRole: 4
+    texture: {fileID: 2800000, guid: d2c0efe699e5d7047af4eaf15722f3b1, type: 3}
