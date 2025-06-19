@@ -22,13 +22,17 @@ public class PlayerAppearance : NetworkBehaviour
     }
 
     //all textures data
-    readonly NetworkVariable<int> hatId = new(-999, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner); //Change into server if taken from serv
+    readonly NetworkVariable<int> hatId = new(-999, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner); //Change into server if taken from serv -999, means that it is unset yet
+    readonly NetworkVariable<int> faceId = new(-999, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    readonly NetworkVariable<int> skinId = new(-999, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    readonly NetworkVariable<int> inprintId = new(-999, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
-
+    private void Awake()
+    {
+        playerRenderer = GetObjectRenderer(gameObject);
+    }
     private void Start()
     {
-        //doing on all client on start because it needs to be synchronized
-        playerRenderer = GetObjectRenderer(gameObject);
 
         if ((IsClient || IsServer) && (!TryGetComponent<PlayerData>(out playerData)))
         {
@@ -40,6 +44,12 @@ public class PlayerAppearance : NetworkBehaviour
         {
             ChangePlayerRoleTextureRpc(playerData.Role.Value, playerData.Role.Value);
             hatId.Value = PlayerPrefs.GetInt("Hat");
+            faceId.Value = PlayerPrefs.GetInt("Face");
+            skinId.Value = PlayerPrefs.GetInt("Skin");
+            inprintId.Value = PlayerPrefs.GetInt("Inprint");
+
+            ChangePlayerSkin(skinId.Value);
+            ChangePlayerInprint(inprintId.Value);
         }
         else
         {
@@ -50,6 +60,21 @@ public class PlayerAppearance : NetworkBehaviour
                 ChangePlayerHat(hatId.Value);
             else
                 hatId.OnValueChanged += (int oldId, int newId) => { ChangePlayerHat(newId); }; //If hatId is unset, then wait until it is set
+
+            if (faceId.Value != -999)
+                ChangePlayerFace(faceId.Value);
+            else
+                faceId.OnValueChanged += (int oldId, int newId) => { ChangePlayerFace(newId); };
+
+            if (skinId.Value != -999)
+                ChangePlayerSkin(skinId.Value);
+            else
+                skinId.OnValueChanged += (int oldId, int newId) => { ChangePlayerSkin(newId); };
+
+            if (inprintId.Value != -999)
+                ChangePlayerInprint(inprintId.Value);
+            else
+                inprintId.OnValueChanged += (int oldId, int newId) => { ChangePlayerInprint(newId); };
         }
         if (IsServer)
         {
@@ -71,6 +96,53 @@ public class PlayerAppearance : NetworkBehaviour
         currentHat = hat;
     }
 
+    public void ChangePlayerFace(int faceId)
+    {
+        if (IsOwner)
+        {
+            //if is this player only change localTexture
+            Movement movement = GetComponent<Movement>();
+            if (movement.LocalPlayerModel.activeInHierarchy)
+                GetObjectRenderer(movement.LocalPlayerModel).material.SetTexture("_Face", appearanceData.GetFace(faceId));
+        }
+        else
+        {
+            //if is other player change his texture
+            playerRenderer.material.SetTexture("_Face", appearanceData.GetFace(faceId));
+        }
+    }
+
+    public void ChangePlayerSkin(int skinId)
+    {
+        if (IsOwner)
+        {
+            //if is this player only change localTexture
+            Movement movement = GetComponent<Movement>();
+            if (movement.LocalPlayerModel.activeInHierarchy)
+                GetObjectRenderer(movement.LocalPlayerModel).material.SetTexture("_Skin", appearanceData.GetSkin(skinId));
+        }
+        else
+        {
+            //if is other player change his texture
+            playerRenderer.material.SetTexture("_Skin", appearanceData.GetSkin(skinId));
+        }
+    }
+    public void ChangePlayerInprint(int inprintId)
+    {
+        if (IsOwner)
+        {
+            //if is this player only change localTexture
+            Movement movement = GetComponent<Movement>();
+            if (movement.LocalPlayerModel.activeInHierarchy)
+                GetObjectRenderer(movement.LocalPlayerModel).material.SetTexture("_Inprint", appearanceData.GetInprint(inprintId));
+        }
+        else
+        {
+            //if is other player change his texture
+            playerRenderer.material.SetTexture("_Inprint", appearanceData.GetInprint(inprintId));
+        }
+    }
+
     //this function if object doesnt have renderer looks at children of gameObjects and returns first renderer of child
     static Renderer GetObjectRenderer(GameObject gameObject)
     {
@@ -87,12 +159,12 @@ public class PlayerAppearance : NetworkBehaviour
             //if is this player only change localTexture
             Movement movement = GetComponent<Movement>();
             if(movement.LocalPlayerModel.activeInHierarchy)
-                GetObjectRenderer(movement.LocalPlayerModel).material.SetTexture("_Clothes", appearanceData.GetOutfit(currentRole));
+                GetObjectRenderer(movement.LocalPlayerModel).material.SetTexture("_Outfit", appearanceData.GetOutfit(currentRole));
         }
         else
         {
             //if is other player change his texture
-            playerRenderer.material.SetTexture("_Clothes", appearanceData.GetOutfit(currentRole));
+            playerRenderer.material.SetTexture("_Outfit", appearanceData.GetOutfit(currentRole));
         }
     }
 }

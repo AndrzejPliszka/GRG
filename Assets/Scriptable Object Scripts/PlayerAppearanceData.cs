@@ -22,6 +22,21 @@ public class PlayerAppearanceData : ScriptableObject
     [SerializeField] List<Texture2D> inprint = new();
     [SerializeField] List<OutfitTexture> outfit = new();
 
+    public int HatCount {
+        get { return hat.Count; }
+    }
+    public int SkinCount
+    {
+        get { return skin.Count; }
+    }
+    public int FaceCount
+    {
+        get { return face.Count; }
+    }
+    public int InprintCount
+    {
+        get { return inprint.Count; }
+    }
     public GameObject GetHat(int hatId)
     {
         if (hatId < 0 || hatId >= hat.Count) {
@@ -55,7 +70,7 @@ public class PlayerAppearanceData : ScriptableObject
 
     public Texture2D GetFace(int faceId)
     {
-        if (faceId < 0 || faceId >= skin.Count)
+        if (faceId < 0 || faceId >= face.Count)
             return face[0];
         else
             return face[faceId];
@@ -63,7 +78,7 @@ public class PlayerAppearanceData : ScriptableObject
 
     public Texture2D GetInprint(int inprintId)
     {
-        if (inprintId < 0 || inprintId >= skin.Count)
+        if (inprintId < 0 || inprintId >= inprint.Count)
             return null; //return no inprint
         else
             return inprint[inprintId];

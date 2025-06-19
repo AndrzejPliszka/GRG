@@ -55,6 +55,10 @@ Material:
         m_Texture: {fileID: 2800000, guid: ef0568ab4be4e4840a173b5cc6a06581, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _Inprint:
+        m_Texture: {fileID: 2800000, guid: a91a5ecce1df519458e341befffd7d2b, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _MainTex:
         m_Texture: {fileID: 2800000, guid: 05605de745441cb4889b654e9ad03458, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -65,6 +69,10 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _OcclusionMap:
         m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Outfit:
+        m_Texture: {fileID: 2800000, guid: 0350ada2d3b800a43b31e106e23b55e1, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _ParallaxMap:

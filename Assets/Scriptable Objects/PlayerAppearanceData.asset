@@ -30,6 +30,7 @@ MonoBehaviour:
   - {fileID: 2800000, guid: c4f7b402f517f9d4ba558a0bbc78e1e4, type: 3}
   - {fileID: 2800000, guid: 2a2b30a4f611d6d44af07fe010161ea3, type: 3}
   inprint:
+  - {fileID: 2800000, guid: bfd68de8dbf6518498e68cda9392081f, type: 3}
   - {fileID: 2800000, guid: a91a5ecce1df519458e341befffd7d2b, type: 3}
   outfit:
   - playerRole: 0
