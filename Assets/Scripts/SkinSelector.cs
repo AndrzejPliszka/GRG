@@ -42,6 +42,13 @@ public class SkinSelector : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject != null &&
+            UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject.GetComponent<TMP_InputField>() != null)
+        {
+            // Currently player is typing something, so disable rotating functionality
+            return;
+        }
+
         if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
         {
             mockModel.transform.Rotate(Vector3.up * rotatingSpeed);
@@ -51,13 +58,18 @@ public class SkinSelector : MonoBehaviour
             mockModel.transform.Rotate(Vector3.down * rotatingSpeed);
         }
 
+        float maxAngle = 85f;
+        float minAngle = 340f;
+
         if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
         {
-            mainCamera.transform.Rotate(Vector3.right * rotatingSpeed);
+            if(mainCamera.transform.rotation.eulerAngles.x >= minAngle - 10 || mainCamera.transform.rotation.eulerAngles.x <= maxAngle) //-10, because otherwise when we would be on a minimal point the camera would not move (same below)
+                mainCamera.transform.Rotate(Vector3.right * rotatingSpeed);
         }
         else if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
         {
-            mainCamera.transform.Rotate(Vector3.left * rotatingSpeed);
+            if (mainCamera.transform.rotation.eulerAngles.x >= minAngle || mainCamera.transform.rotation.eulerAngles.x <= maxAngle + 10)
+                mainCamera.transform.Rotate(Vector3.left * rotatingSpeed);
         }
     }
 

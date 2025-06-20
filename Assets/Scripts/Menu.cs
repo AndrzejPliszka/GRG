@@ -41,6 +41,12 @@ public class Menu : NetworkBehaviour
         {
             nicknameField.text = nickname;
         }
+
+        string serverIP = PlayerPrefs.GetString("ServerIP");
+        if (serverIP != null)
+        {
+            ipInputField.text = serverIP;
+        }
     }
     void Start()
     {
@@ -67,8 +73,16 @@ public class Menu : NetworkBehaviour
             NetworkManager.Singleton.StartHost();
             NetworkManager.Singleton.SceneManager.LoadScene("MainScene", LoadSceneMode.Single);
         });
+        if(PlayerPrefs.GetString("ServerIP") != null) //changing unity transport if there is server IP saved in PlayerPrefs
+        {
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(
+                PlayerPrefs.GetString("ServerIP"),
+                (ushort)7777,
+                "0.0.0.0");
+        }
         ipInputField.onValueChanged.AddListener((string inputValue) =>
         {
+            PlayerPrefs.SetString("ServerIP", inputValue);
             NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(
                 inputValue,
                 (ushort)7777,
