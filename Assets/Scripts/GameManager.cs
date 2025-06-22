@@ -90,9 +90,12 @@ public class GameManager : NetworkBehaviour
         };
     }
 
+
+
     public event Action<GameObject, PlayerData.PlayerRole> OnPlayerRoleChange = delegate { };
     public event Action<GameObject, int, int> OnPlayerTownChange = delegate { };
 
+    [SerializeField] GameObject playerPrefab; //Used here, as without custom spawning, player would spawn in menu scene, which is not desired
 
     public List<TownProperties> TownData { get; private set; } = new();
     public List<GameObject> PlayersWithoutTown { get; private set; } = new();
@@ -123,6 +126,10 @@ public class GameManager : NetworkBehaviour
     override public void OnNetworkSpawn()
     {
         if (!IsServer) { return; }
+        NetworkManager.Singleton.OnClientConnectedCallback += SpawnNewPlayer;
+        if(IsHost)
+            SpawnNewPlayer(NetworkManager.Singleton.LocalClientId);
+
         GenerateTownLand(0, 10, 5, -5);
         OnPlayerTownChange += ChangeLeader;
 
@@ -148,7 +155,6 @@ public class GameManager : NetworkBehaviour
         if (!IsServer) { throw new Exception("This is generating fucntion calling this on server is impossible"); }
 
         Transform landContainer = GameObject.Find($"Town{townId}").transform.Find("LandContainer");
-        Debug.Log(landContainer);
         float offsetBetweenTiles = 10f;
         for(int i = startingOffset; i < startingOffset + width; i++)
         {
@@ -294,5 +300,16 @@ public class GameManager : NetworkBehaviour
             if (roleChanged)
                 OnPlayerRoleChange.Invoke(playerGameObject, role);
         }
+    }
+
+    public void SpawnNewPlayer(ulong playerId)
+    {
+        GameObject player = Instantiate(playerPrefab);
+        player.GetComponent<NetworkObject>().SpawnAsPlayerObject(playerId);
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        NetworkManager.Singleton.OnClientConnectedCallback -= SpawnNewPlayer;
     }
 }

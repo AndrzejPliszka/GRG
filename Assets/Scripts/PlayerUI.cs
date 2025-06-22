@@ -40,7 +40,7 @@ public class PlayerUI : NetworkBehaviour
     PlayerData playerData;
     public override void OnNetworkSpawn()
     {
-
+        
         centerText = GameObject.Find("CenterText").GetComponent<TMP_Text>();
         errorText = GameObject.Find("ErrorText").GetComponent<TMP_Text>();
         hungerBarText = GameObject.Find("HungerBarText").GetComponent<TMP_Text>();

@@ -103,7 +103,7 @@ public class PlayerData : NetworkBehaviour
         }
         //Reset inventory on server
         if (!IsOwner) { return; }
-        ChangeNicknameServerRpc(GameObject.Find("Canvas").GetComponent<Menu>().Nickname);
+        ChangeNicknameServerRpc(PlayerPrefs.GetString("Nickname") ?? "Guest");
     }
 
     private void Update()

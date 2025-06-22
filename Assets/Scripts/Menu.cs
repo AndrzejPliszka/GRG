@@ -6,10 +6,6 @@ using UnityEngine.UI;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine.SceneManagement;
-//this is only because of logout
-using Unity.Services.Vivox;
-using Unity.Services.Authentication;
-using Unity.Collections;
 
 
 public class Menu : NetworkBehaviour
@@ -29,7 +25,6 @@ public class Menu : NetworkBehaviour
     Button exitServerButton;
 
     public int amountOfDisplayedMenus; //used, because there can be multiple menus displayed at once
-    public FixedString32Bytes Nickname { get; private set; }
     private void Awake()
     {
         mainMenu = GameObject.Find("MainMenu");
@@ -41,8 +36,17 @@ public class Menu : NetworkBehaviour
         ipInputField = GameObject.Find("IPInputField").GetComponent<TMP_InputField>();
         nicknameField = GameObject.Find("NicknameField").GetComponent<TMP_InputField>();
 
-        resumeGameButton = GameObject.Find("ResumeGameButton").GetComponent<Button>();
-        exitServerButton = GameObject.Find("ExitServerButton").GetComponent<Button>();
+        string nickname = PlayerPrefs.GetString("Nickname");
+        if (nickname != null)
+        {
+            nicknameField.text = nickname;
+        }
+
+        string serverIP = PlayerPrefs.GetString("ServerIP");
+        if (serverIP != null)
+        {
+            ipInputField.text = serverIP;
+        }
     }
     void Start()
     {
@@ -53,23 +57,32 @@ public class Menu : NetworkBehaviour
         hostButton.onClick.RemoveAllListeners();
         ipInputField.onValueChanged.RemoveAllListeners();
         nicknameField.onValueChanged.RemoveAllListeners();
-        resumeGameButton.onClick.RemoveAllListeners();
-        exitServerButton.onClick.RemoveAllListeners();
-
         serverButton.onClick.AddListener(() => {
             HideStartingMenu();
             NetworkManager.Singleton.StartServer();
+            NetworkManager.Singleton.SceneManager.LoadScene("MainScene", LoadSceneMode.Single);
         });
         clientButton.onClick.AddListener(() => {
+
             HideStartingMenu();
             NetworkManager.Singleton.StartClient();
+            //SceneManager.LoadScene("MainScene");
         });
         hostButton.onClick.AddListener(() => {
             HideStartingMenu();
             NetworkManager.Singleton.StartHost();
+            NetworkManager.Singleton.SceneManager.LoadScene("MainScene", LoadSceneMode.Single);
         });
+        if(PlayerPrefs.GetString("ServerIP") != null) //changing unity transport if there is server IP saved in PlayerPrefs
+        {
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(
+                PlayerPrefs.GetString("ServerIP"),
+                (ushort)7777,
+                "0.0.0.0");
+        }
         ipInputField.onValueChanged.AddListener((string inputValue) =>
         {
+            PlayerPrefs.SetString("ServerIP", inputValue);
             NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(
                 inputValue,
                 (ushort)7777,
@@ -77,15 +90,25 @@ public class Menu : NetworkBehaviour
         );
         });
         nicknameField.onValueChanged.AddListener((string inputValue) => {
-            Nickname = inputValue;
+            PlayerPrefs.SetString("Nickname", inputValue);
         });
-
-        resumeGameButton.onClick.AddListener(() =>
+        if (IsClient || IsHost) //Code below is always executed in main scene (WARNING: IT IS EXECUTED AS MANY TIMES AS THERE ARE CLIENTS, but I don't know where to currently put it, as GameManager is not about menu managment)
         {
-            ResumeGame(true);
-        });
-        exitServerButton.onClick.AddListener(QuitServer);
-        pauseMenu.SetActive(false); //hide pause menu before joining server
+            resumeGameButton = GameObject.Find("ResumeGameButton").GetComponent<Button>();
+            exitServerButton = GameObject.Find("ExitServerButton").GetComponent<Button>();
+
+            HideStartingMenu();
+
+            resumeGameButton.onClick.RemoveAllListeners();
+            exitServerButton.onClick.RemoveAllListeners();
+
+            resumeGameButton.onClick.AddListener(() =>
+            {
+                ResumeGame(true);
+            });
+            exitServerButton.onClick.AddListener(QuitServer);
+            pauseMenu.SetActive(false);//hide pause menu before joining server
+        }
     }
 
 
@@ -99,7 +122,7 @@ public class Menu : NetworkBehaviour
         NetworkManager.Singleton.Shutdown();
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name); //change if different scene for menu
+        SceneManager.LoadScene("MenuScene", LoadSceneMode.Single); //change if different scene for menu
     }
     //set hidePauseMenu == true, when you want to close pause menu and not other menu
     public void ResumeGame(bool hidePauseMenu) //bool used, because this function is also called along side closing other menus

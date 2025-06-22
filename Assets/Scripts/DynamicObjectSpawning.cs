@@ -4,6 +4,7 @@ using Unity.Burst.CompilerServices;
 using Unity.Netcode;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
 public class DynamicObjectSpawning : NetworkBehaviour
@@ -48,6 +49,9 @@ public class DynamicObjectSpawning : NetworkBehaviour
         {
             if (CanSpawn(hit.point + new Vector3(0, 1, 0)) && hit.transform.gameObject == gameObject)
             {
+                if (!IsServer || !SceneManager.GetActiveScene().isLoaded || NetworkManager == null || NetworkManager.ShutdownInProgress || NetworkManager.Singleton == null)
+                    return; //This function can be called when server is shutting down, so we need to check if we are still in the game
+
                 GameObject spawnedObject = Instantiate(objectToSpawn, hit.point, Quaternion.Euler(new Vector3(0, Random.Range(0, 360), 0)));
                 spawnedObject.GetComponent<NetworkObject>().Spawn();
 

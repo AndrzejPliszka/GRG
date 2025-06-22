@@ -16,6 +16,7 @@ TagManager:
   - Money
   - House
   - Parliament
+  - Water
   layers:
   - Default
   - TransparentFX
