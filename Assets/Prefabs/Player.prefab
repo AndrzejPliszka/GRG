@@ -448,13 +448,13 @@ PrefabInstance:
       addedObject: {fileID: 2909217985025742969}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2c337f0ecaf963e4687ac9119dc6ece2, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 8543086466809144237}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2c337f0ecaf963e4687ac9119dc6ece2, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 4720389694948923985}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2c337f0ecaf963e4687ac9119dc6ece2, type: 3}
       insertIndex: -1
       addedObject: {fileID: -7635643522018397554}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2c337f0ecaf963e4687ac9119dc6ece2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -5867124391296192837}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2c337f0ecaf963e4687ac9119dc6ece2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4564328684521289022}
@@ -491,7 +491,6 @@ CharacterController:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
@@ -516,6 +515,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GlobalObjectIdHash: 4140914131
   InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
@@ -523,6 +524,8 @@ MonoBehaviour:
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!114 &-8564149331088451529
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -535,6 +538,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e96cb6065543e43c4a752faaa1468eb1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  NetworkTransformExpanded: 0
+  AutoOwnerAuthorityTickOffset: 1
+  PositionInterpolationType: 0
+  RotationInterpolationType: 0
+  ScaleInterpolationType: 0
+  PositionLerpSmoothing: 1
+  PositionMaxInterpolationTime: 0.1
+  RotationLerpSmoothing: 1
+  RotationMaxInterpolationTime: 0.1
+  ScaleLerpSmoothing: 1
+  ScaleMaxInterpolationTime: 0.1
+  AuthorityMode: 0
+  TickSyncChildren: 0
   UseUnreliableDeltas: 0
   SyncPositionX: 1
   SyncPositionY: 1
@@ -552,6 +569,7 @@ MonoBehaviour:
   UseQuaternionCompression: 0
   UseHalfFloatPrecision: 0
   InLocalSpace: 0
+  SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
 --- !u!114 &-3329908808242056676
@@ -566,6 +584,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7fe18ce9ff3e94140bb37e5cdc676559, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   speed: 5
   runningModifier: 2
   sensitivity: 5
@@ -588,6 +607,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8d0727d5ae3244e3b569694d3912374, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   TransitionStateInfoList: []
   m_Animator: {fileID: 5805444332957058699}
 --- !u!114 &8390633065209348173
@@ -602,6 +622,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aaeae0adf7769ce4288f563e93d1ff2c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!114 &-2660711547813083457
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -614,6 +635,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2f1828377457ba440a0b704a71c3485b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   rightHand: {fileID: 7048602296565878664}
   localRightHandPath: rig/ORG-spine/ORG-spine.001/ORG-spine.002/ORG-spine.003/ORG-shoulder.R/ORG-upper_arm.R/ORG-forearm.R/ORG-hand.R
   itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}
@@ -631,6 +653,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04d0d6ef499659b4b8841c7632da97f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!136 &-8103116368747466719
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -666,25 +689,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e39b2d515b794c14aabc24968bc2d056, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   unusedInventorySlot: {fileID: 21300000, guid: 849e6b76ff9e28445bb397eca0bb58a6, type: 3}
   usedInventorySlot: {fileID: 21300000, guid: 5a623d959f72348418f6ad7c25b80586, type: 3}
   itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}
   itemTierData: {fileID: 11400000, guid: e6c211ddcaf602045b55cbfd0c77ed64, type: 2}
---- !u!114 &8543086466809144237
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 953330064948741707}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dcb782558a28d8e4387592afafca031f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ragdoll: {fileID: 47492354796517529, guid: 3a08e0566eadc794da932e8fb77951ba, type: 3}
-  itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}
-  moneyObject: {fileID: 3550086742576351476, guid: f270bd44ff5ced7459367d6d8ec87db2, type: 3}
 --- !u!114 &4720389694948923985
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -697,6 +706,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d859decf18a3f44eaa281139df1a78a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   simplifiedPlayer: {fileID: 8116827039790958487, guid: 3c6b977ca9429f243a10bdb4f7cef894, type: 3}
 --- !u!114 &-7635643522018397554
 MonoBehaviour:
@@ -710,6 +720,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6209f92339bd792408afc2620f47b753, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &-5867124391296192837
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 953330064948741707}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcb782558a28d8e4387592afafca031f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  ragdoll: {fileID: 47492354796517529, guid: 3a08e0566eadc794da932e8fb77951ba, type: 3}
+  itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}
+  moneyObject: {fileID: 3550086742576351476, guid: f270bd44ff5ced7459367d6d8ec87db2, type: 3}
 --- !u!114 &4564328684521289022
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -722,6 +749,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9498108d364e4a48a82b9640ac8d1d7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   appearanceData: {fileID: 11400000, guid: 6df11b824dcebd248a696cc22df72688, type: 2}
 --- !u!114 &-2521976140714348443
 MonoBehaviour:
@@ -735,6 +763,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0c1df2010f0e874a95b0b8ac88288bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   singularShopItemUI: {fileID: 4392729184747963158, guid: 9e247c8490524e54aa442e88d5fec668, type: 3}
   singularLandUnitUI: {fileID: 4392729184747963158, guid: dacf5a3f5c920744698df5663ee4c6c9, type: 3}
   buildMenuUI: {fileID: 5993387815824996974, guid: 2e77f94b9f0da3e4988cd7c3a4415c4c, type: 3}
@@ -751,6 +780,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a8b6910fde6eee43b538e99c0afbeed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   lawMenuPrefab: {fileID: 5039222745153836448, guid: 737924c73419b31429157de15e8f9cc1, type: 3}
 --- !u!114 &8617572524965758506
 MonoBehaviour:
@@ -764,6 +794,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5402530dba2ee1246bddd39ccd9c9073, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!114 &-4474917444775403215
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -776,6 +807,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a6a0dd520cf4c249b014636701d7d93, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!95 &5805444332957058699 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 2c337f0ecaf963e4687ac9119dc6ece2, type: 3}

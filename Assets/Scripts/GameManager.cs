@@ -126,7 +126,6 @@ public class GameManager : NetworkBehaviour
     override public void OnNetworkSpawn()
     {
         if (!IsServer) { return; }
-        NetworkManager.Singleton.OnClientConnectedCallback -= SpawnNewPlayer; //In case of reconnecting, remove old callback
         NetworkManager.Singleton.OnClientConnectedCallback += SpawnNewPlayer;
         if(IsHost)
             SpawnNewPlayer(NetworkManager.Singleton.LocalClientId);
@@ -303,10 +302,14 @@ public class GameManager : NetworkBehaviour
         }
     }
 
-    //Might be security vulnerability
     public void SpawnNewPlayer(ulong playerId)
     {
         GameObject player = Instantiate(playerPrefab);
         player.GetComponent<NetworkObject>().SpawnAsPlayerObject(playerId);
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        NetworkManager.Singleton.OnClientConnectedCallback -= SpawnNewPlayer;
     }
 }
