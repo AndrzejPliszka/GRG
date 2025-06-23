@@ -48,7 +48,14 @@ public class PastDataTracker : NetworkBehaviour
             .Where(entry => entry.Key >= tick)
             .OrderBy(entry => entry.Key) 
             .FirstOrDefault().Value;
-
+        //Sometimes on host it happens that tick is larger than any tick in the dictionary, so we return the last one
+        //(not ideal solution, but it is nearly impossible to have this exact position and rotation and be moving when someone punches you, so it shouldn't cause issues)
+        if (result.position.Equals(new Vector3(0, 0, 0)) && result.rotation.Equals(new Quaternion(0, 0, 0, 0)))
+        {
+            result = tickDictionary
+            .OrderByDescending(entry => entry.Key)
+            .First().Value;
+        }
         return result;
     }
 }
