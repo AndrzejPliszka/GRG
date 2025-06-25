@@ -9,6 +9,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR;
+using static UnityEngine.GraphicsBuffer;
 [RequireComponent(typeof(Movement))]
 [RequireComponent(typeof(PlayerData))]
 public class ObjectInteraction : NetworkBehaviour
@@ -73,7 +74,6 @@ public class ObjectInteraction : NetworkBehaviour
             playerData.ChangeSelectedInventorySlotServerRpc(2);
             ChangeHeldItemClientRpc(playerData.Inventory[2]);
         }
-
         if (Input.GetMouseButtonDown(0))
         {
 
@@ -143,6 +143,78 @@ public class ObjectInteraction : NetworkBehaviour
         if (timeWhenHit != 0)
             lagCompensation.DestroySimulatedPlayers();
         return null;
+    }
+    public List<GameObject> GetObjectsInFrontOfPlayer(float cameraXRotation, float range, float angle, int timeWhenHit = 0)
+    {
+        LagCompensation lagCompensation = null;
+        Movement movement = GetComponent<Movement>();
+        List<GameObject> allDetectedObjects = new();
+        if (!IsServer && timeWhenHit != 0)
+        {
+            Debug.LogWarning("You specified server side property (timeWhenHit) on client!");
+            timeWhenHit = 0;
+        }
+
+        if (timeWhenHit != 0) //if this is 0, we don't care about accuracy, so we dont need to do lag compensation
+        {
+            lagCompensation = gameObject.GetComponent<LagCompensation>();
+            lagCompensation.SimulatePlayersOnGivenTime(timeWhenHit);
+        }
+        Vector3 currentPosition = IsServer ? transform.position : movement.LocalPlayerModel.transform.position; //if not on server use localmodel with more "Up to date" position and rotation
+        Quaternion currentRotation = IsServer ? transform.rotation : movement.LocalPlayerModel.transform.rotation;
+        Vector3 cameraPosition = currentPosition + new Vector3(0, cameraOffset.y) + currentRotation * new Vector3(0, 0, cameraOffset.z);
+
+        LayerMask layersToDetect;
+        if (timeWhenHit != 0)
+            layersToDetect = ~LayerMask.GetMask("UnsyncedObject", "LocalObject"); //when timeWhenHit is specified, then it is on server so, do not check unsynced player side object
+        else
+            layersToDetect = ~LayerMask.GetMask("LocalObject"); //else it is probably executed on client (and even if not if timeWhenHit is not specified we dont probably care so much about accuracy), so we can detect everything (except localPlayerModel)
+
+        Collider[] hits = Physics.OverlapSphere(currentPosition, range, layersToDetect);
+        foreach (var hit in hits)
+        {
+            if (hit.gameObject == gameObject)
+                continue;
+            Vector3 lookDirection = Quaternion.Euler(cameraXRotation, currentRotation.eulerAngles.y, 0) * Vector3.forward;
+            Vector3 directionToTarget = (hit.transform.position - transform.position);
+            float distanceToTarget = directionToTarget.magnitude;
+
+            // Oblicz najkrótszy dystans od celu do osi patrzenia
+            float perpendicularDistance = Vector3.Cross(lookDirection, directionToTarget).magnitude / lookDirection.magnitude;
+
+            // Zale¿nie od odleg³oœci, mo¿esz np. ustawiæ dynamiczny próg
+            float maxAllowedOffset = Mathf.Tan(Mathf.Deg2Rad * (angle / 2f)) * distanceToTarget;
+            Debug.Log(hit.gameObject.name + " " + perpendicularDistance + " " + maxAllowedOffset);
+
+            Vector3 centerToTarget = directionToTarget.normalized * distanceToTarget;
+            Vector3 cross = Vector3.Cross(lookDirection, Vector3.up).normalized; // prostopad³y wektor do osi widzenia
+            Vector3 offset = cross * maxAllowedOffset;
+
+            Debug.DrawLine(transform.position + centerToTarget, transform.position + centerToTarget + offset, Color.green, 5);
+            Debug.DrawLine(transform.position + centerToTarget, transform.position + centerToTarget - offset, Color.green, 5);
+            // Sprawdzenie, czy cel mieœci siê w „sto¿ku”
+            if (perpendicularDistance < maxAllowedOffset)
+            {
+                // opcjonalnie mo¿esz jeszcze sprawdziæ wysokoœæ
+                float verticalDifference = Mathf.Abs(directionToTarget.normalized.y - lookDirection.normalized.y);
+                if (verticalDifference < 0.7f) // zamiast 40 stopni — eksperymentuj
+                {
+                    //If is simplified player, add original one
+                    if (hit.transform.CompareTag("SimplifiedPlayer") && NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(ulong.Parse(hit.transform.gameObject.name), out NetworkObject playerPrefab))
+                    {
+                        if (timeWhenHit != 0)
+                            lagCompensation.DestroySimulatedPlayers();
+                        allDetectedObjects.Add(playerPrefab.gameObject);
+                    }
+                    else
+                        allDetectedObjects.Add(hit.gameObject);
+                }
+            }
+        }
+        if (timeWhenHit != 0)
+            lagCompensation.DestroySimulatedPlayers();
+
+        return allDetectedObjects;
     }
 
     //This function exists, because RaycastNonAlloc doesn't return rays in order
@@ -280,6 +352,22 @@ public class ObjectInteraction : NetworkBehaviour
         StartCoroutine(DeacreaseCooldown());
 
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation, timeOfAttack);
+        List<GameObject> objectsInRange = GetObjectsInFrontOfPlayer(cameraXRotation, 10, 30, timeOfAttack);
+        foreach (GameObject i in objectsInRange)
+        {
+            if (i.CompareTag("Player"))
+            {
+                Debug.Log("Hit player!" + i.name);
+                i.GetComponent<PlayerData>().ChangeMoney(20);
+                gameObject.GetComponent<PlayerUI>().DisplayErrorOwnerRpc("Hit player!");
+            }
+            if (i.CompareTag("Tree"))
+            {
+                Debug.Log("Hit tree!");
+                gameObject.GetComponent<PlayerUI>().DisplayErrorOwnerRpc("Hit tree!");
+            }
+        }
+            
         if (targetObject == null) { return; }
 
         float itemTierValueMultiplier = itemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
