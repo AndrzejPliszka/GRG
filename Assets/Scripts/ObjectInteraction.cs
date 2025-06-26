@@ -305,7 +305,7 @@ public class ObjectInteraction : NetworkBehaviour
                     break;
 
                 if (targetObject.GetComponent<BreakableStructure>().Health.Value + baseAttack <= 0) //If we predict tree will be cut, then give money [MAY CAUSE ERRORS] (this will be deleted may I add circular economy)
-                    playerData.ChangeMoney(10);
+                    playerData.ChangeAmountOfMaterial(PlayerData.RawMaterial.Wood, 5);
 
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
@@ -330,9 +330,7 @@ public class ObjectInteraction : NetworkBehaviour
 
                 if (targetObject.GetComponent<BreakableStructure>().Health.Value + baseAttack <= 0) //If we predict crop will be cut, then give money [MAY CAUSE ERRORS] (this will be deleted may I add circular economy)
                 {
-                    if(playerData.TownId.Value >= 0)
-                        GameManager.Instance.ChangeFoodSupply(1, playerData.TownId.Value);
-                    playerData.ChangeMoney(5);
+                    playerData.ChangeAmountOfMaterial(PlayerData.RawMaterial.Food, 5);
                 }
 
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);

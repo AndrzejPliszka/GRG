@@ -28,6 +28,9 @@ public class PlayerUI : NetworkBehaviour
     TMP_Text moneyCount;
     TMP_Text taxRate;
     TMP_Text criminalText;
+    TMP_Text woodMaterialText;
+    TMP_Text foodMaterialText;
+    TMP_Text stoneMaterialText;
     Image hitmark;
     Image cooldownMarker;
     Image micActivityIcon;
@@ -48,6 +51,10 @@ public class PlayerUI : NetworkBehaviour
         moneyCount = GameObject.Find("MoneyCount").GetComponent<TMP_Text>();
         taxRate = GameObject.Find("TaxRate").GetComponent<TMP_Text>();
         criminalText = GameObject.Find("CriminalText").GetComponent<TMP_Text>();
+
+        woodMaterialText = GameObject.Find("WoodMaterialData").GetComponent<TMP_Text>();
+        foodMaterialText = GameObject.Find("FoodMaterialData").GetComponent<TMP_Text>();
+        stoneMaterialText = GameObject.Find("StoneMaterialData").GetComponent<TMP_Text>();
 
         hitmark = GameObject.Find("Hitmark").GetComponent<Image>();
         cooldownMarker = GameObject.Find("CooldownMarker").GetComponent<Image>();
@@ -78,6 +85,7 @@ public class PlayerUI : NetworkBehaviour
             playerData.Money.OnValueChanged += ModifyMoneyCount;
             playerData.CriminalCooldown.OnValueChanged += DisplayIsCriminalText;
             playerData.JailCooldown.OnValueChanged += DisplayInPrisonText;
+            playerData.OwnedMaterials.OnListChanged += DisplayMaterialText;
         }
 
         if (IsServer)
@@ -107,6 +115,25 @@ public class PlayerUI : NetworkBehaviour
         if (voiceChat)
             ModifyVoiceChatIcon(!voiceChat.IsMuted);
 
+    }
+
+    void DisplayMaterialText(NetworkListEvent<PlayerData.MaterialData> listChange)
+    {
+        PlayerData.MaterialData changedMaterialData = listChange.Value;
+        switch(changedMaterialData.materialType)
+        {
+            case PlayerData.RawMaterial.Wood:
+                woodMaterialText.text = "Wood: " + changedMaterialData.amount.ToString();
+                break;
+            case PlayerData.RawMaterial.Food:
+                foodMaterialText.text = "Food: " + changedMaterialData.amount.ToString();
+                break;
+            case PlayerData.RawMaterial.Stone:
+                stoneMaterialText.text = "Stone: " + changedMaterialData.amount.ToString();
+                break;
+            default:
+                return;
+        }
     }
 
     //This function will update text which tells player what is he looking at. It needs X Camera Rotation from client (in "Vector3 form") (server doesn't have camera - it is only on client)

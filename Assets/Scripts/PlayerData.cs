@@ -2,9 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using NUnit.Framework;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Netcode;
 using UnityEngine;
+using static ItemData;
 
 public class PlayerData : NetworkBehaviour
 {
@@ -15,6 +18,29 @@ public class PlayerData : NetworkBehaviour
         Leader,
         Guard,
         Councilor
+    }
+
+    public enum RawMaterial
+    {
+        Food,
+        Wood,
+        Stone
+    }
+
+    [Serializable]
+    public struct MaterialData : INetworkSerializable, IEquatable<MaterialData>
+    {
+        public RawMaterial materialType;
+        public int amount;
+        public readonly bool Equals(MaterialData other) //this function is required for marking function IEquatable
+        {
+            return materialType == other.materialType && amount == other.amount;
+        }
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref materialType);
+            serializer.SerializeValue(ref amount);
+        }
     }
 
     public NetworkVariable<FixedString32Bytes> Nickname { get;  private set; } = new();
@@ -43,6 +69,8 @@ public class PlayerData : NetworkBehaviour
 
     public NetworkVariable<int> TownPlayerIsIn { get; private set; } = new(-1); //physical location, -1 means no town
 
+    public NetworkList<MaterialData> OwnedMaterials { get; private set; }
+
     //Variables that hold things related to managing data above
     bool decreaseHungerFaster = false;
     bool decreaseHealth = false;
@@ -56,7 +84,7 @@ public class PlayerData : NetworkBehaviour
     {
         //we need to do this before connection (so before Start()/OnNetworkSpawn()), but not on declaration, because there will be memory leak
         Inventory = new NetworkList<ItemData.ItemProperties>();
-
+        OwnedMaterials = new NetworkList<MaterialData>();
         playerMovement = GetComponent<Movement>();
     }
 
@@ -76,6 +104,10 @@ public class PlayerData : NetworkBehaviour
             for (int i = 0; i < 3; i++) //we want to have 3 inventory slots in the beginning
             {
                 Inventory.Add(new ItemData.ItemProperties());
+            }
+            for(int i = 0; i < 3; i++) //we want to have 3 material slots in the beginning
+            {
+                OwnedMaterials.Add(new MaterialData { materialType = (PlayerData.RawMaterial)i, amount = 0 });
             }
 
             if (TryGetComponent<ObjectInteraction>(out var objectInteraction))
@@ -316,6 +348,14 @@ public class PlayerData : NetworkBehaviour
             CriminalCooldown.Value = 10;
             IsCriminal.Value = true;
         }
+    }
+
+    public void ChangeAmountOfMaterial(RawMaterial material, int amountToIncrease)
+    {
+        MaterialData materialData = OwnedMaterials[(int)material];
+        OwnedMaterials.RemoveAt((int)material);
+        materialData.amount += amountToIncrease;
+        OwnedMaterials.Insert((int)material, materialData);
     }
 
     IEnumerator CheckTownPlayerIsIn()
