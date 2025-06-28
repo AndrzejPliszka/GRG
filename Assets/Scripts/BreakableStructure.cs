@@ -35,7 +35,7 @@ public class BreakableStructure : NetworkBehaviour
     override public void OnDestroy()
     {
         if (spawner != null)
-            spawner.DecreaseNumberOfSpawnedObjects();
+            spawner.DecreaseNumberOfSpawnedObjects(gameObject.tag);
         if (land != null)
             land.BuildingOnLand = null;
     }

@@ -61,10 +61,13 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: fa4dabc19925f9048a8b8c4e8e32eeef, type: 2}
+  - {fileID: 2100000, guid: baa26ecbf32f754419b136c1b974602c, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -121,6 +124,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GlobalObjectIdHash: 218569455
   InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
@@ -128,6 +133,8 @@ MonoBehaviour:
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!114 &6256148457412969514
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -140,6 +147,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4495ecc528f614c4ca73150a76d6c6d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   shopAsset: {fileID: 4068853293296777764, guid: 1078b3a81a0478944b58dccda565722e, type: 3}
   houseAsset: {fileID: 556309344900322051, guid: 592bff101c39aa34c8971592716da115, type: 3}
   townId:
