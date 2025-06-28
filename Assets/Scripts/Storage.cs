@@ -2,38 +2,58 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using static UnityEngine.Rendering.DebugUI;
 
 public class Storage : NetworkBehaviour
 {
     [SerializeField] int townId;
 
-    [SerializeField] GameObject storedMaterial;
+
+    [SerializeField] GameObject storedMaterialObject;
     [SerializeField] float maximumMaterialLevel = 100;
     [SerializeField] float yOffset = -0.25f;
 
-    //variables for refrence for PlayerUI
-    public int FoodSupply { get; private set; } = new();
-    public int MaximumFoodSupply { get; private set; } = new();
+    //variables for refrence for other scripts
+
+    [field: SerializeField] public NetworkVariable<PlayerData.RawMaterial> StoredMaterial { get; private set; }
+    public NetworkVariable<int> CurrentSupply { get; private set; } = new();
+    [field: SerializeField] public NetworkVariable<int> MaxSupply { get; private set; } = new();
 
     public override void OnNetworkSpawn()
     {
-        if(!IsServer) return;
-        NetworkManager.Singleton.OnClientConnectedCallback += SyncClient;
-        ChangeLevelOfMaterialRpc(GameManager.Instance.TownData[townId].FoodSupply, GameManager.Instance.TownData[townId].MaximumFoodSupply);//update amount of stuff in storage for host
-        GameManager.Instance.TownData[townId].OnFoodChange += ChangeLevelOfMaterialRpc;
+        ChangeLevelOfMaterial(CurrentSupply.Value, MaxSupply.Value);
+        CurrentSupply.OnValueChanged += (int oldValue, int value) =>
+        {
+            ChangeLevelOfMaterial(value, MaxSupply.Value);
+        };
     }
 
-    void SyncClient(ulong clientId)
+    public void ChangeLevelOfMaterial(int currentSupply, int maxSupply)
     {
-        if( !IsServer ) return;
-        ChangeLevelOfMaterialRpc(GameManager.Instance.TownData[townId].FoodSupply, GameManager.Instance.TownData[townId].MaximumFoodSupply);
+        Debug.Log("Sigma");
+        storedMaterialObject.transform.position = new Vector3(
+            storedMaterialObject.transform.position.x, (1.0f * currentSupply / maxSupply) * maximumMaterialLevel + yOffset, storedMaterialObject.transform.position.z); //multiplying times 1.0f to avoid integer devision and always getting 0
     }
-    [Rpc(SendTo.Everyone)]
-    public void ChangeLevelOfMaterialRpc(int foodSupply, int maxFoodSupply) //TO DO: Make this function possible to be sent only to one client
+
+    public int ChangeMaterialInStorage(int amountToIncrease)
     {
-        storedMaterial.transform.position = new Vector3(
-            storedMaterial.transform.position.x, (1.0f * foodSupply / maxFoodSupply) * maximumMaterialLevel + yOffset, storedMaterial.transform.position.z); //multiplying times 1.0f to avoid integer devision and always getting 0
-        FoodSupply = foodSupply;
-        MaximumFoodSupply = maxFoodSupply;
+        if (!IsServer) { throw new System.Exception("Only server can add material!"); }
+        int newAmount = CurrentSupply.Value + amountToIncrease;
+        if (newAmount > MaxSupply.Value)
+        {
+            int excessiveAmount = newAmount - amountToIncrease;
+            CurrentSupply = MaxSupply;
+            return excessiveAmount; //returning amount that was not added to material, because excessive material can be dropped, or dealt with other way etc.
+        }
+        else if (newAmount < 0)
+        {
+            //This means that we wanted to deduct material, but there was not enough of it, so we do nothing
+            return newAmount; //returning amount that was not removed from material, so it can be used in other way (for example added to inventory)
+        }
+        else
+        {
+            CurrentSupply.Value = newAmount;
+        }
+        return 0;
     }
 }

@@ -123,13 +123,13 @@ public class PlayerUI : NetworkBehaviour
         switch(changedMaterialData.materialType)
         {
             case PlayerData.RawMaterial.Wood:
-                woodMaterialText.text = "Wood: " + changedMaterialData.amount.ToString();
+                woodMaterialText.text = $"Wood: {changedMaterialData.amount}/{changedMaterialData.maxAmount}";
                 break;
             case PlayerData.RawMaterial.Food:
-                foodMaterialText.text = "Food: " + changedMaterialData.amount.ToString();
+                foodMaterialText.text = $"Food: {changedMaterialData.amount}/{changedMaterialData.maxAmount}";
                 break;
             case PlayerData.RawMaterial.Stone:
-                stoneMaterialText.text = "Stone: " + changedMaterialData.amount.ToString();
+                stoneMaterialText.text = $"Stone: {changedMaterialData.amount}/{changedMaterialData.maxAmount}";
                 break;
             default:
                 return;
@@ -190,7 +190,7 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "Storage":
                 storage = targetObject.transform.parent.GetComponent<Storage>();
-                centerText.text = $"Supply:\n{storage.FoodSupply}/{storage.MaximumFoodSupply}";
+                centerText.text = $"Supply:\n{storage.CurrentSupply.Value}/{storage.MaxSupply.Value}";
                 break;
             case "Money":
                 moneyObject = targetObject.GetComponent<MoneyObject>();

@@ -32,6 +32,7 @@ public class PlayerData : NetworkBehaviour
     {
         public RawMaterial materialType;
         public int amount;
+        public int maxAmount; //this is implemented in setter ChangeAmountOfMaterial
         public readonly bool Equals(MaterialData other) //this function is required for marking function IEquatable
         {
             return materialType == other.materialType && amount == other.amount;
@@ -40,6 +41,7 @@ public class PlayerData : NetworkBehaviour
         {
             serializer.SerializeValue(ref materialType);
             serializer.SerializeValue(ref amount);
+            serializer.SerializeValue(ref maxAmount);
         }
     }
 
@@ -107,7 +109,7 @@ public class PlayerData : NetworkBehaviour
             }
             for(int i = 0; i < 3; i++) //we want to have 3 material slots in the beginning
             {
-                OwnedMaterials.Add(new MaterialData { materialType = (PlayerData.RawMaterial)i, amount = 0 });
+                OwnedMaterials.Add(new MaterialData { materialType = (PlayerData.RawMaterial)i, amount = 0, maxAmount = 20 });
             }
 
             if (TryGetComponent<ObjectInteraction>(out var objectInteraction))
@@ -350,11 +352,44 @@ public class PlayerData : NetworkBehaviour
         }
     }
 
-    public void ChangeAmountOfMaterial(RawMaterial material, int amountToIncrease)
+    public int ChangeAmountOfMaterial(RawMaterial material, int amountToIncrease)
     {
         MaterialData materialData = OwnedMaterials[(int)material];
         OwnedMaterials.RemoveAt((int)material);
-        materialData.amount += amountToIncrease;
+        int newAmount = materialData.amount + amountToIncrease;
+        if (newAmount > materialData.maxAmount)
+        {
+            int excessiveAmount = newAmount - amountToIncrease;
+            materialData.amount = materialData.maxAmount;
+
+            OwnedMaterials.Insert((int)material, materialData);
+            return excessiveAmount; //returning amount that was not added to material, because excessive material can be dropped, or dealt with other way etc.
+        }
+        else if (newAmount < 0)
+        {
+            //This means that we wanted to deduct material, but there was not enough of it, so we do nothing
+            return newAmount; //returning amount that was not removed from material, so it can be used in other way (for example added to inventory)
+        }
+        else
+        {
+            materialData.amount = newAmount;
+        }
+        
+        OwnedMaterials.Insert((int)material, materialData);
+        return 0;
+    }
+    public void SetAmountOfMaterial(RawMaterial material, int amountToSet)
+    {
+        MaterialData materialData = OwnedMaterials[(int)material];
+        OwnedMaterials.RemoveAt((int)material);
+
+        if (amountToSet > materialData.maxAmount)
+            materialData.amount = materialData.maxAmount;
+        else if (amountToSet < 0)
+            amountToSet = 0;
+        else
+            materialData.amount = amountToSet;
+
         OwnedMaterials.Insert((int)material, materialData);
     }
 

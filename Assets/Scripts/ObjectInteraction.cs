@@ -196,6 +196,7 @@ public class ObjectInteraction : NetworkBehaviour
         Shop shopScript; //declared here to avoid scope issues
         MoneyObject moneyObject;
         House houseScript;
+        Storage storage;
         //first see if is looking at interactive object
         switch (targetObjectTag)
         {
@@ -239,6 +240,15 @@ public class ObjectInteraction : NetworkBehaviour
                 break;
             case "Parliament":
                 GetComponent<CouncilorMenu>().InitiateMenuOwnerRpc();
+                break;
+            case "Storage":
+                //for now only storage prefab has collider in child, TO DO: Change to not depend on hierarchy
+                storage = targetObject.transform.parent.GetComponent<Storage>(); 
+                int excessiveMaterials = storage.ChangeMaterialInStorage(playerData.OwnedMaterials[(int)storage.StoredMaterial.Value].amount);
+                if(excessiveMaterials > 0)
+                    playerData.SetAmountOfMaterial(storage.StoredMaterial.Value, excessiveMaterials);
+                else
+                    playerData.SetAmountOfMaterial(storage.StoredMaterial.Value, 0); 
                 break;
 
         }
@@ -305,7 +315,12 @@ public class ObjectInteraction : NetworkBehaviour
                     break;
 
                 if (targetObject.GetComponent<BreakableStructure>().Health.Value + baseAttack <= 0) //If we predict tree will be cut, then give money [MAY CAUSE ERRORS] (this will be deleted may I add circular economy)
-                    playerData.ChangeAmountOfMaterial(PlayerData.RawMaterial.Wood, 5);
+                {
+                    int excessiveMaterials = playerData.ChangeAmountOfMaterial(PlayerData.RawMaterial.Wood, 5);
+                    if (excessiveMaterials > 0)
+                        Debug.Log("Excessive material! !! !");
+                }
+                
 
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);

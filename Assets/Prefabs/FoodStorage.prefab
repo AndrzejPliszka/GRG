@@ -60,6 +60,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4447909708070721744, guid: 845315081d5b5254a8fb6ec1b77b1078, type: 3}
+      propertyPath: m_TagString
+      value: Storage
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 4084878462183235193, guid: 845315081d5b5254a8fb6ec1b77b1078, type: 3}
@@ -116,6 +120,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GlobalObjectIdHash: 1104605392
   InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
@@ -123,6 +129,8 @@ MonoBehaviour:
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!114 &717639470949691167
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -135,10 +143,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1acef8ffbc50e1142948c807461ab19c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   townId: 0
-  storedMaterial: {fileID: 9154963623726871746}
+  storedMaterialObject: {fileID: 9154963623726871746}
   maximumMaterialLevel: 1.4
   yOffset: -0.3
+  <StoredMaterial>k__BackingField: 0
 --- !u!1 &9154963623726871746 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -7029948723529949830, guid: 845315081d5b5254a8fb6ec1b77b1078, type: 3}
