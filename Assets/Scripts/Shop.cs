@@ -18,9 +18,6 @@ public class Shop : NetworkBehaviour
     [SerializeField] ItemData.ItemTier soldItemTier;
     [SerializeField] ItemData.ItemType soldItemType;
 
-    [SerializeField] bool isUsingFood; //Change into enum if you want to add more raw materials (or maybe dictionary with different materials and amounts?)
-    [SerializeField] int amountOfFoodNeeded;
-
     [SerializeField] bool isBuyingRole;
     [SerializeField] PlayerData.PlayerRole playerRole; //is not used when isChangingRole = true
 
@@ -151,13 +148,6 @@ public class Shop : NetworkBehaviour
                 playerUI.DisplayErrorOwnerRpc("Somebody is already buying stuff here!");
             return;
         }
-
-        if (isUsingFood && GameManager.Instance.TownData[TownId].FoodSupply - amountOfFoodNeeded < 0)
-        {
-            if (playerUI)
-                playerUI.DisplayErrorOwnerRpc("There is no food in town storage!");
-            return;
-        }
         PlayerData.PlayerRole buyingPlayerRole = buyingPlayer.GetComponent<PlayerData>().Role.Value;
         if (isBuyingRole && (buyingPlayerRole == PlayerData.PlayerRole.Leader || buyingPlayerRole == playerRole))
         {
@@ -173,7 +163,7 @@ public class Shop : NetworkBehaviour
         bool didBuy = await playerMovement.MakePlayerSit(5);
         buyingPlayerReference = null;
         //if there was food when started buying, but someone used it and there is no food in storage you wont be able to buy
-        if (!didBuy || (isUsingFood && GameManager.Instance.TownData[TownId].FoodSupply - amountOfFoodNeeded < 0))
+        if (!didBuy)
         {
             if (playerUI)
                 playerUI.ForceStopProgressBarOwnerRpc();
@@ -190,8 +180,6 @@ public class Shop : NetworkBehaviour
 
         if (didBuy)
         {
-            if (isUsingFood)
-                GameManager.Instance.ChangeFoodSupply(-amountOfFoodNeeded, TownId);
 
             playerData.ChangeMoney(-Price);
             GameManager.Instance.TownData[TownId].townMembers[0].GetComponent<PlayerData>().ChangeMoney(Price);

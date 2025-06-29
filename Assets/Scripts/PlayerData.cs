@@ -107,9 +107,9 @@ public class PlayerData : NetworkBehaviour
             {
                 Inventory.Add(new ItemData.ItemProperties());
             }
-            for(int i = 0; i < 3; i++) //we want to have 3 material slots in the beginning
+            foreach(PlayerData.RawMaterial material in Enum.GetValues(typeof(PlayerData.RawMaterial)))
             {
-                OwnedMaterials.Add(new MaterialData { materialType = (PlayerData.RawMaterial)i, amount = 0, maxAmount = 20 });
+                OwnedMaterials.Add(new MaterialData { materialType = material, amount = 0, maxAmount = 20 });
             }
 
             if (TryGetComponent<ObjectInteraction>(out var objectInteraction))

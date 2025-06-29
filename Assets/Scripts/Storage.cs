@@ -25,12 +25,19 @@ public class Storage : NetworkBehaviour
         CurrentSupply.OnValueChanged += (int oldValue, int value) =>
         {
             ChangeLevelOfMaterial(value, MaxSupply.Value);
+            if(townId >= 0)
+                GameManager.Instance.ChangeMaterialAmount(townId, StoredMaterial.Value, value);
+        };
+        MaxSupply.OnValueChanged += (int oldValue, int value) =>
+        {
+            ChangeLevelOfMaterial(CurrentSupply.Value, value);
+            if (townId >= 0)
+                GameManager.Instance.ChangeMaxMaterialAmount(townId, StoredMaterial.Value, value);
         };
     }
 
     public void ChangeLevelOfMaterial(int currentSupply, int maxSupply)
     {
-        Debug.Log("Sigma");
         storedMaterialObject.transform.position = new Vector3(
             storedMaterialObject.transform.position.x, (1.0f * currentSupply / maxSupply) * maximumMaterialLevel + yOffset, storedMaterialObject.transform.position.z); //multiplying times 1.0f to avoid integer devision and always getting 0
     }
@@ -41,7 +48,7 @@ public class Storage : NetworkBehaviour
         int newAmount = CurrentSupply.Value + amountToIncrease;
         if (newAmount > MaxSupply.Value)
         {
-            int excessiveAmount = newAmount - amountToIncrease;
+            int excessiveAmount = newAmount - MaxSupply.Value;
             CurrentSupply = MaxSupply;
             return excessiveAmount; //returning amount that was not added to material, because excessive material can be dropped, or dealt with other way etc.
         }
