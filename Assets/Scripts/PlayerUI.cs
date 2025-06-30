@@ -21,6 +21,9 @@ public class PlayerUI : NetworkBehaviour
     [SerializeField] ItemTypeData itemTypeData;
     [SerializeField] ItemTierData itemTierData;
 
+
+    [SerializeField] GameObject storageTradePanel;
+
     TMP_Text centerText;
     TMP_Text errorText;
     TMP_Text hungerBarText;
@@ -41,6 +44,7 @@ public class PlayerUI : NetworkBehaviour
     Coroutine progressBarCoroutine;
 
     PlayerData playerData;
+    bool isPlayerSelling = true; //Used in storage trade menu, global so it saves between menus, change name when more menus are added
     public override void OnNetworkSpawn()
     {
         
@@ -120,20 +124,28 @@ public class PlayerUI : NetworkBehaviour
     void DisplayMaterialText(NetworkListEvent<PlayerData.MaterialData> listChange)
     {
         PlayerData.MaterialData changedMaterialData = listChange.Value;
+        TMP_Text modifiedText;
         switch(changedMaterialData.materialType)
         {
             case PlayerData.RawMaterial.Wood:
-                woodMaterialText.text = $"Wood: {changedMaterialData.amount}/{changedMaterialData.maxAmount}";
+                woodMaterialText.text = $"{changedMaterialData.amount}";
+                modifiedText = woodMaterialText;
                 break;
             case PlayerData.RawMaterial.Food:
-                foodMaterialText.text = $"Food: {changedMaterialData.amount}/{changedMaterialData.maxAmount}";
+                foodMaterialText.text = $"{changedMaterialData.amount}";
+                modifiedText = foodMaterialText;
                 break;
             case PlayerData.RawMaterial.Stone:
-                stoneMaterialText.text = $"Stone: {changedMaterialData.amount}/{changedMaterialData.maxAmount}";
+                stoneMaterialText.text = $"{changedMaterialData.amount}";
+                modifiedText = stoneMaterialText;
                 break;
             default:
                 return;
         }
+        if(changedMaterialData.amount == changedMaterialData.maxAmount)
+            modifiedText.color = new Color(0, 255, 0, 1);
+        else
+            modifiedText.color = new Color(0, 0, 0, 1);
     }
 
     //This function will update text which tells player what is he looking at. It needs X Camera Rotation from client (in "Vector3 form") (server doesn't have camera - it is only on client)
@@ -202,6 +214,12 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "Parliament":
                 centerText.text = $"Parliament";
+                break;
+            case "Rock":
+                breakableStructure = targetObject.GetComponent<BreakableStructure>();
+                currentHealth = breakableStructure.Health.Value;
+                maxHealth = breakableStructure.MaximumHealth;
+                centerText.text = $"Rock\n{currentHealth}/{maxHealth}";
                 break;
             default:
                 centerText.text = "";
@@ -377,6 +395,89 @@ public class PlayerUI : NetworkBehaviour
         progressBarCoroutine = StartCoroutine(FillProgressBar(amountOfTime));
     }
 
+    [Rpc(SendTo.Owner)] //To do add price to items
+    public void DisplayStorageTradeMenuOwnerRpc(ulong storageObjectId, int playerMaterialSupply)
+    {
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        GetComponent<Movement>().blockRotation = true;
+        GetComponent<ObjectInteraction>().canInteract = false;
+        GameObject.Find("Canvas").GetComponent<Menu>().amountOfDisplayedMenus++;
+
+        GameObject storageMenu = Instantiate(storageTradePanel, GameObject.Find("Canvas").transform);
+        //We need storage as we need data about it and we will call its function on button click
+        Storage targetStorage = NetworkManager.SpawnManager.SpawnedObjects[storageObjectId].GetComponent<Storage>();
+
+        TMP_InputField amountInputField = storageMenu.transform.Find("AmountInputField").GetComponent<TMP_InputField>();
+        Button confirmButton = storageMenu.transform.Find("ConfirmButton").GetComponent<Button>();
+        Button modeChangeButton = storageMenu.transform.Find("ModeChangeButton").GetComponent<Button>();
+        TMP_Text explanatoryText = storageMenu.transform.Find("ExplanatoryText").GetComponent<TMP_Text>();
+
+        if (!isPlayerSelling) //listener is not run on initialization and I don't want to create function from this
+        {
+            explanatoryText.text = explanatoryText.text.Replace("sell", "buy");
+            modeChangeButton.GetComponentInChildren<TMP_Text>().text = modeChangeButton.GetComponentInChildren<TMP_Text>().text.Replace("buying", "selling");
+        }
+
+        modeChangeButton.onClick.AddListener(() =>
+        {
+            isPlayerSelling = !isPlayerSelling;
+            if (isPlayerSelling)
+            {
+                explanatoryText.text = explanatoryText.text.Replace("buy", "sell");
+                modeChangeButton.GetComponentInChildren<TMP_Text>().text = modeChangeButton.GetComponentInChildren<TMP_Text>().text.Replace("selling", "buying");
+            }
+            else
+            {
+                explanatoryText.text = explanatoryText.text.Replace("sell", "buy");
+                modeChangeButton.GetComponentInChildren<TMP_Text>().text = modeChangeButton.GetComponentInChildren<TMP_Text>().text.Replace("buying", "selling");
+            }
+        });
+
+        amountInputField.onValueChanged.AddListener((string newAmount) =>
+        {
+            if (int.TryParse(newAmount, out int value))
+            {
+                int maximumAmount;
+                PlayerData.MaterialData playerMaterial = playerData.OwnedMaterials[(int)targetStorage.StoredMaterial.Value];
+                if (isPlayerSelling)
+                    maximumAmount = Mathf.Min(playerMaterial.amount, targetStorage.MaxSupply.Value - targetStorage.CurrentSupply.Value);
+                else
+                    maximumAmount = Mathf.Min(targetStorage.CurrentSupply.Value, playerMaterial.maxAmount - playerMaterial.amount);
+
+                int minimumAmount = 0;
+                if (value < minimumAmount || value > maximumAmount)
+                {
+                    amountInputField.text = Mathf.Clamp(value, minimumAmount, maximumAmount).ToString();
+                }
+            }
+        });
+
+        confirmButton.onClick.AddListener(() =>
+        {
+            if(isPlayerSelling)
+                targetStorage.SellMaterialsServerRpc(gameObject.GetComponent<NetworkObject>().NetworkObjectId, Convert.ToInt16(amountInputField.text));
+            else
+                targetStorage.BuyMaterialsServerRpc(gameObject.GetComponent<NetworkObject>().NetworkObjectId, Convert.ToInt16(amountInputField.text));
+            amountInputField.text = "";
+        });
+        StartCoroutine(CheckIfMenuGotDestroyed(storageMenu));
+    }
+    //If menu is destroyed, make player be able to play the game again
+    IEnumerator CheckIfMenuGotDestroyed(GameObject menuToCheck)
+    {
+        while (true)
+        {
+            if (!menuToCheck)
+            {
+                GameObject.Find("Canvas").GetComponent<Menu>().ResumeGame(false);
+                GetComponent<Movement>().blockRotation = false;
+                GetComponent<ObjectInteraction>().canInteract = true;
+                break;
+            }
+            yield return new WaitForSeconds(0.1f);
+        }
+    }
     IEnumerator FillProgressBar(int totalAmountOfTime)
     {
         bool isBarFilled = false;

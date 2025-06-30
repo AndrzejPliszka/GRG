@@ -243,14 +243,17 @@ public class ObjectInteraction : NetworkBehaviour
                 break;
             case "Storage":
                 //for now only storage prefab has collider in child, TO DO: Change to not depend on hierarchy
-                storage = targetObject.transform.parent.GetComponent<Storage>(); 
-                int excessiveMaterials = storage.ChangeMaterialInStorage(playerData.OwnedMaterials[(int)storage.StoredMaterial.Value].amount);
+                storage = targetObject.transform.parent.GetComponent<Storage>();
+                //Make this line not retarded
+                GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.transform.parent.GetComponent<NetworkObject>().NetworkObjectId, playerData.OwnedMaterials[(int)storage.StoredMaterial.Value].amount);
+                /*
+                int excessiveMaterials = storage.ChangeAmountOfMaterialInStorage(playerData.OwnedMaterials[(int)storage.StoredMaterial.Value].amount);
                 if(excessiveMaterials > 0)
                     playerData.SetAmountOfMaterial(storage.StoredMaterial.Value, excessiveMaterials);
                 else
-                    playerData.SetAmountOfMaterial(storage.StoredMaterial.Value, 0); 
+                    playerData.SetAmountOfMaterial(storage.StoredMaterial.Value, 0); */
                 break;
-
+                
         }
 
         //if is not looking at interactive object, check if has interactible item in hand
@@ -318,7 +321,11 @@ public class ObjectInteraction : NetworkBehaviour
                 {
                     int excessiveMaterials = playerData.ChangeAmountOfMaterial(PlayerData.RawMaterial.Wood, 5);
                     if (excessiveMaterials > 0)
-                        Debug.Log("Excessive material! !! !");
+                    {
+                        PlayerUI playerUI = GetComponent<PlayerUI>();
+                        if (playerUI)
+                            playerUI.DisplayErrorOwnerRpc("You have reached wood limit");
+                    }
                 }
                 
 
@@ -345,7 +352,33 @@ public class ObjectInteraction : NetworkBehaviour
 
                 if (targetObject.GetComponent<BreakableStructure>().Health.Value + baseAttack <= 0) //If we predict crop will be cut, then give money [MAY CAUSE ERRORS] (this will be deleted may I add circular economy)
                 {
-                    playerData.ChangeAmountOfMaterial(PlayerData.RawMaterial.Food, 5);
+                    int excessiveMaterials = playerData.ChangeAmountOfMaterial(PlayerData.RawMaterial.Food, 5);
+                    if (excessiveMaterials > 0)
+                    {
+                        PlayerUI playerUI = GetComponent<PlayerUI>();
+                        if (playerUI)
+                            playerUI.DisplayErrorOwnerRpc("You have reached crude food limit");
+                    }
+                }
+
+                targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
+                OnHittingSomething.Invoke(targetObject);
+                break;
+            case "Rock":
+                if (heldItem.itemType == ItemData.ItemType.Pickaxe)
+                    baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
+                else
+                    break;
+
+                if (targetObject.GetComponent<BreakableStructure>().Health.Value + baseAttack <= 0) //If we predict crop will be cut, then give money [MAY CAUSE ERRORS] (this will be deleted may I add circular economy)
+                {
+                    int excessiveMaterials = playerData.ChangeAmountOfMaterial(PlayerData.RawMaterial.Stone, 5);
+                    if(excessiveMaterials > 0)
+                    {
+                        PlayerUI playerUI = GetComponent<PlayerUI>();
+                        if (playerUI)
+                            playerUI.DisplayErrorOwnerRpc("You have reached stone limit");
+                    }
                 }
 
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);

@@ -18,7 +18,8 @@ public class ItemData : NetworkBehaviour
         Food,
         Hammer,
         Sickle,
-        FishingRod
+        FishingRod,
+        Pickaxe
     }
 
     public enum ItemTier

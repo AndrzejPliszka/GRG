@@ -355,14 +355,13 @@ public class PlayerData : NetworkBehaviour
     public int ChangeAmountOfMaterial(RawMaterial material, int amountToIncrease)
     {
         MaterialData materialData = OwnedMaterials[(int)material];
-        OwnedMaterials.RemoveAt((int)material);
         int newAmount = materialData.amount + amountToIncrease;
+
         if (newAmount > materialData.maxAmount)
         {
-            int excessiveAmount = newAmount - amountToIncrease;
+            int excessiveAmount = newAmount - materialData.maxAmount;
             materialData.amount = materialData.maxAmount;
-
-            OwnedMaterials.Insert((int)material, materialData);
+            OwnedMaterials[(int)material] = materialData;
             return excessiveAmount; //returning amount that was not added to material, because excessive material can be dropped, or dealt with other way etc.
         }
         else if (newAmount < 0)
@@ -373,10 +372,9 @@ public class PlayerData : NetworkBehaviour
         else
         {
             materialData.amount = newAmount;
+            OwnedMaterials[(int)material] = materialData;
+            return 0;
         }
-        
-        OwnedMaterials.Insert((int)material, materialData);
-        return 0;
     }
     public void SetAmountOfMaterial(RawMaterial material, int amountToSet)
     {
