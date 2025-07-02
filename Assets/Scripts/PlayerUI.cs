@@ -163,6 +163,7 @@ public class PlayerUI : NetworkBehaviour
         Storage storage;
         MoneyObject moneyObject;
         House house;
+        MaterialItem materialItem;
         int currentHealth, maxHealth;
         switch (targetObject.tag)
         {
@@ -220,6 +221,24 @@ public class PlayerUI : NetworkBehaviour
                 currentHealth = breakableStructure.Health.Value;
                 maxHealth = breakableStructure.MaximumHealth;
                 centerText.text = $"Rock\n{currentHealth}/{maxHealth}";
+                break;
+            case "MaterialItem":
+                materialItem = targetObject.GetComponent<MaterialItem>();
+                switch (materialItem.Material.Value)
+                {
+                    case PlayerData.RawMaterial.Wood:
+                        centerText.text = $"Stick";
+                        break;
+                    case PlayerData.RawMaterial.Stone:
+                        centerText.text = $"Pebble";
+                        break;
+                }
+                break;
+            case "BerryBush":
+                if(targetObject.GetComponent<BerryBush>().HasBerries.Value)
+                    centerText.text = $"Berry Bush";
+                else
+                    centerText.text = $"Bush";
                 break;
             default:
                 centerText.text = "";
@@ -348,6 +367,8 @@ public class PlayerUI : NetworkBehaviour
         if (!IsOwner) return;
         healthBar.value = newHealthValue;
         healthBarText.text = newHealthValue.ToString();
+        float t = Mathf.InverseLerp(1, 100, newHealthValue);
+        healthBar.fillRect.GetComponent<Image>().color = Color.Lerp(Color.red, Color.green, t);
     }
     public void ModifyMoneyCount(float oldMoneyValue, float newMoneyValue)
     {

@@ -101,8 +101,6 @@ public class PlayerData : NetworkBehaviour
             StartCoroutine(ReduceHunger());
             StartCoroutine(ChangeHealthOverTime());
 
-            ChangeHealth(-50);
-
             for (int i = 0; i < 3; i++) //we want to have 3 inventory slots in the beginning
             {
                 Inventory.Add(new ItemData.ItemProperties());
@@ -285,7 +283,7 @@ public class PlayerData : NetworkBehaviour
         else if (Health.Value > 100)
             Health.Value = 100;
     }
-    //this function is setter for money. It returns false, if player would have negative balance after changing money
+    //this function is setter for money. It returns false, if player would have negative balance after changing money. It will never set up negative balance
     public bool ChangeMoney(float amountToIncrease)
     {
         if (!IsServer) { throw new Exception("Trying to modify money amount on client!"); };

@@ -253,7 +253,26 @@ public class ObjectInteraction : NetworkBehaviour
                 else
                     playerData.SetAmountOfMaterial(storage.StoredMaterial.Value, 0); */
                 break;
-                
+            case "BerryBush":
+                BerryBush berryBush = targetObject.GetComponent<BerryBush>();
+                if (berryBush.HasBerries.Value)
+                {
+                    playerData.ChangeHunger(berryBush.FoodAmount);
+                    berryBush.RemoveBerries();
+                }
+                else
+                {
+                    PlayerUI playerUI = GetComponent<PlayerUI>();
+                    if (playerUI)
+                        playerUI.DisplayErrorOwnerRpc("There are no berries on this bush!");
+                }
+                break;
+            case "MaterialItem":
+                MaterialItem materialItem = targetObject.GetComponent<MaterialItem>();
+                playerData.ChangeAmountOfMaterial(materialItem.Material.Value, materialItem.Amount.Value);
+                Destroy(targetObject);
+                break;
+
         }
 
         //if is not looking at interactive object, check if has interactible item in hand

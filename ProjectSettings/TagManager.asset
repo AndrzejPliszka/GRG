@@ -18,6 +18,8 @@ TagManager:
   - Parliament
   - Water
   - Rock
+  - MaterialItem
+  - BerryBush
   layers:
   - Default
   - TransparentFX

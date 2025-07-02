@@ -19,6 +19,8 @@ public class Storage : NetworkBehaviour
     [field: SerializeField] public NetworkVariable<PlayerData.RawMaterial> StoredMaterial { get; private set; }
     public NetworkVariable<int> CurrentSupply { get; private set; } = new();
     [field: SerializeField] public NetworkVariable<int> MaxSupply { get; private set; } = new();
+    public NetworkVariable<float> SellingPrice { get; private set; } = new(1);
+    public NetworkVariable<float> BuyingPrice { get; private set; } = new(1);
 
     public override void OnNetworkSpawn()
     {
@@ -78,13 +80,13 @@ public class Storage : NetworkBehaviour
         else
         {
             int excessiveStorageMaterials = ChangeAmountOfMaterialInStorage(amountOfMaterials);
+            player.GetComponent<PlayerData>().ChangeMoney((amountOfMaterials - excessiveMaterials) * SellingPrice.Value);
             if (excessiveStorageMaterials > 0)
             {
                 player.GetComponent<PlayerData>().ChangeAmountOfMaterial(StoredMaterial.Value, excessiveStorageMaterials);
             }
         }
     }
-
     [Rpc(SendTo.Server)]
     public void BuyMaterialsServerRpc(ulong playerId, int amountOfMaterials)
     {
@@ -94,7 +96,15 @@ public class Storage : NetworkBehaviour
             throw new Exception("Player tried to buy more materials than available in storage, this should never happen!");
         }
 
+        bool hasMoney = player.GetComponent<PlayerData>().ChangeMoney(-amountOfMaterials * BuyingPrice.Value);
+        if (!hasMoney)
+        {
+            PlayerUI playerUI = player.GetComponent<PlayerUI>();
+            if (playerUI)
+                playerUI.DisplayErrorOwnerRpc("You don't have money to buy this!");
+        }
         int excessiveMaterials = player.GetComponent<PlayerData>().ChangeAmountOfMaterial(StoredMaterial.Value, amountOfMaterials);
+
         if (excessiveMaterials > 0)
         {
             Debug.LogWarning("This case (Player wants to buy more then he can pick up) is not handled yet! It shouldn't happen anyway!");
