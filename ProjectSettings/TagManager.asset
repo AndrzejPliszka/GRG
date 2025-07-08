@@ -18,7 +18,7 @@ TagManager:
   - Parliament
   - Water
   - Rock
-  - MaterialItem
+  - GatherableMaterial
   - BerryBush
   layers:
   - Default

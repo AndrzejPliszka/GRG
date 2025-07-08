@@ -1,9 +1,19 @@
 fileFormatVersion: 2
-guid: 845315081d5b5254a8fb6ec1b77b1078
+guid: cdfdb8d0744a39a40a3e85804b00c0e3
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Plank
+    second: {fileID: 2800000, guid: 4aadc4069a11e6b438bc834c0678183e, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Storage
+    second: {fileID: 2800000, guid: 2cdc3c653ccadcd4e9f5c227cca5e57f, type: 3}
   materials:
     materialImportMode: 2
     materialName: 0

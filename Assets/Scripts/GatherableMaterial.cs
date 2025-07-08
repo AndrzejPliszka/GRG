@@ -2,7 +2,7 @@ using Unity.Netcode;
 using UnityEngine;
 
 //Item which when picked up give the player a material
-public class MaterialItem : NetworkBehaviour
+public class GatherableMaterial : NetworkBehaviour
 {
 
     [SerializeField] PlayerData.RawMaterial _material;

@@ -97,6 +97,7 @@ public class PlayerData : NetworkBehaviour
             GameManager.Instance.AddPlayerToRegistry(gameObject);
 
             Health.OnValueChanged += InvokeDeath;
+            ChangeMoney(100); //for debug purposes
             //move to game manager or player manager??
             StartCoroutine(ReduceHunger());
             StartCoroutine(ChangeHealthOverTime());

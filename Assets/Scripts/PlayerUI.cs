@@ -8,6 +8,7 @@ using Unity.Netcode;
 using UnityEngine;
 using System;
 using static ItemData;
+using System.Text.RegularExpressions;
 [RequireComponent(typeof(PlayerData))]
 [RequireComponent(typeof(ObjectInteraction))] //this is because we will use function that says what are we looking at
 public class PlayerUI : NetworkBehaviour
@@ -163,7 +164,7 @@ public class PlayerUI : NetworkBehaviour
         Storage storage;
         MoneyObject moneyObject;
         House house;
-        MaterialItem materialItem;
+        GatherableMaterial materialItem;
         int currentHealth, maxHealth;
         switch (targetObject.tag)
         {
@@ -203,7 +204,7 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "Storage":
                 storage = targetObject.transform.parent.GetComponent<Storage>();
-                centerText.text = $"Supply:\n{storage.CurrentSupply.Value}/{storage.MaxSupply.Value}";
+                centerText.text = $"{storage.StoredMaterial.Value} Supply:\n{storage.CurrentSupply.Value}/{storage.MaxSupply.Value}";
                 break;
             case "Money":
                 moneyObject = targetObject.GetComponent<MoneyObject>();
@@ -222,8 +223,8 @@ public class PlayerUI : NetworkBehaviour
                 maxHealth = breakableStructure.MaximumHealth;
                 centerText.text = $"Rock\n{currentHealth}/{maxHealth}";
                 break;
-            case "MaterialItem":
-                materialItem = targetObject.GetComponent<MaterialItem>();
+            case "GatherableMaterial":
+                materialItem = targetObject.GetComponent<GatherableMaterial>();
                 switch (materialItem.Material.Value)
                 {
                     case PlayerData.RawMaterial.Wood:
@@ -425,7 +426,7 @@ public class PlayerUI : NetworkBehaviour
         GetComponent<ObjectInteraction>().canInteract = false;
         GameObject.Find("Canvas").GetComponent<Menu>().amountOfDisplayedMenus++;
 
-        GameObject storageMenu = Instantiate(storageTradePanel, GameObject.Find("Canvas").transform);
+        GameObject storageMenu = Instantiate(storageTradePanel, GameObject.Find("Canvas").transform.Find("PlayerUI").transform); //Maybe use var instead of Find();
         //We need storage as we need data about it and we will call its function on button click
         Storage targetStorage = NetworkManager.SpawnManager.SpawnedObjects[storageObjectId].GetComponent<Storage>();
 
@@ -433,6 +434,7 @@ public class PlayerUI : NetworkBehaviour
         Button confirmButton = storageMenu.transform.Find("ConfirmButton").GetComponent<Button>();
         Button modeChangeButton = storageMenu.transform.Find("ModeChangeButton").GetComponent<Button>();
         TMP_Text explanatoryText = storageMenu.transform.Find("ExplanatoryText").GetComponent<TMP_Text>();
+        TMP_Text paymentText = storageMenu.transform.Find("PaymentText").GetComponent<TMP_Text>();
 
         if (!isPlayerSelling) //listener is not run on initialization and I don't want to create function from this
         {
@@ -447,11 +449,13 @@ public class PlayerUI : NetworkBehaviour
             {
                 explanatoryText.text = explanatoryText.text.Replace("buy", "sell");
                 modeChangeButton.GetComponentInChildren<TMP_Text>().text = modeChangeButton.GetComponentInChildren<TMP_Text>().text.Replace("selling", "buying");
+                paymentText.text = paymentText.text.Replace("have to pay", "receive");
             }
             else
             {
                 explanatoryText.text = explanatoryText.text.Replace("sell", "buy");
                 modeChangeButton.GetComponentInChildren<TMP_Text>().text = modeChangeButton.GetComponentInChildren<TMP_Text>().text.Replace("buying", "selling");
+                paymentText.text = paymentText.text.Replace("receive", "have to pay");
             }
         });
 
@@ -469,17 +473,29 @@ public class PlayerUI : NetworkBehaviour
                 int minimumAmount = 0;
                 if (value < minimumAmount || value > maximumAmount)
                 {
-                    amountInputField.text = Mathf.Clamp(value, minimumAmount, maximumAmount).ToString();
+                    value = Mathf.Clamp(value, minimumAmount, maximumAmount);
+                    amountInputField.text = value.ToString();
                 }
+
+                if(isPlayerSelling)
+                    paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", Convert.ToString(value * targetStorage.SellingPrice.Value));
+                else
+                    paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", Convert.ToString(value * targetStorage.BuyingPrice.Value));
             }
         });
 
         confirmButton.onClick.AddListener(() =>
         {
-            if(isPlayerSelling)
+            if (amountInputField.text == "")
+                return;
+
+            if (isPlayerSelling)
                 targetStorage.SellMaterialsServerRpc(gameObject.GetComponent<NetworkObject>().NetworkObjectId, Convert.ToInt16(amountInputField.text));
             else
                 targetStorage.BuyMaterialsServerRpc(gameObject.GetComponent<NetworkObject>().NetworkObjectId, Convert.ToInt16(amountInputField.text));
+
+
+            paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", "0");
             amountInputField.text = "";
         });
         StartCoroutine(CheckIfMenuGotDestroyed(storageMenu));

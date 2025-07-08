@@ -230,7 +230,6 @@ public class ObjectInteraction : NetworkBehaviour
                 moneyObject = targetObject.transform.GetComponent<MoneyObject>();
                 float moneyAmount = moneyObject.moneyAmount.Value;
                 playerData.ChangeMoney(moneyAmount);
-
                 targetObject.GetComponent<NetworkObject>().Despawn();
                 Destroy(targetObject);
                 return;
@@ -267,9 +266,11 @@ public class ObjectInteraction : NetworkBehaviour
                         playerUI.DisplayErrorOwnerRpc("There are no berries on this bush!");
                 }
                 break;
-            case "MaterialItem":
-                MaterialItem materialItem = targetObject.GetComponent<MaterialItem>();
+            case "GatherableMaterial":
+                GatherableMaterial materialItem = targetObject.GetComponent<GatherableMaterial>();
                 playerData.ChangeAmountOfMaterial(materialItem.Material.Value, materialItem.Amount.Value);
+
+                targetObject.GetComponent<NetworkObject>().Despawn();
                 Destroy(targetObject);
                 break;
 

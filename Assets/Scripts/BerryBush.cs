@@ -10,16 +10,22 @@ public class BerryBush : NetworkBehaviour
 
     public NetworkVariable<bool> HasBerries { get; private set; } = new(true);
 
+    public override void OnNetworkSpawn()
+    {
+        HasBerries.OnValueChanged += (oldValue, newValue) =>
+        {
+            berries.SetActive(newValue);
+        };
+    }
+
     public void RemoveBerries()
     {
         HasBerries.Value = false;
-        berries.SetActive(false);
         StartCoroutine(RegrowBerries());
     }
     IEnumerator RegrowBerries()
     {
         yield return new WaitForSeconds(regenerationTime);
         HasBerries.Value = true;
-        berries.SetActive(true);
     }
 }
