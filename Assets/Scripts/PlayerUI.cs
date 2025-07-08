@@ -244,6 +244,16 @@ public class PlayerUI : NetworkBehaviour
             default:
                 centerText.text = "";
                 break;
+            case "MaterialObject":
+                materialItem = targetObject.GetComponent<GatherableMaterial>();
+                centerText.text = materialItem.Material.Value switch
+                {
+                    PlayerData.RawMaterial.Wood => $"Wood Material",
+                    PlayerData.RawMaterial.Stone => $"Stone Material",
+                    PlayerData.RawMaterial.Food => $"Food Material",
+                    _ => "",
+                };
+                break;
         };
     }
 

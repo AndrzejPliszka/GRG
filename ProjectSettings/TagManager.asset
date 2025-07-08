@@ -20,6 +20,7 @@ TagManager:
   - Rock
   - GatherableMaterial
   - BerryBush
+  - MaterialObject
   layers:
   - Default
   - TransparentFX

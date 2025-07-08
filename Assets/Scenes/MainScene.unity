@@ -3418,6 +3418,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: StoneStorage
       objectReference: {fileID: 0}
+    - target: {fileID: 2208360252863650729, guid: ac93f42c2c003fc44a5490f7d168e879, type: 3}
+      propertyPath: <MaxSupply>k__BackingField.m_InternalValue
+      value: 30
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -3431,6 +3435,22 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -4935345597596350528, guid: 783ea82739105d2439a3e668a01ce8d1, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 2790681508
+      objectReference: {fileID: 0}
+    - target: {fileID: -4935345597596350528, guid: 783ea82739105d2439a3e668a01ce8d1, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -4935345597596350528, guid: 783ea82739105d2439a3e668a01ce8d1, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 3311756241
+      objectReference: {fileID: 0}
+    - target: {fileID: -35600067557992576, guid: 783ea82739105d2439a3e668a01ce8d1, type: 3}
+      propertyPath: <MaxSupply>k__BackingField.m_InternalValue
+      value: 30
+      objectReference: {fileID: 0}
     - target: {fileID: 8589575516053972261, guid: 783ea82739105d2439a3e668a01ce8d1, type: 3}
       propertyPath: m_LocalPosition.x
       value: -5
@@ -13623,7 +13643,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 717639470949691167, guid: ab3a64f0082110d42bba29eee0749f4b, type: 3}
       propertyPath: <MaxSupply>k__BackingField.m_InternalValue
-      value: 20
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 2315343107572731709, guid: ab3a64f0082110d42bba29eee0749f4b, type: 3}
       propertyPath: GlobalObjectIdHash

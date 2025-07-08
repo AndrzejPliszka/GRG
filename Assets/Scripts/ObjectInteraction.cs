@@ -266,12 +266,15 @@ public class ObjectInteraction : NetworkBehaviour
                         playerUI.DisplayErrorOwnerRpc("There are no berries on this bush!");
                 }
                 break;
+            case "MaterialObject":
             case "GatherableMaterial":
                 GatherableMaterial materialItem = targetObject.GetComponent<GatherableMaterial>();
-                playerData.ChangeAmountOfMaterial(materialItem.Material.Value, materialItem.Amount.Value);
-
-                targetObject.GetComponent<NetworkObject>().Despawn();
-                Destroy(targetObject);
+                int didSucced = playerData.ChangeAmountOfMaterial(materialItem.Material.Value, materialItem.Amount.Value);
+                if (didSucced == 0) //doesn't handle material.Material.Value > 1)
+                {
+                    materialItem.GetComponent<NetworkObject>().Despawn();
+                    Destroy(targetObject.transform.gameObject);
+                }
                 break;
 
         }
@@ -336,17 +339,6 @@ public class ObjectInteraction : NetworkBehaviour
                     baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
                 else
                     break;
-
-                if (targetObject.GetComponent<BreakableStructure>().Health.Value + baseAttack <= 0) //If we predict tree will be cut, then give money [MAY CAUSE ERRORS] (this will be deleted may I add circular economy)
-                {
-                    int excessiveMaterials = playerData.ChangeAmountOfMaterial(PlayerData.RawMaterial.Wood, 5);
-                    if (excessiveMaterials > 0)
-                    {
-                        PlayerUI playerUI = GetComponent<PlayerUI>();
-                        if (playerUI)
-                            playerUI.DisplayErrorOwnerRpc("You have reached wood limit");
-                    }
-                }
                 
 
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
@@ -370,17 +362,6 @@ public class ObjectInteraction : NetworkBehaviour
                 else
                     break;
 
-                if (targetObject.GetComponent<BreakableStructure>().Health.Value + baseAttack <= 0) //If we predict crop will be cut, then give money [MAY CAUSE ERRORS] (this will be deleted may I add circular economy)
-                {
-                    int excessiveMaterials = playerData.ChangeAmountOfMaterial(PlayerData.RawMaterial.Food, 5);
-                    if (excessiveMaterials > 0)
-                    {
-                        PlayerUI playerUI = GetComponent<PlayerUI>();
-                        if (playerUI)
-                            playerUI.DisplayErrorOwnerRpc("You have reached crude food limit");
-                    }
-                }
-
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;
@@ -389,17 +370,6 @@ public class ObjectInteraction : NetworkBehaviour
                     baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
                 else
                     break;
-
-                if (targetObject.GetComponent<BreakableStructure>().Health.Value + baseAttack <= 0) //If we predict crop will be cut, then give money [MAY CAUSE ERRORS] (this will be deleted may I add circular economy)
-                {
-                    int excessiveMaterials = playerData.ChangeAmountOfMaterial(PlayerData.RawMaterial.Stone, 5);
-                    if(excessiveMaterials > 0)
-                    {
-                        PlayerUI playerUI = GetComponent<PlayerUI>();
-                        if (playerUI)
-                            playerUI.DisplayErrorOwnerRpc("You have reached stone limit");
-                    }
-                }
 
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
@@ -482,6 +452,24 @@ public class ObjectInteraction : NetworkBehaviour
         {
             AttackingCooldown -= 0.01f;
             yield return new WaitForSeconds(0.01f);
+        }
+    }
+
+    //Handling interaction with (raw) material objects (maybe move to other script?)
+    private void OnControllerColliderHit(ControllerColliderHit collision)
+    {
+        if (!IsServer) { return; } //Only server side should handle this, because it is changing playerData
+
+        if (collision.transform.CompareTag("MaterialObject") && collision.transform.GetComponent<NetworkObject>().IsSpawned)
+        {
+            GatherableMaterial material = collision.transform.GetComponent<GatherableMaterial>();
+            int didSucced = playerData.ChangeAmountOfMaterial(material.Material.Value, material.Amount.Value);
+            if(didSucced == 0) //DOESNT HANDLE NUMBERS GREATER THAN 1 (can happen if material.Material.Value > 1)
+            {
+                material.GetComponent<NetworkObject>().Despawn();
+                Destroy(collision.transform.gameObject);
+            }
+            
         }
     }
 }
