@@ -54,7 +54,7 @@ public class ObjectInteraction : NetworkBehaviour
             return;
 
         if (Input.GetKeyDown(KeyCode.E)) //E is interaction key
-            InteractWithObjectServerRpc(cameraXRotation);
+            InteractWithObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId);
 
         if (Input.GetKeyDown(KeyCode.T)) //T is dropping items key
             DropItemServerRpc();
@@ -188,7 +188,7 @@ public class ObjectInteraction : NetworkBehaviour
 
     //This function will detect what object is in front of you and interact with this object (it takes cameraXRotation which is in euler angles form) 
     [Rpc(SendTo.Server)]
-    void InteractWithObjectServerRpc(float cameraXRotation)
+    void InteractWithObjectServerRpc(float cameraXRotation, ulong playerId)
     {
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
         if (targetObject == null) { return; }
@@ -243,14 +243,11 @@ public class ObjectInteraction : NetworkBehaviour
             case "Storage":
                 //for now only storage prefab has collider in child, TO DO: Change to not depend on hierarchy
                 storage = targetObject.transform.parent.GetComponent<Storage>();
-                //Make this line not retarded
-                GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.transform.parent.GetComponent<NetworkObject>().NetworkObjectId, playerData.OwnedMaterials[(int)storage.StoredMaterial.Value].amount);
-                /*
-                int excessiveMaterials = storage.ChangeAmountOfMaterialInStorage(playerData.OwnedMaterials[(int)storage.StoredMaterial.Value].amount);
-                if(excessiveMaterials > 0)
-                    playerData.SetAmountOfMaterial(storage.StoredMaterial.Value, excessiveMaterials);
+                //Check if PlayerUI exists before calling it
+                if(storage.OwnerId.Value == playerId)
+                    GetComponent<PlayerUI>().DisplayStorageManagementMenuOwnerRpc(targetObject.transform.parent.GetComponent<NetworkObject>().NetworkObjectId);
                 else
-                    playerData.SetAmountOfMaterial(storage.StoredMaterial.Value, 0); */
+                    GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.transform.parent.GetComponent<NetworkObject>().NetworkObjectId, playerData.OwnedMaterials[(int)storage.StoredMaterial.Value].amount);
                 break;
             case "BerryBush":
                 BerryBush berryBush = targetObject.GetComponent<BerryBush>();

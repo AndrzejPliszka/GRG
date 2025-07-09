@@ -13,7 +13,7 @@ public class Storage : NetworkBehaviour
     [SerializeField] float maximumMaterialLevel;
     [SerializeField] float yOffset = -0.25f;
 
-    public NetworkVariable<ulong> OwnerId { get; private set; } = new(0);
+    public NetworkVariable<ulong> OwnerId { get; private set; } = new(0); //Netcode player id, not object id
     [field: SerializeField] public NetworkVariable<PlayerData.RawMaterial> StoredMaterial { get; private set; }
     public NetworkVariable<int> CurrentSupply { get; private set; } = new();
     [field: SerializeField] public NetworkVariable<int> MaxSupply { get; private set; } = new();

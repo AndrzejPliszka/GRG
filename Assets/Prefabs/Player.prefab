@@ -695,6 +695,7 @@ MonoBehaviour:
   itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}
   itemTierData: {fileID: 11400000, guid: e6c211ddcaf602045b55cbfd0c77ed64, type: 2}
   storageTradePanel: {fileID: 5019946015599092760, guid: 23ccfc9de3f301044842ff361d818b95, type: 3}
+  storageManagmentPanel: {fileID: 5019946015599092760, guid: a1ce43178c8ae3a42b2bad09f5e65c0a, type: 3}
 --- !u!114 &4720389694948923985
 MonoBehaviour:
   m_ObjectHideFlags: 0

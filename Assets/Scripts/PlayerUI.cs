@@ -9,6 +9,7 @@ using UnityEngine;
 using System;
 using static ItemData;
 using System.Text.RegularExpressions;
+using UnityEngine.Windows;
 [RequireComponent(typeof(PlayerData))]
 [RequireComponent(typeof(ObjectInteraction))] //this is because we will use function that says what are we looking at
 public class PlayerUI : NetworkBehaviour
@@ -24,6 +25,7 @@ public class PlayerUI : NetworkBehaviour
 
 
     [SerializeField] GameObject storageTradePanel;
+    [SerializeField] GameObject storageManagmentPanel;
 
     TMP_Text centerText;
     TMP_Text errorText;
@@ -510,6 +512,88 @@ public class PlayerUI : NetworkBehaviour
         });
         StartCoroutine(CheckIfMenuGotDestroyed(storageMenu));
     }
+
+    [Rpc(SendTo.Owner)] //To do add price to items
+    public void DisplayStorageManagementMenuOwnerRpc(ulong storageObjectId)
+    {
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        GetComponent<Movement>().blockRotation = true;
+        GetComponent<ObjectInteraction>().canInteract = false;
+        GameObject.Find("Canvas").GetComponent<Menu>().amountOfDisplayedMenus++;
+
+        GameObject storageMenu = Instantiate(storageManagmentPanel, GameObject.Find("Canvas").transform.Find("PlayerUI").transform); //Maybe use var instead of Find();
+        //We need storage as we need data about it and we will call its function on button click
+        Storage targetStorage = NetworkManager.SpawnManager.SpawnedObjects[storageObjectId].GetComponent<Storage>();
+
+        TMP_InputField sellingPriceInputField = storageMenu.transform.Find("SellingPriceInput").GetComponent<TMP_InputField>();
+        sellingPriceInputField.placeholder.GetComponent<TMP_Text>().text = targetStorage.SellingPrice.Value.ToString(); 
+        TMP_InputField buyingPriceInputField = storageMenu.transform.Find("BuyingPriceInput").GetComponent<TMP_InputField>();
+        buyingPriceInputField.placeholder.GetComponent<TMP_Text>().text = targetStorage.BuyingPrice.Value.ToString();
+        Button confirmSellingPriceButton = storageMenu.transform.Find("SellingPriceConfirmButton").GetComponent<Button>();
+        Button confirmBuyingPriceButton = storageMenu.transform.Find("BuyingPriceConfirmButton").GetComponent<Button>();
+
+        sellingPriceInputField.onValueChanged.AddListener((string _) =>
+            RoundInputFieldToTwoDecimalPlaces(sellingPriceInputField)
+        );
+        buyingPriceInputField.onValueChanged.AddListener((string _) =>
+            RoundInputFieldToTwoDecimalPlaces(buyingPriceInputField)
+        );
+
+        confirmSellingPriceButton.onClick.AddListener(() =>
+        {
+            if (sellingPriceInputField.text == "")
+                return;
+
+            if (float.TryParse(sellingPriceInputField.text, NumberStyles.Any, CultureInfo.CurrentCulture, out float sellingPrice))
+            {
+                targetStorage.SellingPrice.Value = sellingPrice;
+                sellingPriceInputField.placeholder.GetComponent<TMP_Text>().text = Convert.ToString(sellingPrice); //Temporary way to see current prices
+                sellingPriceInputField.text = "";
+            }
+        });
+
+        confirmBuyingPriceButton.onClick.AddListener(() =>
+        {
+            if (buyingPriceInputField.text == "")
+                return;
+
+            if (float.TryParse(buyingPriceInputField.text, NumberStyles.Any, CultureInfo.CurrentCulture, out float buyingPrice))
+            {
+                Debug.Log(buyingPrice);
+                targetStorage.BuyingPrice.Value = buyingPrice;
+                buyingPriceInputField.placeholder.GetComponent<TMP_Text>().text = Convert.ToString(buyingPrice);
+                buyingPriceInputField.text = "";
+            }
+        });
+
+        StartCoroutine(CheckIfMenuGotDestroyed(storageMenu));
+    }
+
+    void RoundInputFieldToTwoDecimalPlaces(TMP_InputField inputField)
+    {
+        string input = inputField.text;
+        if (string.IsNullOrEmpty(input)) return;
+
+        input = input.Replace('.', ',');
+
+        if (input.Contains(","))
+        {
+            int index = input.IndexOf(',');
+            int decimalPlaces = input.Length - index - 1;
+
+            if (decimalPlaces > 2)
+            {
+
+                Debug.Log(input);
+                input = input[..(index + 3)];
+                Debug.Log(input);
+                inputField.text = input;
+                inputField.MoveTextEnd(false);
+            }
+        }
+    }
+
     //If menu is destroyed, make player be able to play the game again
     IEnumerator CheckIfMenuGotDestroyed(GameObject menuToCheck)
     {
