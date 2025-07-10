@@ -526,12 +526,15 @@ public class PlayerUI : NetworkBehaviour
         //We need storage as we need data about it and we will call its function on button click
         Storage targetStorage = NetworkManager.SpawnManager.SpawnedObjects[storageObjectId].GetComponent<Storage>();
 
-        TMP_InputField sellingPriceInputField = storageMenu.transform.Find("SellingPriceInput").GetComponent<TMP_InputField>();
+        Transform sellingPanel = storageMenu.transform.Find("SellingPanel");
+        Transform buyingPanel = storageMenu.transform.Find("BuyingPanel");
+
+        TMP_InputField sellingPriceInputField = sellingPanel.Find("SellingPriceInput").GetComponent<TMP_InputField>();
         sellingPriceInputField.placeholder.GetComponent<TMP_Text>().text = targetStorage.SellingPrice.Value.ToString(); 
-        TMP_InputField buyingPriceInputField = storageMenu.transform.Find("BuyingPriceInput").GetComponent<TMP_InputField>();
+        TMP_InputField buyingPriceInputField = buyingPanel.Find("BuyingPriceInput").GetComponent<TMP_InputField>();
         buyingPriceInputField.placeholder.GetComponent<TMP_Text>().text = targetStorage.BuyingPrice.Value.ToString();
-        Button confirmSellingPriceButton = storageMenu.transform.Find("SellingPriceConfirmButton").GetComponent<Button>();
-        Button confirmBuyingPriceButton = storageMenu.transform.Find("BuyingPriceConfirmButton").GetComponent<Button>();
+        Button confirmSellingPriceButton = sellingPanel.Find("SellingPriceConfirmButton").GetComponent<Button>();
+        Button confirmBuyingPriceButton = buyingPanel.Find("BuyingPriceConfirmButton").GetComponent<Button>();
 
         sellingPriceInputField.onValueChanged.AddListener((string _) =>
             RoundInputFieldToTwoDecimalPlaces(sellingPriceInputField)
@@ -560,7 +563,6 @@ public class PlayerUI : NetworkBehaviour
 
             if (float.TryParse(buyingPriceInputField.text, NumberStyles.Any, CultureInfo.CurrentCulture, out float buyingPrice))
             {
-                Debug.Log(buyingPrice);
                 targetStorage.BuyingPrice.Value = buyingPrice;
                 buyingPriceInputField.placeholder.GetComponent<TMP_Text>().text = Convert.ToString(buyingPrice);
                 buyingPriceInputField.text = "";
@@ -584,10 +586,7 @@ public class PlayerUI : NetworkBehaviour
 
             if (decimalPlaces > 2)
             {
-
-                Debug.Log(input);
                 input = input[..(index + 3)];
-                Debug.Log(input);
                 inputField.text = input;
                 inputField.MoveTextEnd(false);
             }
