@@ -9,7 +9,9 @@ using UnityEngine;
 using System;
 using static ItemData;
 using System.Text.RegularExpressions;
-using UnityEngine.Windows;
+using UnityEditor.SceneManagement;
+using System.Linq;
+using Unity.VisualScripting;
 [RequireComponent(typeof(PlayerData))]
 [RequireComponent(typeof(ObjectInteraction))] //this is because we will use function that says what are we looking at
 public class PlayerUI : NetworkBehaviour
@@ -37,6 +39,7 @@ public class PlayerUI : NetworkBehaviour
     TMP_Text woodMaterialText;
     TMP_Text foodMaterialText;
     TMP_Text stoneMaterialText;
+    TMP_Text tooltipText;
     Image hitmark;
     Image cooldownMarker;
     Image micActivityIcon;
@@ -58,6 +61,7 @@ public class PlayerUI : NetworkBehaviour
         moneyCount = GameObject.Find("MoneyCount").GetComponent<TMP_Text>();
         taxRate = GameObject.Find("TaxRate").GetComponent<TMP_Text>();
         criminalText = GameObject.Find("CriminalText").GetComponent<TMP_Text>();
+        tooltipText = GameObject.Find("Tooltips").GetComponent<TMP_Text>();
 
         woodMaterialText = GameObject.Find("WoodMaterialData").GetComponent<TMP_Text>();
         foodMaterialText = GameObject.Find("FoodMaterialData").GetComponent<TMP_Text>();
@@ -155,6 +159,7 @@ public class PlayerUI : NetworkBehaviour
     void UpdateLookedAtObjectText()
     {
         GameObject targetObject = objectInteraction.GetObjectInFrontOfCamera(GameObject.Find("Camera").transform.rotation.eulerAngles.x);
+        UpdateTooltipText(targetObject);
         if (targetObject == null || string.IsNullOrEmpty(targetObject.tag))
         {
             centerText.text = "";
@@ -257,6 +262,101 @@ public class PlayerUI : NetworkBehaviour
                 };
                 break;
         };
+    }
+
+    void UpdateTooltipText(GameObject lookedAtObject)
+    {
+        if (lookedAtObject == null)
+            return;
+        
+        ItemData.ItemType heldItem = playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType;
+        ReplaceTextWithLineStartingWith(tooltipText, "F", "");
+        ReplaceTextWithLineStartingWith(tooltipText, "E", "");
+        ReplaceTextWithLineStartingWith(tooltipText, "Click", "");
+        switch (lookedAtObject.tag)
+        {
+            case "Player":
+                ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Punch");
+                break;
+            case "Item":
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                break;
+            case "Tree":
+                if (heldItem == ItemType.Axe)
+                    ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Cut tree");
+                break;
+            case "Crop":
+                if (heldItem == ItemType.Sickle)
+                    ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Cut crop");
+                break;
+            case "Buy":
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - buy");
+                break;
+            case "Work":
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - sell");
+                break;
+            case "Storage":
+                //USING PARENT!!!! NEED TO BE MODIFIED IF IT GETS FIXED!
+                if(lookedAtObject.transform.parent.GetComponent<Storage>().OwnerId.Value == NetworkManager.Singleton.LocalClientId) //If player is owner of storage
+                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Manage storage");
+                else
+                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Sell all");
+                ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Open selling menu");
+                break;
+            case "Money":
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                break;
+            case "Rock":
+                if (heldItem == ItemType.Pickaxe)
+                    ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Break rock");
+                break;
+            case "GatherableMaterial":
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                break;
+            case "BerryBush":
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Eat");
+                ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Pick up");
+                break;
+            case "MaterialObject":
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                break;
+            default:
+                break;
+        };
+
+        if (heldItem == ItemType.Medkit)
+            ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Use medkit");
+        if (heldItem == ItemType.Food)
+            ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Eat food");
+    }
+    //Used so tooltips can be dynamic
+    void ReplaceTextWithLineStartingWith(TMP_Text text, string startingCharacters, string replacement)
+    {
+        string[] lines = text.text.Split('\n');
+        bool replaced = false;
+
+        for (int i = 0; i < lines.Length; i++)
+        {
+            if (lines[i].StartsWith(startingCharacters))
+            {
+                lines[i] = replacement;
+                replaced = true;
+            }
+        }
+
+        if (replaced)
+        {
+            text.text = string.Join("\n", lines);
+        }
+        else if (!string.IsNullOrWhiteSpace(replacement))
+        {
+            string trimmedText = text.text.Trim();
+            if (string.IsNullOrEmpty(trimmedText))
+                text.text = replacement;
+            else
+                text.text = trimmedText + "\n" + replacement;
+        }
+
     }
 
     [Rpc(SendTo.Owner)]
@@ -429,8 +529,8 @@ public class PlayerUI : NetworkBehaviour
         progressBarCoroutine = StartCoroutine(FillProgressBar(amountOfTime));
     }
 
-    [Rpc(SendTo.Owner)] //To do add price to items
-    public void DisplayStorageTradeMenuOwnerRpc(ulong storageObjectId, int playerMaterialSupply)
+    [Rpc(SendTo.Owner)]
+    public void DisplayStorageTradeMenuOwnerRpc(ulong storageObjectId)
     {
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
@@ -442,6 +542,8 @@ public class PlayerUI : NetworkBehaviour
         //We need storage as we need data about it and we will call its function on button click
         Storage targetStorage = NetworkManager.SpawnManager.SpawnedObjects[storageObjectId].GetComponent<Storage>();
 
+        bool isStorageOwner = targetStorage.OwnerId.Value == NetworkManager.Singleton.LocalClientId;
+
         TMP_InputField amountInputField = storageMenu.transform.Find("AmountInputField").GetComponent<TMP_InputField>();
         Button confirmButton = storageMenu.transform.Find("ConfirmButton").GetComponent<Button>();
         Button modeChangeButton = storageMenu.transform.Find("ModeChangeButton").GetComponent<Button>();
@@ -452,6 +554,7 @@ public class PlayerUI : NetworkBehaviour
         {
             explanatoryText.text = explanatoryText.text.Replace("sell", "buy");
             modeChangeButton.GetComponentInChildren<TMP_Text>().text = modeChangeButton.GetComponentInChildren<TMP_Text>().text.Replace("buying", "selling");
+            paymentText.text = paymentText.text.Replace("have to pay", "receive");
         }
 
         modeChangeButton.onClick.AddListener(() =>
@@ -490,9 +593,9 @@ public class PlayerUI : NetworkBehaviour
                 }
 
                 if(isPlayerSelling)
-                    paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", Convert.ToString(value * targetStorage.SellingPrice.Value));
+                    paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", isStorageOwner ? "0" : Convert.ToString(value * targetStorage.SellingPrice.Value));
                 else
-                    paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", Convert.ToString(value * targetStorage.BuyingPrice.Value));
+                    paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", isStorageOwner ? "0" : Convert.ToString(value * targetStorage.BuyingPrice.Value));
             }
         });
 
@@ -502,9 +605,9 @@ public class PlayerUI : NetworkBehaviour
                 return;
 
             if (isPlayerSelling)
-                targetStorage.SellMaterialsServerRpc(gameObject.GetComponent<NetworkObject>().NetworkObjectId, Convert.ToInt16(amountInputField.text));
+                targetStorage.SellMaterialsServerRpc(NetworkManager.Singleton.LocalClientId, Convert.ToInt16(amountInputField.text));
             else
-                targetStorage.BuyMaterialsServerRpc(gameObject.GetComponent<NetworkObject>().NetworkObjectId, Convert.ToInt16(amountInputField.text));
+                targetStorage.BuyMaterialsServerRpc(NetworkManager.Singleton.LocalClientId, Convert.ToInt16(amountInputField.text));
 
 
             paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", "0");
@@ -513,7 +616,7 @@ public class PlayerUI : NetworkBehaviour
         StartCoroutine(CheckIfMenuGotDestroyed(storageMenu));
     }
 
-    [Rpc(SendTo.Owner)] //To do add price to items
+    [Rpc(SendTo.Owner)]
     public void DisplayStorageManagementMenuOwnerRpc(ulong storageObjectId)
     {
         Cursor.visible = true;
@@ -593,7 +696,7 @@ public class PlayerUI : NetworkBehaviour
         }
     }
 
-    //If menu is destroyed, make player be able to play the game again
+    //If menu is destroyed, make player be able to play the game again (and also destroy menu on button press)
     IEnumerator CheckIfMenuGotDestroyed(GameObject menuToCheck)
     {
         while (true)

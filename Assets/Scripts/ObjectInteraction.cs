@@ -7,8 +7,6 @@ using Unity.Collections;
 using Unity.Netcode;
 using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.XR;
 [RequireComponent(typeof(Movement))]
 [RequireComponent(typeof(PlayerData))]
 public class ObjectInteraction : NetworkBehaviour
@@ -54,7 +52,10 @@ public class ObjectInteraction : NetworkBehaviour
             return;
 
         if (Input.GetKeyDown(KeyCode.E)) //E is interaction key
-            InteractWithObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId);
+            InteractWithObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId, true);
+
+        if (Input.GetKeyDown(KeyCode.F)) //E is interaction key
+            InteractWithObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId, false);
 
         if (Input.GetKeyDown(KeyCode.T)) //T is dropping items key
             DropItemServerRpc();
@@ -188,7 +189,7 @@ public class ObjectInteraction : NetworkBehaviour
 
     //This function will detect what object is in front of you and interact with this object (it takes cameraXRotation which is in euler angles form) 
     [Rpc(SendTo.Server)]
-    void InteractWithObjectServerRpc(float cameraXRotation, ulong playerId)
+    void InteractWithObjectServerRpc(float cameraXRotation, ulong playerId, bool isPrimaryInteraction) //some objects can be interacted in two ways, bool isPrimaryInteraction regulates which one is it
     {
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
         if (targetObject == null) { return; }
@@ -201,6 +202,8 @@ public class ObjectInteraction : NetworkBehaviour
         switch (targetObjectTag)
         {
             case "Item":
+                if(!isPrimaryInteraction)
+                    return;
                 //Add object to inventory (and if it wasn't added do not despawn item)
                 ItemData itemData = targetObject.GetComponent<ItemData>();
                 bool didAddToInventory = transform.GetComponent<PlayerData>().AddItemToInventory(itemData.itemProperties.Value);
@@ -214,6 +217,8 @@ public class ObjectInteraction : NetworkBehaviour
                 }
                 return;
             case "Buy":
+                if (!isPrimaryInteraction)
+                    return;
                 shopScript = targetObject.transform.parent.GetComponent<Shop>();
                 if (shopScript == null)
                     throw new Exception("Parent of object with BuyingPlace, does not have Shop script, modify hierarchy or this script accordingly!");
@@ -221,12 +226,16 @@ public class ObjectInteraction : NetworkBehaviour
                 ChangeHeldItemClientRpc(playerData.Inventory[playerData.SelectedInventorySlot.Value]);
                 return;
             case "Work":
+                if (!isPrimaryInteraction)
+                    return;
                 shopScript = targetObject.transform.parent.GetComponent<Shop>();
                 if (shopScript == null)
                     throw new Exception("Parent of object with BuyingPlace, does not have Shop script, modify hierarchy or this script accordingly!");
                 shopScript.WorkInShop(gameObject);
                 return;
             case "Money":
+                if (!isPrimaryInteraction)
+                    return;
                 moneyObject = targetObject.transform.GetComponent<MoneyObject>();
                 float moneyAmount = moneyObject.moneyAmount.Value;
                 playerData.ChangeMoney(moneyAmount);
@@ -234,10 +243,14 @@ public class ObjectInteraction : NetworkBehaviour
                 Destroy(targetObject);
                 return;
             case "House":
+                if (!isPrimaryInteraction)
+                    return;
                 houseScript = targetObject.GetComponent<House>();
                 houseScript.BuyHouse(gameObject);
                 break;
             case "Parliament":
+                if (!isPrimaryInteraction)
+                    return;
                 GetComponent<CouncilorMenu>().InitiateMenuOwnerRpc();
                 break;
             case "Storage":
@@ -245,15 +258,29 @@ public class ObjectInteraction : NetworkBehaviour
                 storage = targetObject.transform.parent.GetComponent<Storage>();
                 //Check if PlayerUI exists before calling it
                 if(storage.OwnerId.Value == playerId)
-                    GetComponent<PlayerUI>().DisplayStorageManagementMenuOwnerRpc(targetObject.transform.parent.GetComponent<NetworkObject>().NetworkObjectId);
+                    if(isPrimaryInteraction)
+                        GetComponent<PlayerUI>().DisplayStorageManagementMenuOwnerRpc(targetObject.transform.parent.GetComponent<NetworkObject>().NetworkObjectId);
+                    else
+                        GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.transform.parent.GetComponent<NetworkObject>().NetworkObjectId);
                 else
-                    GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.transform.parent.GetComponent<NetworkObject>().NetworkObjectId, playerData.OwnedMaterials[(int)storage.StoredMaterial.Value].amount);
+                {
+                    if (isPrimaryInteraction)
+                    {
+                        int amountToSell = Mathf.Min(storage.MaxSupply.Value - storage.CurrentSupply.Value, playerData.OwnedMaterials[(int)storage.StoredMaterial.Value].amount); //We cannot sell more than storage can hold
+                        storage.SellMaterialsServerRpc(playerId, amountToSell);
+                    }
+                    else
+                        GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.transform.parent.GetComponent<NetworkObject>().NetworkObjectId);
+                }
                 break;
             case "BerryBush":
                 BerryBush berryBush = targetObject.GetComponent<BerryBush>();
                 if (berryBush.HasBerries.Value)
                 {
-                    playerData.ChangeHunger(berryBush.FoodAmount);
+                    if (isPrimaryInteraction)
+                        playerData.ChangeHunger(berryBush.FoodAmount);
+                    else
+                        playerData.ChangeAmountOfMaterial(PlayerData.RawMaterial.Food, 1);
                     berryBush.RemoveBerries();
                 }
                 else
@@ -265,6 +292,8 @@ public class ObjectInteraction : NetworkBehaviour
                 break;
             case "MaterialObject":
             case "GatherableMaterial":
+                if (!isPrimaryInteraction)
+                    return;
                 GatherableMaterial materialItem = targetObject.GetComponent<GatherableMaterial>();
                 int didSucced = playerData.ChangeAmountOfMaterial(materialItem.Material.Value, materialItem.Amount.Value);
                 if (didSucced == 0) //doesn't handle material.Material.Value > 1)
@@ -275,7 +304,8 @@ public class ObjectInteraction : NetworkBehaviour
                 break;
 
         }
-
+        if (!isPrimaryInteraction)
+            return;
         //if is not looking at interactive object, check if has interactible item in hand
         float itemTierValueMultiplier = itemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
         switch (playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType)

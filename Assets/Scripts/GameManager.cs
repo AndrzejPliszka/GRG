@@ -9,7 +9,6 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using static ItemData;
-using static PlayerData;
 
 public class GameManager : NetworkBehaviour
 {
@@ -97,7 +96,7 @@ public class GameManager : NetworkBehaviour
             List<PlayerData.MaterialData> townMaterials = new();
             foreach (PlayerData.RawMaterial material in Enum.GetValues(typeof(PlayerData.RawMaterial)))
             {
-                townMaterials.Add(new MaterialData { materialType = material, amount = 0, maxAmount = 20 });
+                townMaterials.Add(new PlayerData.MaterialData { materialType = material, amount = 0, maxAmount = 20 });
             }
             TownData.Add(new TownProperties() { townMaterialSupply = townMaterials, townBase = GameObject.Find("Town" + i).transform.Find("Pavement") }); //Pavement cos it has approperiate size (at least for now)
         }

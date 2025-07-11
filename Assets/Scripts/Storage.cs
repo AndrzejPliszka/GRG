@@ -35,6 +35,10 @@ public class Storage : NetworkBehaviour
             if (townId >= 0 && IsServer)
                 GameManager.Instance.ChangeMaxMaterialAmount(townId, StoredMaterial.Value, value);
         };
+        if(IsServer && !IsHost)
+        {
+            OwnerId.Value = 1;
+        }
     }
 
     public void ChangeLevelOfMaterial(int currentSupply, int maxSupply)
@@ -66,10 +70,20 @@ public class Storage : NetworkBehaviour
     //[TODO: also make validation f.e. if client is near storage]
     [Rpc(SendTo.Server)]
     public void SellMaterialsServerRpc(ulong playerId, int amountOfMaterials) {
-        if (NetworkManager.Singleton.ConnectedClients.TryGetValue(0, out NetworkClient client))
+        bool isSellerOwner = OwnerId.Value == playerId;
+        if (NetworkManager.Singleton.ConnectedClients.TryGetValue(OwnerId.Value, out NetworkClient ownerClient) && NetworkManager.Singleton.ConnectedClients.TryGetValue(playerId, out NetworkClient sellerClient))
         {
-            PlayerData ownerData = client.PlayerObject.gameObject.GetComponent<PlayerData>();
-            PlayerData sellerData = NetworkManager.SpawnManager.SpawnedObjects[playerId].gameObject.GetComponent<PlayerData>();
+            PlayerData ownerData = ownerClient.PlayerObject.gameObject.GetComponent<PlayerData>();
+            PlayerData sellerData = sellerClient.PlayerObject.gameObject.GetComponent<PlayerData>();
+
+            //In edge case when owner wants to put things in storage, paying money etc. is not needed
+            if (isSellerOwner && amountOfMaterials <= MaxSupply.Value - CurrentSupply.Value &&
+                sellerData.OwnedMaterials[(int)StoredMaterial.Value].amount >= amountOfMaterials)
+            {
+                sellerData.GetComponent<PlayerData>().ChangeAmountOfMaterial(StoredMaterial.Value, -amountOfMaterials);
+                ChangeAmountOfMaterialInStorage(amountOfMaterials);
+            }
+            
 
             if (ownerData.Money.Value >= (amountOfMaterials * SellingPrice.Value) &&
                 amountOfMaterials <= MaxSupply.Value - CurrentSupply.Value &&
@@ -82,14 +96,27 @@ public class Storage : NetworkBehaviour
 
             }
         }
+        else
+        {
+            throw new Exception(playerId + " player (or owner " + OwnerId.Value + " of storage) was not found!");
+        }
     }
     [Rpc(SendTo.Server)]
     public void BuyMaterialsServerRpc(ulong playerId, int amountOfMaterials)
     {
-        if (NetworkManager.Singleton.ConnectedClients.TryGetValue(OwnerId.Value, out NetworkClient client))
+        bool isBuyerOwner = OwnerId.Value == playerId; //Check if buyer is owner of this client, so we can use OwnerId.Value
+        if (NetworkManager.Singleton.ConnectedClients.TryGetValue(OwnerId.Value, out NetworkClient ownerClient) && NetworkManager.Singleton.ConnectedClients.TryGetValue(playerId, out NetworkClient buyerClient))
         {
-            PlayerData ownerData = client.PlayerObject.gameObject.GetComponent<PlayerData>();
-            PlayerData buyerData = NetworkManager.SpawnManager.SpawnedObjects[playerId].gameObject.GetComponent<PlayerData>();
+            PlayerData ownerData = ownerClient.PlayerObject.gameObject.GetComponent<PlayerData>();
+            PlayerData buyerData = buyerClient.PlayerObject.gameObject.GetComponent<PlayerData>();
+
+            //In edge case when owner wants to get things from storage, paying money etc. is not needed
+            if (isBuyerOwner && amountOfMaterials <= CurrentSupply.Value && amountOfMaterials <= buyerData.OwnedMaterials[(int)StoredMaterial.Value].maxAmount - buyerData.OwnedMaterials[(int)StoredMaterial.Value].amount)
+            {
+                ChangeAmountOfMaterialInStorage(-amountOfMaterials);
+                buyerData.GetComponent<PlayerData>().ChangeAmountOfMaterial(StoredMaterial.Value, amountOfMaterials);
+                return;
+            }
 
             if (buyerData.Money.Value >= (amountOfMaterials * BuyingPrice.Value) &&
                 amountOfMaterials <= CurrentSupply.Value &&
@@ -101,6 +128,10 @@ public class Storage : NetworkBehaviour
                 ChangeAmountOfMaterialInStorage(-amountOfMaterials);
 
             }
+        }
+        else
+        {
+            throw new Exception(playerId + " player (or owner " + OwnerId.Value + " of storage) was not found!");
         }
     }
 }
