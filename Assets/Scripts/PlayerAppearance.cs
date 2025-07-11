@@ -54,7 +54,7 @@ public class PlayerAppearance : NetworkBehaviour
         else
         {
             if(playerData)
-                playerRenderer.material.SetTexture("_Clothes", appearanceData.GetOutfit(playerData.Role.Value));
+                playerRenderer.material.SetTexture("_Outfit", appearanceData.GetOutfit(playerData.Role.Value));
 
             if (hatId.Value != -999)
                 ChangePlayerHat(hatId.Value);

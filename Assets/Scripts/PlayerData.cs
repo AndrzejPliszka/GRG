@@ -2,9 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using NUnit.Framework;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Netcode;
 using UnityEngine;
+using static ItemData;
 
 public class PlayerData : NetworkBehaviour
 {
@@ -15,6 +18,31 @@ public class PlayerData : NetworkBehaviour
         Leader,
         Guard,
         Councilor
+    }
+
+    public enum RawMaterial
+    {
+        Food,
+        Wood,
+        Stone
+    }
+
+    [Serializable]
+    public struct MaterialData : INetworkSerializable, IEquatable<MaterialData>
+    {
+        public RawMaterial materialType;
+        public int amount;
+        public int maxAmount; //this is implemented in setter ChangeAmountOfMaterial
+        public readonly bool Equals(MaterialData other) //this function is required for marking function IEquatable
+        {
+            return materialType == other.materialType && amount == other.amount;
+        }
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref materialType);
+            serializer.SerializeValue(ref amount);
+            serializer.SerializeValue(ref maxAmount);
+        }
     }
 
     public NetworkVariable<FixedString32Bytes> Nickname { get;  private set; } = new();
@@ -43,6 +71,8 @@ public class PlayerData : NetworkBehaviour
 
     public NetworkVariable<int> TownPlayerIsIn { get; private set; } = new(-1); //physical location, -1 means no town
 
+    public NetworkList<MaterialData> OwnedMaterials { get; private set; }
+
     //Variables that hold things related to managing data above
     bool decreaseHungerFaster = false;
     bool decreaseHealth = false;
@@ -56,7 +86,7 @@ public class PlayerData : NetworkBehaviour
     {
         //we need to do this before connection (so before Start()/OnNetworkSpawn()), but not on declaration, because there will be memory leak
         Inventory = new NetworkList<ItemData.ItemProperties>();
-
+        OwnedMaterials = new NetworkList<MaterialData>();
         playerMovement = GetComponent<Movement>();
     }
 
@@ -67,15 +97,18 @@ public class PlayerData : NetworkBehaviour
             GameManager.Instance.AddPlayerToRegistry(gameObject);
 
             Health.OnValueChanged += InvokeDeath;
+            ChangeMoney(100); //for debug purposes
             //move to game manager or player manager??
             StartCoroutine(ReduceHunger());
             StartCoroutine(ChangeHealthOverTime());
 
-            ChangeHealth(-50);
-
             for (int i = 0; i < 3; i++) //we want to have 3 inventory slots in the beginning
             {
                 Inventory.Add(new ItemData.ItemProperties());
+            }
+            foreach(PlayerData.RawMaterial material in Enum.GetValues(typeof(PlayerData.RawMaterial)))
+            {
+                OwnedMaterials.Add(new MaterialData { materialType = material, amount = 0, maxAmount = 20 });
             }
 
             if (TryGetComponent<ObjectInteraction>(out var objectInteraction))
@@ -251,7 +284,7 @@ public class PlayerData : NetworkBehaviour
         else if (Health.Value > 100)
             Health.Value = 100;
     }
-    //this function is setter for money. It returns false, if player would have negative balance after changing money
+    //this function is setter for money. It returns false, if player would have negative balance after changing money. It will never set up negative balance
     public bool ChangeMoney(float amountToIncrease)
     {
         if (!IsServer) { throw new Exception("Trying to modify money amount on client!"); };
@@ -316,6 +349,45 @@ public class PlayerData : NetworkBehaviour
             CriminalCooldown.Value = 10;
             IsCriminal.Value = true;
         }
+    }
+
+    public int ChangeAmountOfMaterial(RawMaterial material, int amountToIncrease)
+    {
+        MaterialData materialData = OwnedMaterials[(int)material];
+        int newAmount = materialData.amount + amountToIncrease;
+
+        if (newAmount > materialData.maxAmount)
+        {
+            int excessiveAmount = newAmount - materialData.maxAmount;
+            materialData.amount = materialData.maxAmount;
+            OwnedMaterials[(int)material] = materialData;
+            return excessiveAmount; //returning amount that was not added to material, because excessive material can be dropped, or dealt with other way etc.
+        }
+        else if (newAmount < 0)
+        {
+            //This means that we wanted to deduct material, but there was not enough of it, so we do nothing
+            return newAmount; //returning amount that was not removed from material, so it can be used in other way (for example added to inventory)
+        }
+        else
+        {
+            materialData.amount = newAmount;
+            OwnedMaterials[(int)material] = materialData;
+            return 0;
+        }
+    }
+    public void SetAmountOfMaterial(RawMaterial material, int amountToSet)
+    {
+        MaterialData materialData = OwnedMaterials[(int)material];
+        OwnedMaterials.RemoveAt((int)material);
+
+        if (amountToSet > materialData.maxAmount)
+            materialData.amount = materialData.maxAmount;
+        else if (amountToSet < 0)
+            amountToSet = 0;
+        else
+            materialData.amount = amountToSet;
+
+        OwnedMaterials.Insert((int)material, materialData);
     }
 
     IEnumerator CheckTownPlayerIsIn()

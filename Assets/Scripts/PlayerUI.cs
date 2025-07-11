@@ -8,6 +8,10 @@ using Unity.Netcode;
 using UnityEngine;
 using System;
 using static ItemData;
+using System.Text.RegularExpressions;
+using UnityEditor.SceneManagement;
+using System.Linq;
+using Unity.VisualScripting;
 [RequireComponent(typeof(PlayerData))]
 [RequireComponent(typeof(ObjectInteraction))] //this is because we will use function that says what are we looking at
 public class PlayerUI : NetworkBehaviour
@@ -21,6 +25,10 @@ public class PlayerUI : NetworkBehaviour
     [SerializeField] ItemTypeData itemTypeData;
     [SerializeField] ItemTierData itemTierData;
 
+
+    [SerializeField] GameObject storageTradePanel;
+    [SerializeField] GameObject storageManagmentPanel;
+
     TMP_Text centerText;
     TMP_Text errorText;
     TMP_Text hungerBarText;
@@ -28,6 +36,10 @@ public class PlayerUI : NetworkBehaviour
     TMP_Text moneyCount;
     TMP_Text taxRate;
     TMP_Text criminalText;
+    TMP_Text woodMaterialText;
+    TMP_Text foodMaterialText;
+    TMP_Text stoneMaterialText;
+    TMP_Text tooltipText;
     Image hitmark;
     Image cooldownMarker;
     Image micActivityIcon;
@@ -38,6 +50,7 @@ public class PlayerUI : NetworkBehaviour
     Coroutine progressBarCoroutine;
 
     PlayerData playerData;
+    bool isPlayerSelling = true; //Used in storage trade menu, global so it saves between menus, change name when more menus are added
     public override void OnNetworkSpawn()
     {
         
@@ -48,6 +61,11 @@ public class PlayerUI : NetworkBehaviour
         moneyCount = GameObject.Find("MoneyCount").GetComponent<TMP_Text>();
         taxRate = GameObject.Find("TaxRate").GetComponent<TMP_Text>();
         criminalText = GameObject.Find("CriminalText").GetComponent<TMP_Text>();
+        tooltipText = GameObject.Find("Tooltips").GetComponent<TMP_Text>();
+
+        woodMaterialText = GameObject.Find("WoodMaterialData").GetComponent<TMP_Text>();
+        foodMaterialText = GameObject.Find("FoodMaterialData").GetComponent<TMP_Text>();
+        stoneMaterialText = GameObject.Find("StoneMaterialData").GetComponent<TMP_Text>();
 
         hitmark = GameObject.Find("Hitmark").GetComponent<Image>();
         cooldownMarker = GameObject.Find("CooldownMarker").GetComponent<Image>();
@@ -78,6 +96,7 @@ public class PlayerUI : NetworkBehaviour
             playerData.Money.OnValueChanged += ModifyMoneyCount;
             playerData.CriminalCooldown.OnValueChanged += DisplayIsCriminalText;
             playerData.JailCooldown.OnValueChanged += DisplayInPrisonText;
+            playerData.OwnedMaterials.OnListChanged += DisplayMaterialText;
         }
 
         if (IsServer)
@@ -109,10 +128,38 @@ public class PlayerUI : NetworkBehaviour
 
     }
 
+    void DisplayMaterialText(NetworkListEvent<PlayerData.MaterialData> listChange)
+    {
+        PlayerData.MaterialData changedMaterialData = listChange.Value;
+        TMP_Text modifiedText;
+        switch(changedMaterialData.materialType)
+        {
+            case PlayerData.RawMaterial.Wood:
+                woodMaterialText.text = $"{changedMaterialData.amount}";
+                modifiedText = woodMaterialText;
+                break;
+            case PlayerData.RawMaterial.Food:
+                foodMaterialText.text = $"{changedMaterialData.amount}";
+                modifiedText = foodMaterialText;
+                break;
+            case PlayerData.RawMaterial.Stone:
+                stoneMaterialText.text = $"{changedMaterialData.amount}";
+                modifiedText = stoneMaterialText;
+                break;
+            default:
+                return;
+        }
+        if(changedMaterialData.amount == changedMaterialData.maxAmount)
+            modifiedText.color = new Color(0, 255, 0, 1);
+        else
+            modifiedText.color = new Color(0, 0, 0, 1);
+    }
+
     //This function will update text which tells player what is he looking at. It needs X Camera Rotation from client (in "Vector3 form") (server doesn't have camera - it is only on client)
     void UpdateLookedAtObjectText()
     {
         GameObject targetObject = objectInteraction.GetObjectInFrontOfCamera(GameObject.Find("Camera").transform.rotation.eulerAngles.x);
+        UpdateTooltipText(targetObject);
         if (targetObject == null || string.IsNullOrEmpty(targetObject.tag))
         {
             centerText.text = "";
@@ -124,6 +171,7 @@ public class PlayerUI : NetworkBehaviour
         Storage storage;
         MoneyObject moneyObject;
         House house;
+        GatherableMaterial materialItem;
         int currentHealth, maxHealth;
         switch (targetObject.tag)
         {
@@ -163,7 +211,7 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "Storage":
                 storage = targetObject.transform.parent.GetComponent<Storage>();
-                centerText.text = $"Supply:\n{storage.FoodSupply}/{storage.MaximumFoodSupply}";
+                centerText.text = $"{storage.StoredMaterial.Value} Supply:\n{storage.CurrentSupply.Value}/{storage.MaxSupply.Value}";
                 break;
             case "Money":
                 moneyObject = targetObject.GetComponent<MoneyObject>();
@@ -176,10 +224,139 @@ public class PlayerUI : NetworkBehaviour
             case "Parliament":
                 centerText.text = $"Parliament";
                 break;
+            case "Rock":
+                breakableStructure = targetObject.GetComponent<BreakableStructure>();
+                currentHealth = breakableStructure.Health.Value;
+                maxHealth = breakableStructure.MaximumHealth;
+                centerText.text = $"Rock\n{currentHealth}/{maxHealth}";
+                break;
+            case "GatherableMaterial":
+                materialItem = targetObject.GetComponent<GatherableMaterial>();
+                switch (materialItem.Material.Value)
+                {
+                    case PlayerData.RawMaterial.Wood:
+                        centerText.text = $"Stick";
+                        break;
+                    case PlayerData.RawMaterial.Stone:
+                        centerText.text = $"Pebble";
+                        break;
+                }
+                break;
+            case "BerryBush":
+                if(targetObject.GetComponent<BerryBush>().HasBerries.Value)
+                    centerText.text = $"Berry Bush";
+                else
+                    centerText.text = $"Bush";
+                break;
             default:
                 centerText.text = "";
                 break;
+            case "MaterialObject":
+                materialItem = targetObject.GetComponent<GatherableMaterial>();
+                centerText.text = materialItem.Material.Value switch
+                {
+                    PlayerData.RawMaterial.Wood => $"Wood Material",
+                    PlayerData.RawMaterial.Stone => $"Stone Material",
+                    PlayerData.RawMaterial.Food => $"Food Material",
+                    _ => "",
+                };
+                break;
         };
+    }
+
+    void UpdateTooltipText(GameObject lookedAtObject)
+    {
+        if (lookedAtObject == null)
+            return;
+        
+        ItemData.ItemType heldItem = playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType;
+        ReplaceTextWithLineStartingWith(tooltipText, "F", "");
+        ReplaceTextWithLineStartingWith(tooltipText, "E", "");
+        ReplaceTextWithLineStartingWith(tooltipText, "Click", "");
+        switch (lookedAtObject.tag)
+        {
+            case "Player":
+                ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Punch");
+                break;
+            case "Item":
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                break;
+            case "Tree":
+                if (heldItem == ItemType.Axe)
+                    ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Cut tree");
+                break;
+            case "Crop":
+                if (heldItem == ItemType.Sickle)
+                    ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Cut crop");
+                break;
+            case "Buy":
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - buy");
+                break;
+            case "Work":
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - sell");
+                break;
+            case "Storage":
+                //USING PARENT!!!! NEED TO BE MODIFIED IF IT GETS FIXED!
+                if(lookedAtObject.transform.parent.GetComponent<Storage>().OwnerId.Value == NetworkManager.Singleton.LocalClientId) //If player is owner of storage
+                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Manage storage");
+                else
+                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Sell all");
+                ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Open selling menu");
+                break;
+            case "Money":
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                break;
+            case "Rock":
+                if (heldItem == ItemType.Pickaxe)
+                    ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Break rock");
+                break;
+            case "GatherableMaterial":
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                break;
+            case "BerryBush":
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Eat");
+                ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Pick up");
+                break;
+            case "MaterialObject":
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                break;
+            default:
+                break;
+        };
+
+        if (heldItem == ItemType.Medkit)
+            ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Use medkit");
+        if (heldItem == ItemType.Food)
+            ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Eat food");
+    }
+    //Used so tooltips can be dynamic
+    void ReplaceTextWithLineStartingWith(TMP_Text text, string startingCharacters, string replacement)
+    {
+        string[] lines = text.text.Split('\n');
+        bool replaced = false;
+
+        for (int i = 0; i < lines.Length; i++)
+        {
+            if (lines[i].StartsWith(startingCharacters))
+            {
+                lines[i] = replacement;
+                replaced = true;
+            }
+        }
+
+        if (replaced)
+        {
+            text.text = string.Join("\n", lines);
+        }
+        else if (!string.IsNullOrWhiteSpace(replacement))
+        {
+            string trimmedText = text.text.Trim();
+            if (string.IsNullOrEmpty(trimmedText))
+                text.text = replacement;
+            else
+                text.text = trimmedText + "\n" + replacement;
+        }
+
     }
 
     [Rpc(SendTo.Owner)]
@@ -303,6 +480,8 @@ public class PlayerUI : NetworkBehaviour
         if (!IsOwner) return;
         healthBar.value = newHealthValue;
         healthBarText.text = newHealthValue.ToString();
+        float t = Mathf.InverseLerp(1, 100, newHealthValue);
+        healthBar.fillRect.GetComponent<Image>().color = Color.Lerp(Color.red, Color.green, t);
     }
     public void ModifyMoneyCount(float oldMoneyValue, float newMoneyValue)
     {
@@ -350,6 +529,188 @@ public class PlayerUI : NetworkBehaviour
         progressBarCoroutine = StartCoroutine(FillProgressBar(amountOfTime));
     }
 
+    [Rpc(SendTo.Owner)]
+    public void DisplayStorageTradeMenuOwnerRpc(ulong storageObjectId)
+    {
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        GetComponent<Movement>().blockRotation = true;
+        GetComponent<ObjectInteraction>().canInteract = false;
+        GameObject.Find("Canvas").GetComponent<Menu>().amountOfDisplayedMenus++;
+
+        GameObject storageMenu = Instantiate(storageTradePanel, GameObject.Find("Canvas").transform.Find("PlayerUI").transform); //Maybe use var instead of Find();
+        //We need storage as we need data about it and we will call its function on button click
+        Storage targetStorage = NetworkManager.SpawnManager.SpawnedObjects[storageObjectId].GetComponent<Storage>();
+
+        bool isStorageOwner = targetStorage.OwnerId.Value == NetworkManager.Singleton.LocalClientId;
+
+        TMP_InputField amountInputField = storageMenu.transform.Find("AmountInputField").GetComponent<TMP_InputField>();
+        Button confirmButton = storageMenu.transform.Find("ConfirmButton").GetComponent<Button>();
+        Button modeChangeButton = storageMenu.transform.Find("ModeChangeButton").GetComponent<Button>();
+        TMP_Text explanatoryText = storageMenu.transform.Find("ExplanatoryText").GetComponent<TMP_Text>();
+        TMP_Text paymentText = storageMenu.transform.Find("PaymentText").GetComponent<TMP_Text>();
+
+        if (!isPlayerSelling) //listener is not run on initialization and I don't want to create function from this
+        {
+            explanatoryText.text = explanatoryText.text.Replace("sell", "buy");
+            modeChangeButton.GetComponentInChildren<TMP_Text>().text = modeChangeButton.GetComponentInChildren<TMP_Text>().text.Replace("buying", "selling");
+            paymentText.text = paymentText.text.Replace("have to pay", "receive");
+        }
+
+        modeChangeButton.onClick.AddListener(() =>
+        {
+            isPlayerSelling = !isPlayerSelling;
+            if (isPlayerSelling)
+            {
+                explanatoryText.text = explanatoryText.text.Replace("buy", "sell");
+                modeChangeButton.GetComponentInChildren<TMP_Text>().text = modeChangeButton.GetComponentInChildren<TMP_Text>().text.Replace("selling", "buying");
+                paymentText.text = paymentText.text.Replace("have to pay", "receive");
+            }
+            else
+            {
+                explanatoryText.text = explanatoryText.text.Replace("sell", "buy");
+                modeChangeButton.GetComponentInChildren<TMP_Text>().text = modeChangeButton.GetComponentInChildren<TMP_Text>().text.Replace("buying", "selling");
+                paymentText.text = paymentText.text.Replace("receive", "have to pay");
+            }
+        });
+
+        amountInputField.onValueChanged.AddListener((string newAmount) =>
+        {
+            if (int.TryParse(newAmount, out int value))
+            {
+                int maximumAmount;
+                PlayerData.MaterialData playerMaterial = playerData.OwnedMaterials[(int)targetStorage.StoredMaterial.Value];
+                if (isPlayerSelling)
+                    maximumAmount = Mathf.Min(playerMaterial.amount, targetStorage.MaxSupply.Value - targetStorage.CurrentSupply.Value);
+                else
+                    maximumAmount = Mathf.Min(targetStorage.CurrentSupply.Value, playerMaterial.maxAmount - playerMaterial.amount);
+
+                int minimumAmount = 0;
+                if (value < minimumAmount || value > maximumAmount)
+                {
+                    value = Mathf.Clamp(value, minimumAmount, maximumAmount);
+                    amountInputField.text = value.ToString();
+                }
+
+                if(isPlayerSelling)
+                    paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", isStorageOwner ? "0" : Convert.ToString(value * targetStorage.SellingPrice.Value));
+                else
+                    paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", isStorageOwner ? "0" : Convert.ToString(value * targetStorage.BuyingPrice.Value));
+            }
+        });
+
+        confirmButton.onClick.AddListener(() =>
+        {
+            if (amountInputField.text == "")
+                return;
+
+            if (isPlayerSelling)
+                targetStorage.SellMaterialsServerRpc(NetworkManager.Singleton.LocalClientId, Convert.ToInt16(amountInputField.text));
+            else
+                targetStorage.BuyMaterialsServerRpc(NetworkManager.Singleton.LocalClientId, Convert.ToInt16(amountInputField.text));
+
+
+            paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", "0");
+            amountInputField.text = "";
+        });
+        StartCoroutine(CheckIfMenuGotDestroyed(storageMenu));
+    }
+
+    [Rpc(SendTo.Owner)]
+    public void DisplayStorageManagementMenuOwnerRpc(ulong storageObjectId)
+    {
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        GetComponent<Movement>().blockRotation = true;
+        GetComponent<ObjectInteraction>().canInteract = false;
+        GameObject.Find("Canvas").GetComponent<Menu>().amountOfDisplayedMenus++;
+
+        GameObject storageMenu = Instantiate(storageManagmentPanel, GameObject.Find("Canvas").transform.Find("PlayerUI").transform); //Maybe use var instead of Find();
+        //We need storage as we need data about it and we will call its function on button click
+        Storage targetStorage = NetworkManager.SpawnManager.SpawnedObjects[storageObjectId].GetComponent<Storage>();
+
+        Transform sellingPanel = storageMenu.transform.Find("SellingPanel");
+        Transform buyingPanel = storageMenu.transform.Find("BuyingPanel");
+
+        TMP_InputField sellingPriceInputField = sellingPanel.Find("SellingPriceInput").GetComponent<TMP_InputField>();
+        sellingPriceInputField.placeholder.GetComponent<TMP_Text>().text = targetStorage.SellingPrice.Value.ToString(); 
+        TMP_InputField buyingPriceInputField = buyingPanel.Find("BuyingPriceInput").GetComponent<TMP_InputField>();
+        buyingPriceInputField.placeholder.GetComponent<TMP_Text>().text = targetStorage.BuyingPrice.Value.ToString();
+        Button confirmSellingPriceButton = sellingPanel.Find("SellingPriceConfirmButton").GetComponent<Button>();
+        Button confirmBuyingPriceButton = buyingPanel.Find("BuyingPriceConfirmButton").GetComponent<Button>();
+
+        sellingPriceInputField.onValueChanged.AddListener((string _) =>
+            RoundInputFieldToTwoDecimalPlaces(sellingPriceInputField)
+        );
+        buyingPriceInputField.onValueChanged.AddListener((string _) =>
+            RoundInputFieldToTwoDecimalPlaces(buyingPriceInputField)
+        );
+
+        confirmSellingPriceButton.onClick.AddListener(() =>
+        {
+            if (sellingPriceInputField.text == "")
+                return;
+
+            if (float.TryParse(sellingPriceInputField.text, NumberStyles.Any, CultureInfo.CurrentCulture, out float sellingPrice))
+            {
+                targetStorage.SellingPrice.Value = sellingPrice;
+                sellingPriceInputField.placeholder.GetComponent<TMP_Text>().text = Convert.ToString(sellingPrice); //Temporary way to see current prices
+                sellingPriceInputField.text = "";
+            }
+        });
+
+        confirmBuyingPriceButton.onClick.AddListener(() =>
+        {
+            if (buyingPriceInputField.text == "")
+                return;
+
+            if (float.TryParse(buyingPriceInputField.text, NumberStyles.Any, CultureInfo.CurrentCulture, out float buyingPrice))
+            {
+                targetStorage.BuyingPrice.Value = buyingPrice;
+                buyingPriceInputField.placeholder.GetComponent<TMP_Text>().text = Convert.ToString(buyingPrice);
+                buyingPriceInputField.text = "";
+            }
+        });
+
+        StartCoroutine(CheckIfMenuGotDestroyed(storageMenu));
+    }
+
+    void RoundInputFieldToTwoDecimalPlaces(TMP_InputField inputField)
+    {
+        string input = inputField.text;
+        if (string.IsNullOrEmpty(input)) return;
+
+        input = input.Replace('.', ',');
+
+        if (input.Contains(","))
+        {
+            int index = input.IndexOf(',');
+            int decimalPlaces = input.Length - index - 1;
+
+            if (decimalPlaces > 2)
+            {
+                input = input[..(index + 3)];
+                inputField.text = input;
+                inputField.MoveTextEnd(false);
+            }
+        }
+    }
+
+    //If menu is destroyed, make player be able to play the game again (and also destroy menu on button press)
+    IEnumerator CheckIfMenuGotDestroyed(GameObject menuToCheck)
+    {
+        while (true)
+        {
+            if (!menuToCheck)
+            {
+                GameObject.Find("Canvas").GetComponent<Menu>().ResumeGame(false);
+                GetComponent<Movement>().blockRotation = false;
+                GetComponent<ObjectInteraction>().canInteract = true;
+                break;
+            }
+            yield return new WaitForSeconds(0.1f);
+        }
+    }
     IEnumerator FillProgressBar(int totalAmountOfTime)
     {
         bool isBarFilled = false;

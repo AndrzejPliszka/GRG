@@ -356,7 +356,7 @@ public class LeaderMenu : NetworkBehaviour
 
     public void Update()
     {
-        if (!isMenuSetUp && Input.GetKeyDown(KeyCode.F) && playerData.Role.Value == PlayerData.PlayerRole.Leader)
+        if (!isMenuSetUp && Input.GetKeyDown(KeyCode.R) && playerData.Role.Value == PlayerData.PlayerRole.Leader)
         {
             SetUpShopManagmentPanelServerRpc();
             SetUpLandManagmentPanelServerRpc();
@@ -364,7 +364,7 @@ public class LeaderMenu : NetworkBehaviour
         }
         if (!IsOwner) { return; }
 
-        if (Input.GetKeyDown(KeyCode.F) && playerData.Role.Value == PlayerData.PlayerRole.Leader) {
+        if (Input.GetKeyDown(KeyCode.R) && playerData.Role.Value == PlayerData.PlayerRole.Leader) {
             bool shouldDisplay = !leaderMenu.activeSelf;
 
             if (shouldDisplay)
