@@ -6,13 +6,13 @@ using UnityEngine.SceneManagement;
 
 public class BreakableStructure : NetworkBehaviour
 {
-    [SerializeField] MaterialObjectData materialObjectData;
+    [SerializeField] RawMaterialData materialObjectData;
     [field: SerializeField] public int MaximumHealth { get; private set; } = new();
     public NetworkVariable<int> Health { get; private set; } = new();
     public DynamicObjectSpawning spawner; //this is used to communicate with spawner. it may be empty if object was put manually itp.
     public LandScript land; //also used to communicate with spawner, but in case of land plot in town
     [field: SerializeField] List<PlayerData.MaterialData> droppedMaterials = new(); //maxAmount in this structure should be unused, if in future you want to modify this in runtime, use NetworkList<>
-    float dropMaterialPositionSpawnVariance = 0.2f;
+    readonly float dropMaterialPositionSpawnVariance = 0.2f;
     public override void OnNetworkSpawn()
     {
         if(!IsServer) return;

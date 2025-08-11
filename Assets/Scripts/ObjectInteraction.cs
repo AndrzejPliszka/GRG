@@ -6,6 +6,7 @@ using TMPro;
 using Unity.Collections;
 using Unity.Netcode;
 using Unity.VisualScripting;
+using UnityEditor;
 using UnityEngine;
 [RequireComponent(typeof(Movement))]
 [RequireComponent(typeof(PlayerData))]
@@ -198,7 +199,30 @@ public class ObjectInteraction : NetworkBehaviour
         MoneyObject moneyObject;
         House houseScript;
         Storage storage;
+        UnbuiltBuilding unbuiltBuilding;
         //first see if is looking at interactive object
+        if (isPrimaryInteraction)
+        {
+            //if is not looking at interactive object, check if has interactible item in hand
+            float itemTierValueMultiplier = itemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
+            switch (playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType)
+            {
+                case ItemData.ItemType.Medkit:
+                    int baseMedkitHealhValue = 30;
+                    int medkitHealhValue = Convert.ToInt16(baseMedkitHealhValue * itemTierValueMultiplier);
+                    playerData.ChangeHealth(medkitHealhValue);
+                    playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
+                    ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
+                    return;
+                case ItemData.ItemType.Food:
+                    int baseFoodHungerValue = 30;
+                    int foodHungerValue = Convert.ToInt16(baseFoodHungerValue * itemTierValueMultiplier);
+                    playerData.ChangeHunger(foodHungerValue);
+                    playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
+                    ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
+                    return;
+            }
+        }
         switch (targetObjectTag)
         {
             case "Item":
@@ -255,23 +279,50 @@ public class ObjectInteraction : NetworkBehaviour
                 break;
             case "Storage":
                 //for now only storage prefab has collider in child, TO DO: Change to not depend on hierarchy
-                storage = targetObject.transform.parent.GetComponent<Storage>();
+                storage = targetObject.GetComponent<Storage>();
                 //Check if PlayerUI exists before calling it
                 if(storage.OwnerId.Value == playerId)
                     if(isPrimaryInteraction)
-                        GetComponent<PlayerUI>().DisplayStorageManagementMenuOwnerRpc(targetObject.transform.parent.GetComponent<NetworkObject>().NetworkObjectId);
+                        GetComponent<PlayerUI>().DisplayStorageManagementMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     else
-                        GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.transform.parent.GetComponent<NetworkObject>().NetworkObjectId);
+                        GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                 else
                 {
                     if (isPrimaryInteraction)
+                        GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                    else
                     {
                         int amountToSell = Mathf.Min(storage.MaxSupply.Value - storage.CurrentSupply.Value, playerData.OwnedMaterials[(int)storage.StoredMaterial.Value].amount); //We cannot sell more than storage can hold
                         storage.SellMaterialsServerRpc(playerId, amountToSell);
                     }
-                    else
-                        GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.transform.parent.GetComponent<NetworkObject>().NetworkObjectId);
                 }
+                break;
+            case "Unbuilt":
+                if (!isPrimaryInteraction)
+                {
+                    GetComponent<PlayerUI>().DisplayMaterialDeliveryPanelClientRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                    return;
+                }
+                Dictionary<PlayerData.RawMaterial, int> amountOfPlayerMaterials = new();
+                Dictionary<PlayerData.RawMaterial, int> amountOfNeededMaterials = new();
+                unbuiltBuilding = targetObject.GetComponent<UnbuiltBuilding>();
+
+                foreach (PlayerData.MaterialData ownedMaterial in playerData.OwnedMaterials)
+                    amountOfPlayerMaterials.Add(ownedMaterial.materialType, ownedMaterial.amount);
+                foreach (PlayerData.MaterialData neededMaterial in unbuiltBuilding.NeededMaterials)
+                    amountOfNeededMaterials.Add(neededMaterial.materialType, neededMaterial.maxAmount - neededMaterial.amount);
+
+                foreach (PlayerData.RawMaterial rawMaterial in Enum.GetValues(typeof(PlayerData.RawMaterial)))
+                {
+                    if (!amountOfNeededMaterials.ContainsKey(rawMaterial))
+                        continue;
+                    int amountToDeliver = Mathf.Min(amountOfNeededMaterials[rawMaterial], amountOfPlayerMaterials[rawMaterial]);
+                    if (amountToDeliver == 0)
+                        continue;
+                    playerData.ChangeAmountOfMaterial(rawMaterial, -amountToDeliver);
+                    unbuiltBuilding.DeliverMaterialsServerRpc(rawMaterial, amountToDeliver);
+                }
+
                 break;
             case "BerryBush":
                 BerryBush berryBush = targetObject.GetComponent<BerryBush>();
@@ -303,27 +354,6 @@ public class ObjectInteraction : NetworkBehaviour
                 }
                 break;
 
-        }
-        if (!isPrimaryInteraction)
-            return;
-        //if is not looking at interactive object, check if has interactible item in hand
-        float itemTierValueMultiplier = itemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
-        switch (playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType)
-        {
-            case ItemData.ItemType.Medkit:
-                int baseMedkitHealhValue = 30;
-                int medkitHealhValue = Convert.ToInt16(baseMedkitHealhValue * itemTierValueMultiplier);
-                playerData.ChangeHealth(medkitHealhValue);
-                playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
-                ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
-                break;
-            case ItemData.ItemType.Food:
-                int baseFoodHungerValue = 30;
-                int foodHungerValue = Convert.ToInt16(baseFoodHungerValue * itemTierValueMultiplier);
-                playerData.ChangeHunger(foodHungerValue);
-                playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
-                ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
-                break;
         }
     }
 
@@ -470,6 +500,12 @@ public class ObjectInteraction : NetworkBehaviour
     void InvokeOnPunchEventOwnerRpc(float maximumCooldownValue)
     {
         OnPunch.Invoke(maximumCooldownValue); //cooldown float is 0, because it is invoked on owner, to play animations so it doesn't matter
+    }
+
+    [Rpc(SendTo.Owner)]
+    public void ToggleCanInteractOwnerRpc(bool canInteractValue)
+    {
+        canInteract = canInteractValue;
     }
 
     IEnumerator DeacreaseCooldown()

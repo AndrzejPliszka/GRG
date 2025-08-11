@@ -12,8 +12,9 @@ public class Storage : NetworkBehaviour
     [SerializeField] GameObject storedMaterialObject;
     [SerializeField] float maximumMaterialLevel;
     [SerializeField] float yOffset = -0.25f;
+    float yOriginalPosition;
 
-    public NetworkVariable<ulong> OwnerId { get; private set; } = new(0); //Netcode player id, not object id
+    public NetworkVariable<ulong> OwnerId = new(0); //Netcode player id, not object id
     [field: SerializeField] public NetworkVariable<PlayerData.RawMaterial> StoredMaterial { get; private set; }
     public NetworkVariable<int> CurrentSupply { get; private set; } = new();
     [field: SerializeField] public NetworkVariable<int> MaxSupply { get; private set; } = new();
@@ -22,6 +23,7 @@ public class Storage : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
+        yOriginalPosition = storedMaterialObject.transform.position.y;
         ChangeLevelOfMaterial(CurrentSupply.Value, MaxSupply.Value);
         CurrentSupply.OnValueChanged += (int oldValue, int value) =>
         {
@@ -35,16 +37,14 @@ public class Storage : NetworkBehaviour
             if (townId >= 0 && IsServer)
                 GameManager.Instance.ChangeMaxMaterialAmount(townId, StoredMaterial.Value, value);
         };
-        if(IsServer && !IsHost)
-        {
-            OwnerId.Value = 1;
-        }
+        if(OwnerId.Value == 0 && IsServer && !IsHost)
+            OwnerId.Value = NetworkManager.Singleton.LocalClientId; //Set owner to local client if it is server and owner is not set yet
     }
 
     public void ChangeLevelOfMaterial(int currentSupply, int maxSupply)
     {
         storedMaterialObject.transform.position = new Vector3(
-            storedMaterialObject.transform.position.x, (1.0f * currentSupply / maxSupply) * maximumMaterialLevel + yOffset, storedMaterialObject.transform.position.z); //multiplying times 1.0f to avoid integer devision and always getting 0
+            storedMaterialObject.transform.position.x, yOriginalPosition + (1.0f * currentSupply / maxSupply) * maximumMaterialLevel + yOffset, storedMaterialObject.transform.position.z); //multiplying times 1.0f to avoid integer devision and always getting 0
     }
 
     //Change this function to just deny selling more materials then it can hold
@@ -85,7 +85,7 @@ public class Storage : NetworkBehaviour
             }
             
 
-            if (ownerData.Money.Value >= (amountOfMaterials * SellingPrice.Value) &&
+            if (!isSellerOwner && ownerData.Money.Value >= (amountOfMaterials * SellingPrice.Value) &&
                 amountOfMaterials <= MaxSupply.Value - CurrentSupply.Value &&
                 sellerData.OwnedMaterials[(int)StoredMaterial.Value].amount >= amountOfMaterials)
             {

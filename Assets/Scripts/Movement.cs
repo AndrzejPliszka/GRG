@@ -29,6 +29,8 @@ public class Movement : NetworkBehaviour
     public bool IsGrounded {get; private set;} //getter-setter, because animator needs this to be public, but we want this readonly beyond this script
     public bool IsRunning { get; private set; }
     public NetworkVariable<bool> IsSitting { get; private set; } = new(false);//network variable because it is set on server, but client also needs to know if sitting (for localCharacterModel)
+
+    public NetworkVariable<bool> BlockMovement;//Used for blocking movement without blocking rotation and changing animation
     [field: SerializeField] public GameObject LocalPlayerModel { get; private set; } // Client-side predicted player model
     CharacterController localCharacterController; //and his characterController
 
@@ -141,7 +143,7 @@ public class Movement : NetworkBehaviour
     //Function moving local player and sending keyboard inputs to server
     private void HandleMovement()
     {
-        if(menuManager.isGamePaused || IsSitting.Value) { return; }
+        if(menuManager.isGamePaused || IsSitting.Value || BlockMovement.Value) { return; }
         // get input
         float moveX = Input.GetAxis("Vertical");
         float moveZ = Input.GetAxis("Horizontal");
@@ -203,7 +205,7 @@ public class Movement : NetworkBehaviour
         {
             currentVelocity = yVelocityOnGround; //small negative value so it is always attracted to ground (and ensures that characterController.isOnGround works fine)
         }
-        if (didTryJump && IsGrounded)
+        if (didTryJump && IsGrounded && !BlockMovement.Value)
         {
             currentVelocity = Mathf.Sqrt(jumpHeight * gravity);
         }

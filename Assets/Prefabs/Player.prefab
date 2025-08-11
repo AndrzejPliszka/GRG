@@ -470,6 +470,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2c337f0ecaf963e4687ac9119dc6ece2, type: 3}
       insertIndex: -1
       addedObject: {fileID: -4474917444775403215}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2c337f0ecaf963e4687ac9119dc6ece2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5083968022490927469}
   m_SourcePrefab: {fileID: 100100000, guid: 2c337f0ecaf963e4687ac9119dc6ece2, type: 3}
 --- !u!1 &953330064948741707 stripped
 GameObject:
@@ -585,14 +588,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  speed: 5
-  runningModifier: 2
+  speed: 4
+  runningModifier: 1.8
   sensitivity: 5
   reconciliationThreshold: 0
   <CameraOffset>k__BackingField: {x: 0, y: 0.9, z: 0.2}
   <StartingPosition>k__BackingField: {x: 0, y: 4, z: 0}
   jumpHeight: 2
   renderOrginalModel: 0
+  BlockMovement:
+    m_InternalValue: 0
   <LocalPlayerModel>k__BackingField: {fileID: 8358753617669304881, guid: 45e64867a200de64da4466d730401970, type: 3}
   blockRotation: 0
 --- !u!114 &2942115579187965474
@@ -696,6 +701,7 @@ MonoBehaviour:
   itemTierData: {fileID: 11400000, guid: e6c211ddcaf602045b55cbfd0c77ed64, type: 2}
   storageTradePanel: {fileID: 5019946015599092760, guid: 23ccfc9de3f301044842ff361d818b95, type: 3}
   storageManagmentPanel: {fileID: 5019946015599092760, guid: a1ce43178c8ae3a42b2bad09f5e65c0a, type: 3}
+  materialDeliveryToUnbuiltBuildingPanel: {fileID: 5019946015599092760, guid: 273e446d722f9164f8c2f06094446c22, type: 3}
 --- !u!114 &4720389694948923985
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -810,6 +816,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &5083968022490927469
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 953330064948741707}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba536e87a6d8b7346819c4aa854d2ba8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  buildingData: {fileID: 11400000, guid: 7cb970432d820b549934d170b85a1dcb, type: 2}
+  correctGhostObjectMaterial: {fileID: 2100000, guid: 119037884cee4c44b840cfa87d3c1999, type: 2}
+  wrongPlacementGhostObjectMaterial: {fileID: 2100000, guid: 48ef98ff63b08934697423e53f67cf21, type: 2}
 --- !u!95 &5805444332957058699 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 2c337f0ecaf963e4687ac9119dc6ece2, type: 3}
