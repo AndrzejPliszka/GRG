@@ -6,6 +6,7 @@ using NUnit.Framework;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Netcode;
+using UnityEditor.PackageManager;
 using UnityEngine;
 using static ItemData;
 
@@ -438,5 +439,18 @@ public class PlayerData : NetworkBehaviour
         if (playerMovement)
             playerMovement.TeleportPlayerToPosition(playerMovement.StartingPosition);
         IsInJail.Value = false;
+    }
+
+
+    public static FixedString32Bytes GetNicknameOfPlayer(ulong playerId)
+    {
+        if (NetworkManager.Singleton.ConnectedClients.TryGetValue(playerId, out var networkClient))
+        {
+            return networkClient.PlayerObject.GetComponent<PlayerData>().Nickname.Value;
+        }
+        else
+        {
+            return null;
+        }
     }
 }

@@ -24,14 +24,14 @@ public class BuildModeController : NetworkBehaviour
             {
                 _currentBuildingType = value;
                 subtypeStructureLength = buildingData.GetDataOfBuildingType(value).baseObjects.Count();
-                currentBuildingSubtype = 0;
-                OnSelectedBuildingChanged.Invoke(_currentBuildingType, buildingData.GetDataOfBuildingType(value).subtypeNames[currentBuildingSubtype]);
+                CurrentBuildingSubtype = Mathf.Clamp(CurrentBuildingSubtype, 0, subtypeStructureLength-1);
+                OnSelectedBuildingChanged.Invoke(_currentBuildingType, buildingData.GetDataOfBuildingType(value).subtypeNames[CurrentBuildingSubtype]);
             }
         }
     }
     Vector3 objectPosition;
     Quaternion objectRotation;
-    public int currentBuildingSubtype { get; private set; } = 0;
+    public int CurrentBuildingSubtype { get; private set; } = 0;
     int subtypeStructureLength;
     readonly float buildingDistance = 10f;
     readonly float rotateSpeed = 2f;
@@ -54,17 +54,16 @@ public class BuildModeController : NetworkBehaviour
             ToggleBuildModeServerRpc();
         }
 
-        if (IsBuildModeActive.Value && Input.GetKey(KeyCode.A))
-            RotateGhostObject(false);
-        else if(IsBuildModeActive.Value && Input.GetKey(KeyCode.D))
+        if(IsBuildModeActive.Value && Input.GetKey(KeyCode.R))
             RotateGhostObject(true);
 
-        if (IsBuildModeActive.Value && Input.GetKeyDown(KeyCode.W))
+
+        if (IsBuildModeActive.Value && Input.GetAxis("Mouse ScrollWheel") > 0)
         {
             ChangeBuildingType(true);
             SpawnGhostObject();
         }
-        else if (IsBuildModeActive.Value && Input.GetKeyUp(KeyCode.S))
+        else if (IsBuildModeActive.Value && Input.GetAxis("Mouse ScrollWheel") < 0)
         {
             ChangeBuildingType(false);
             SpawnGhostObject();
@@ -77,7 +76,7 @@ public class BuildModeController : NetworkBehaviour
         }
 
         if (IsBuildModeActive.Value && Input.GetMouseButtonDown(0) && isPlacedCorrectly)
-            PlaceObjectServerRpc(NetworkManager.Singleton.LocalClientId, objectPosition, objectRotation, CurrentBuildingType, currentBuildingSubtype);
+            PlaceObjectServerRpc(NetworkManager.Singleton.LocalClientId, objectPosition, objectRotation, CurrentBuildingType, CurrentBuildingSubtype);
 
         if (IsBuildModeActive.Value)
         {
@@ -103,10 +102,10 @@ public class BuildModeController : NetworkBehaviour
         GameObject spawnedObject = Instantiate(buildingToSpawn.baseObjects[currentBuildingSubtype], objectPosition, objectRotation);
 
         spawnedObject.GetComponent<NetworkObject>().Spawn();
-        if(spawnedObject.CompareTag("Storage"))
-        {
-            spawnedObject.GetComponent<Storage>().OwnerId.Value = playerId;
-        }
+        if (spawnedObject.GetComponent<UnbuiltBuilding>() == null)
+            return;
+        spawnedObject.GetComponent<UnbuiltBuilding>().OwnerId.Value = playerId;
+        spawnedObject.GetComponent<UnbuiltBuilding>().ObjectStringDescription.Value = $"{buildingData.GetDataOfBuildingType(building).subtypeNames[currentBuildingSubtype]} {building}";
     }
 
     void RotateGhostObject(bool rotateRight)
@@ -118,35 +117,41 @@ public class BuildModeController : NetworkBehaviour
         objectRotation = ghostObject.transform.rotation;
     }
 
+    static public BuildingData.BuildingType GetAdjacentBuildingType(bool returnNext, BuildingData.BuildingType buildingType)
+    {
+        if (returnNext)
+            if (Enum.IsDefined(typeof(BuildingData.BuildingType), buildingType + 1))
+                return buildingType + 1;
+            else
+                return 0;
+        else
+            if (Enum.IsDefined(typeof(BuildingData.BuildingType), buildingType - 1))
+            return buildingType - 1;
+        else
+            //We are at the beggining of the enum, so when we decrease we go to the last element
+            return (BuildingData.BuildingType)Array.IndexOf(Enum.GetValues(typeof(BuildingData.BuildingType)), Enum.GetValues(typeof(BuildingData.BuildingType)).Cast<BuildingData.BuildingType>().Max());
+    }
+
     void ChangeBuildingType(bool increment)
     {
-        if (increment)
-            if (Enum.IsDefined(typeof(BuildingData.BuildingType), CurrentBuildingType+1))
-                CurrentBuildingType++;
-            else
-                CurrentBuildingType = 0;
-        else
-            if (Enum.IsDefined(typeof(BuildingData.BuildingType), CurrentBuildingType-1))
-                CurrentBuildingType--;
-            else
-                //We are at the beggining of the enum, so when we decrease we go to the last element
-                CurrentBuildingType = (BuildingData.BuildingType)Array.IndexOf(Enum.GetValues(typeof(BuildingData.BuildingType)), Enum.GetValues(typeof(BuildingData.BuildingType)).Cast<BuildingData.BuildingType>().Max());
+        BuildingData.BuildingType buildingToChangeInto = GetAdjacentBuildingType(increment, CurrentBuildingType);
+        CurrentBuildingType = buildingToChangeInto;
     }
 
     void ChangeBuildingSubtype(bool increment)
     {
         if (increment)
-            if (currentBuildingSubtype + 1 < subtypeStructureLength)
-                currentBuildingSubtype++;
+            if (CurrentBuildingSubtype + 1 < subtypeStructureLength)
+                CurrentBuildingSubtype++;
             else
-                currentBuildingSubtype = 0;
+                CurrentBuildingSubtype = 0;
         else
-            if (currentBuildingSubtype - 1 >= 0)
-            currentBuildingSubtype--;
+            if (CurrentBuildingSubtype - 1 >= 0)
+            CurrentBuildingSubtype--;
         else
             //We are at the beggining of the enum, so when we decrease we go to the last element
-            currentBuildingSubtype = subtypeStructureLength - 1;
-        OnSelectedBuildingChanged.Invoke(CurrentBuildingType, buildingData.GetDataOfBuildingType(CurrentBuildingType).subtypeNames[currentBuildingSubtype]);
+            CurrentBuildingSubtype = subtypeStructureLength - 1;
+        OnSelectedBuildingChanged.Invoke(CurrentBuildingType, buildingData.GetDataOfBuildingType(CurrentBuildingType).subtypeNames[CurrentBuildingSubtype]);
 
     }
 
@@ -244,15 +249,11 @@ public class BuildModeController : NetworkBehaviour
 
         if (IsBuildModeActive.Value)
         {
-            if (playerMovement != null)
-                playerMovement.BlockMovement.Value = true;
             if (objectInteraction != null)
                 objectInteraction.ToggleCanInteractOwnerRpc(false);
         }
         else
         {
-            if (playerMovement != null)
-                playerMovement.BlockMovement.Value = false;
             if (objectInteraction != null)
                 objectInteraction.ToggleCanInteractOwnerRpc(true);
         }

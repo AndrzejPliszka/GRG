@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Linq;
 using static UnityEngine.GraphicsBuffer;
+using Unity.Collections;
 
 public class UnbuiltBuilding : NetworkBehaviour
 {
@@ -14,8 +15,9 @@ public class UnbuiltBuilding : NetworkBehaviour
     [SerializeField] GameObject buildingToBuild;
     [SerializeField] GameObject singularMaterialDataInfo;
     [SerializeField] RawMaterialData rawMaterialData;
+    public NetworkVariable<FixedString32Bytes> ObjectStringDescription = new("");
     readonly float panelWidth = 1.0f;
-    List<GameObject> buildingParts = new();
+    readonly List<GameObject> buildingParts = new();
 
     public override void OnNetworkSpawn()
     {
@@ -154,6 +156,16 @@ public class UnbuiltBuilding : NetworkBehaviour
         }
     }
 
+    public bool IsCompletelyUnbuilt()
+    {
+        bool isCompletelyUnbuilt = true;
+        foreach (var material in NeededMaterials)
+        {
+            if(material.amount != 0)
+                isCompletelyUnbuilt = false;
+        }
+        return isCompletelyUnbuilt;
+    }
 
     bool TryBuildBuilding()
     {

@@ -24,6 +24,7 @@ public class PlayerUI : NetworkBehaviour
 
     [SerializeField] ItemTypeData itemTypeData;
     [SerializeField] ItemTierData itemTierData;
+    [SerializeField] BuildingData buildingData;
 
     [SerializeField] GameObject storageTradePanel;
     [SerializeField] GameObject storageManagmentPanel;
@@ -45,6 +46,9 @@ public class PlayerUI : NetworkBehaviour
     Image hitmark;
     Image cooldownMarker;
     Image micActivityIcon;
+    Image mainBuildingSlot;
+    Image previousBuildingSlot;
+    Image nextBuildingSlot;
     Slider hungerBar;
     Slider healthBar;
     Slider progressBar;
@@ -52,6 +56,7 @@ public class PlayerUI : NetworkBehaviour
     readonly List<GameObject> inventorySlots = new();
     Coroutine progressBarCoroutine;
 
+    GameObject inventorySlotsContainer;
     PlayerData playerData;
     Transform playerUI;
     bool isPlayerSelling = true; //Used in storage trade menu, global so it saves between menus, change name when more menus are added
@@ -80,12 +85,16 @@ public class PlayerUI : NetworkBehaviour
         cooldownMarker = GameObject.Find("CooldownMarker").GetComponent<Image>();
         micActivityIcon = GameObject.Find("MicActivityIcon").GetComponent<Image>();
 
+        mainBuildingSlot = GameObject.Find("SelectedBuildingSlot").transform.GetChild(0).GetComponent<Image>();
+        previousBuildingSlot = GameObject.Find("PreviousBuildingSlot").transform.GetChild(0).GetComponent<Image>();
+        nextBuildingSlot = GameObject.Find("NextBuildingSlot").transform.GetChild(0).GetComponent<Image>();
+
         hungerBar = GameObject.Find("HungerBar").GetComponent<Slider>();
         healthBar = GameObject.Find("HealthBar").GetComponent<Slider>();
 
         errorText.enabled = false; //We do this so DisplayError() works (see function)
 
-        GameObject inventorySlotsContainer = GameObject.Find("InventorySlots");
+        inventorySlotsContainer = GameObject.Find("InventorySlots");
         for (int i = 0; i < inventorySlotsContainer.transform.childCount; i++) {
             inventorySlots.Add(inventorySlotsContainer.transform.GetChild(i).gameObject);
         }
@@ -177,7 +186,10 @@ public class PlayerUI : NetworkBehaviour
             return;
         }
         if (objectInteraction && objectInteraction.canInteract == false)
+        {
+            centerText.text = "";
             return;
+        }
         //declare these here to avoid scope issues
         Shop shopScript;
         BreakableStructure breakableStructure;
@@ -225,7 +237,7 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "Storage":
                 storage = targetObject.GetComponent<Storage>();
-                centerText.text = $"{storage.StoredMaterial.Value} Supply:\n{storage.CurrentSupply.Value}/{storage.MaxSupply.Value}";
+                centerText.text = $"{PlayerData.GetNicknameOfPlayer(storage.OwnerId.Value)}'s\n{storage.StoredMaterial.Value} Storage:\n{storage.CurrentSupply.Value}/{storage.MaxSupply.Value}";
                 break;
             case "Money":
                 moneyObject = targetObject.GetComponent<MoneyObject>();
@@ -277,7 +289,7 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "Unbuilt":
                 unbuiltBuilding = targetObject.GetComponent<UnbuiltBuilding>();
-                centerText.text = "Unfinished Building";
+                centerText.text = $"{PlayerData.GetNicknameOfPlayer(unbuiltBuilding.OwnerId.Value)}'s \n Unfinished {unbuiltBuilding.ObjectStringDescription.Value}";
                 break;
         }
         ;
@@ -289,18 +301,15 @@ public class PlayerUI : NetworkBehaviour
         ReplaceTextWithLineStartingWith(tooltipText, "F", "");
         ReplaceTextWithLineStartingWith(tooltipText, "E", "");
         ReplaceTextWithLineStartingWith(tooltipText, "Click", "");
+        ReplaceTextWithLineStartingWith(tooltipText, "Scroll", "");
         ReplaceTextWithLineStartingWith(tooltipText, "T", "");
-        ReplaceTextWithLineStartingWith(tooltipText, "W", "");
-        ReplaceTextWithLineStartingWith(tooltipText, "S", "");
-        ReplaceTextWithLineStartingWith(tooltipText, "A", "");
-        ReplaceTextWithLineStartingWith(tooltipText, "D", "");
-
+        ReplaceTextWithLineStartingWith(tooltipText, "R", "");
+        ReplaceTextWithLineStartingWith(tooltipText, "X", "");
         if (buildMode.IsBuildModeActive.Value)
         {
-            ReplaceTextWithLineStartingWith(tooltipText, "W", "W - Next Building");
-            ReplaceTextWithLineStartingWith(tooltipText, "S", "S - Previous Building");
-            ReplaceTextWithLineStartingWith(tooltipText, "A", "A - Rotate Right");
-            ReplaceTextWithLineStartingWith(tooltipText, "D", "D - Rotate Left");
+            ReplaceTextWithLineStartingWith(tooltipText, "Scroll", "Scroll - Change Building");
+            ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Place Building");
+            ReplaceTextWithLineStartingWith(tooltipText, "R", "R - Rotate Building");
             ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Change Subtype");
             ReplaceTextWithLineStartingWith(tooltipText, "B", "B - Disable Build Mode");
         }
@@ -355,6 +364,11 @@ public class PlayerUI : NetworkBehaviour
                 case "MaterialObject":
                     ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
                     break;
+                case "Unbuilt":
+                    UnbuiltBuilding building = lookedAtObject.GetComponent<UnbuiltBuilding>();
+                    if(building.OwnerId.Value == NetworkManager.Singleton.LocalClientId && building.IsCompletelyUnbuilt())
+                        ReplaceTextWithLineStartingWith(tooltipText, "X", "X - Delete building");
+                    break;
                 default:
                     break;
 
@@ -377,18 +391,28 @@ public class PlayerUI : NetworkBehaviour
             return;
         if (isBuildMenuActive)
         {
+            inventorySlotsContainer.SetActive(false);
             buildMenu.gameObject.SetActive(true);
-            buildMode.OnSelectedBuildingChanged += UpdateSelectedBuildingText;
+            buildMode.OnSelectedBuildingChanged += UpdateSelectedBuilding;
         }
         else
         {
+            inventorySlotsContainer.SetActive(true);
             buildMenu.gameObject.SetActive(false);
-            buildMode.OnSelectedBuildingChanged -= UpdateSelectedBuildingText;
+            buildMode.OnSelectedBuildingChanged -= UpdateSelectedBuilding;
         }
     }
-    void UpdateSelectedBuildingText(BuildingData.BuildingType buildingType, string subtype)
+    void UpdateSelectedBuilding(BuildingData.BuildingType buildingType, string subtype)
     {
+        mainBuildingSlot.sprite = buildingData.GetDataOfBuildingType(buildingType).buildingSprite;
+        BuildingData.BuildingType previousBuilding = BuildModeController.GetAdjacentBuildingType(false, buildingType);
+        previousBuildingSlot.sprite = buildingData.GetDataOfBuildingType(previousBuilding).buildingSprite;
+        BuildingData.BuildingType nextBuilding = BuildModeController.GetAdjacentBuildingType(true, buildingType);
+        nextBuildingSlot.sprite = buildingData.GetDataOfBuildingType(nextBuilding).buildingSprite;
+
         selectedBuildingText.text = subtype + " " + buildingType.ToString();
+
+
     }
     //Used so tooltips can be dynamic
     void ReplaceTextWithLineStartingWith(TMP_Text text, string startingCharacters, string replacement)

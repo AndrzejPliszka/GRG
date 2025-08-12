@@ -55,7 +55,10 @@ public class ObjectInteraction : NetworkBehaviour
         if (Input.GetKeyDown(KeyCode.E)) //E is interaction key
             InteractWithObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId, true);
 
-        if (Input.GetKeyDown(KeyCode.F)) //E is interaction key
+        if (Input.GetKeyDown(KeyCode.X)) //X is disabling/destroying key
+            DisableObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId);
+
+        if (Input.GetKeyDown(KeyCode.F)) //F is secondary interaction key
             InteractWithObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId, false);
 
         if (Input.GetKeyDown(KeyCode.T)) //T is dropping items key
@@ -115,9 +118,9 @@ public class ObjectInteraction : NetworkBehaviour
         Debug.DrawRay(cameraPosition, rayDirection * 100f, Color.red, 0.01f);
         LayerMask layersToDetect;
         if (timeWhenHit != 0)
-            layersToDetect = ~LayerMask.GetMask("UnsyncedObject", "LocalObject"); //when timeWhenHit is specified, then it is on server so, do not check unsynced player side object
+            layersToDetect = ~LayerMask.GetMask("UnsyncedObject", "LocalObject", "Ignore Raycast"); //when timeWhenHit is specified, then it is on server so, do not check unsynced player side object
         else
-            layersToDetect = ~LayerMask.GetMask("LocalObject"); //else it is probably executed on client (and even if not if timeWhenHit is not specified we dont probably care so much about accuracy), so we can detect everything (except localPlayerModel)
+            layersToDetect = ~LayerMask.GetMask("LocalObject", "Ignore Raycast"); //else it is probably executed on client (and even if not if timeWhenHit is not specified we dont probably care so much about accuracy), so we can detect everything (except localPlayerModel)
 
         RaycastHit[] hits = new RaycastHit[10]; //LIMITATION: if looking at more than 10 things it can interact with NOT the first thing in front of camera! (it is becuse hits in raycastNonAlloc needs to be array and arrays have fixed length)
         int numberOfHits = Physics.RaycastNonAlloc(ray, hits, 10, layersToDetect);
@@ -186,6 +189,24 @@ public class ObjectInteraction : NetworkBehaviour
         GameObject heldItem = Instantiate(itemTypeData.GetDataOfItemType(itemToHold.itemType).holdedItemPrefab, parentObject);
         ItemData.RetextureItem(heldItem, itemToHold.itemTier, itemTierData);
         heldItem.name = "HeldItem"; 
+    }
+
+    //Function in which there is functionality that works when you press X on object, consistantly it should be disabling or destroying something
+    [Rpc(SendTo.Server)]
+    void DisableObjectServerRpc(float cameraXRotation, ulong playerId)
+    {
+        GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
+        switch (targetObject.tag)
+        {
+            case "Unbuilt":
+                UnbuiltBuilding building = targetObject.GetComponent<UnbuiltBuilding>();
+                if (playerId == building.OwnerId.Value && building.IsCompletelyUnbuilt())
+                {
+                    Destroy(building.gameObject);
+                }
+                break;
+
+        }
     }
 
     //This function will detect what object is in front of you and interact with this object (it takes cameraXRotation which is in euler angles form) 

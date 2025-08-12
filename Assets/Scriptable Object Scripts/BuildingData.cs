@@ -27,6 +27,7 @@ public class BuildingData : ScriptableObject
         public List<string> subtypeNames;
         public List<GameObject> baseObjects; //should be in order of subtypeNames
         public GameObject buildingModeObject;
+        public Sprite buildingSprite;
     }
 
     public List<Building> buildingDataList = new();
