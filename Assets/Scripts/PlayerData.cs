@@ -4,11 +4,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using NUnit.Framework;
 using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
 using Unity.Netcode;
-using UnityEditor.PackageManager;
 using UnityEngine;
-using static ItemData;
 
 public class PlayerData : NetworkBehaviour
 {

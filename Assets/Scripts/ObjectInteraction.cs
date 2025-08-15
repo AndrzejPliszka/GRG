@@ -319,14 +319,24 @@ public class ObjectInteraction : NetworkBehaviour
                 }
                 break;
             case "Unbuilt":
-                if (!isPrimaryInteraction)
+                unbuiltBuilding = targetObject.GetComponent<UnbuiltBuilding>();
+                if (unbuiltBuilding.OwnerId.Value == playerId)
+                {
+                    if(isPrimaryInteraction)
+                        GetComponent<PlayerUI>().DisplayDeliveryPricesManagmentPanelOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                    else
+                        GetComponent<PlayerUI>().DisplayMaterialDeliveryPanelClientRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                    return;
+                }
+                //This part of code is executed only when is no owner
+
+                if (isPrimaryInteraction)
                 {
                     GetComponent<PlayerUI>().DisplayMaterialDeliveryPanelClientRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     return;
                 }
                 Dictionary<PlayerData.RawMaterial, int> amountOfPlayerMaterials = new();
                 Dictionary<PlayerData.RawMaterial, int> amountOfNeededMaterials = new();
-                unbuiltBuilding = targetObject.GetComponent<UnbuiltBuilding>();
 
                 foreach (PlayerData.MaterialData ownedMaterial in playerData.OwnedMaterials)
                     amountOfPlayerMaterials.Add(ownedMaterial.materialType, ownedMaterial.amount);
@@ -340,10 +350,8 @@ public class ObjectInteraction : NetworkBehaviour
                     int amountToDeliver = Mathf.Min(amountOfNeededMaterials[rawMaterial], amountOfPlayerMaterials[rawMaterial]);
                     if (amountToDeliver == 0)
                         continue;
-                    playerData.ChangeAmountOfMaterial(rawMaterial, -amountToDeliver);
-                    unbuiltBuilding.DeliverMaterialsServerRpc(rawMaterial, amountToDeliver);
+                    unbuiltBuilding.DeliverMaterialsServerRpc(rawMaterial, amountToDeliver, playerId);
                 }
-
                 break;
             case "BerryBush":
                 BerryBush berryBush = targetObject.GetComponent<BerryBush>();

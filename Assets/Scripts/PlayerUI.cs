@@ -9,7 +9,6 @@ using Unity.Netcode;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.Windows;
 using static ItemData;
 [RequireComponent(typeof(PlayerData))]
 [RequireComponent(typeof(ObjectInteraction))] //this is because we will use function that says what are we looking at
@@ -30,6 +29,7 @@ public class PlayerUI : NetworkBehaviour
     [SerializeField] GameObject storageManagmentPanel;
 
     [SerializeField] GameObject materialDeliveryToUnbuiltBuildingPanel;
+    [SerializeField] GameObject materialDeliveryPaymentManagmentPanel;
 
     TMP_Text centerText;
     TMP_Text errorText;
@@ -85,10 +85,6 @@ public class PlayerUI : NetworkBehaviour
         cooldownMarker = GameObject.Find("CooldownMarker").GetComponent<Image>();
         micActivityIcon = GameObject.Find("MicActivityIcon").GetComponent<Image>();
 
-        mainBuildingSlot = GameObject.Find("SelectedBuildingSlot").transform.GetChild(0).GetComponent<Image>();
-        previousBuildingSlot = GameObject.Find("PreviousBuildingSlot").transform.GetChild(0).GetComponent<Image>();
-        nextBuildingSlot = GameObject.Find("NextBuildingSlot").transform.GetChild(0).GetComponent<Image>();
-
         hungerBar = GameObject.Find("HungerBar").GetComponent<Slider>();
         healthBar = GameObject.Find("HealthBar").GetComponent<Slider>();
 
@@ -101,6 +97,9 @@ public class PlayerUI : NetworkBehaviour
 
         if (IsOwner)
         {
+            mainBuildingSlot = GameObject.Find("SelectedBuildingSlot").transform.GetChild(0).GetComponent<Image>();
+            previousBuildingSlot = GameObject.Find("PreviousBuildingSlot").transform.GetChild(0).GetComponent<Image>();
+            nextBuildingSlot = GameObject.Find("NextBuildingSlot").transform.GetChild(0).GetComponent<Image>();
             progressBar = GameObject.Find("ProgressBar").GetComponent<Slider>();
             buildMenu = GameObject.Find("BuildUI").transform;
             selectedBuildingText = buildMenu.Find("SelectedBuildingText").GetComponent<TMP_Text>();
@@ -366,8 +365,18 @@ public class PlayerUI : NetworkBehaviour
                     break;
                 case "Unbuilt":
                     UnbuiltBuilding building = lookedAtObject.GetComponent<UnbuiltBuilding>();
-                    if(building.OwnerId.Value == NetworkManager.Singleton.LocalClientId && building.IsCompletelyUnbuilt())
-                        ReplaceTextWithLineStartingWith(tooltipText, "X", "X - Delete building");
+                    if(building.OwnerId.Value == NetworkManager.Singleton.LocalClientId)
+                    {
+                        if(building.IsCompletelyUnbuilt())
+                            ReplaceTextWithLineStartingWith(tooltipText, "X", "X - Delete building");
+                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Manage Construction");
+                        ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Open Delivery Menu");
+                    }
+                    else
+                    {
+                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Open Delivery Menu");
+                        ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Deliver All Materials");
+                    }
                     break;
                 default:
                     break;
@@ -760,6 +769,56 @@ public class PlayerUI : NetworkBehaviour
         StartCoroutine(CheckIfMenuGotDestroyed(storageMenu));
     }
 
+    [Rpc(SendTo.Owner)]
+    public void DisplayDeliveryPricesManagmentPanelOwnerRpc(ulong unbuiltBuildingId)
+    {
+        MakePanelInteractible();
+
+        UnbuiltBuilding targetBuilding = NetworkManager.SpawnManager.SpawnedObjects[unbuiltBuildingId].GetComponent<UnbuiltBuilding>();
+        GameObject materialDeliveryMenu = Instantiate(materialDeliveryPaymentManagmentPanel, playerUI);
+
+        TMP_Dropdown materialDropdown = materialDeliveryMenu.transform.Find("MaterialDropdown").GetComponent<TMP_Dropdown>();
+        TMP_InputField amountInputField = materialDeliveryMenu.transform.Find("PaymentInputField").GetComponent<TMP_InputField>();
+        Button confirmButton = materialDeliveryMenu.transform.Find("ConfirmButton").GetComponent<Button>();
+
+        List<string> options = new();
+        foreach (PlayerData.MaterialData material in targetBuilding.NeededMaterials)
+            if (material.amount < material.maxAmount)
+                options.Add(material.materialType.ToString());
+
+        materialDropdown.ClearOptions();
+        materialDropdown.AddOptions(options);
+
+        materialDropdown.onValueChanged.AddListener((int newValue) =>
+        {
+            PlayerData.RawMaterial material = (PlayerData.RawMaterial)Enum.Parse(typeof(PlayerData.RawMaterial), materialDropdown.options[newValue].text);
+            for(int i = 0; i < targetBuilding.NeededMaterials.Count; i++)
+            {
+                if (targetBuilding.NeededMaterials[i].materialType == material)
+                    amountInputField.placeholder.GetComponent<TMP_Text>().text = targetBuilding.MaterialPrices[i].ToString();
+            }
+            amountInputField.text = "";
+        });
+
+        amountInputField.onValueChanged.AddListener((string newAmount) =>
+        {
+            RoundInputFieldToTwoDecimalPlaces(amountInputField);
+        });
+
+        confirmButton.onClick.AddListener(() =>
+        {
+            if (amountInputField.text == "")
+                return;
+            PlayerData.RawMaterial rawMaterial = (PlayerData.RawMaterial)Enum.Parse(typeof(PlayerData.RawMaterial), materialDropdown.options[materialDropdown.value].text);
+            float newPrice = float.Parse(amountInputField.text);
+            amountInputField.placeholder.GetComponent<TMP_Text>().text = newPrice.ToString();
+            amountInputField.text = "";
+            targetBuilding.ChangePriceOfMaterialServerRpc(rawMaterial, newPrice);
+        });
+
+        StartCoroutine(CheckIfMenuGotDestroyed(materialDeliveryMenu));
+    }
+
 
     [Rpc(SendTo.Owner)]
     public void DisplayMaterialDeliveryPanelClientRpc(ulong unbuiltBuildingId)
@@ -772,7 +831,7 @@ public class PlayerUI : NetworkBehaviour
         TMP_Dropdown materialDropdown = materialDeliveryMenu.transform.Find("MaterialDropdown").GetComponent<TMP_Dropdown>();
         TMP_InputField amountInputField = materialDeliveryMenu.transform.Find("AmountInputField").GetComponent<TMP_InputField>();
         Button confirmButton = materialDeliveryMenu.transform.Find("ConfirmButton").GetComponent<Button>();
-
+        TMP_Text paymentInfoText = materialDeliveryMenu.transform.Find("PaymentTextBackground").transform.Find("PaymentText").GetComponent<TMP_Text>();
         List<string> options = new();
         foreach (PlayerData.MaterialData material in targetBuilding.NeededMaterials)
             if(material.amount < material.maxAmount)
@@ -796,15 +855,18 @@ public class PlayerUI : NetworkBehaviour
                 PlayerData.RawMaterial selectedMaterial = (PlayerData.RawMaterial)Enum.Parse(typeof(PlayerData.RawMaterial), materialDropdown.options[materialDropdown.value].text);
                 int inputFieldValue = ClampDeliverMaterialsPanelInputField(selectedMaterial, targetBuilding, value);
                 amountInputField.text = inputFieldValue.ToString();
+                //if is owner then always display 0, as he will never receive money
+                paymentInfoText.text = Regex.Replace(paymentInfoText.text, @"\d+", targetBuilding.OwnerId.Value == NetworkManager.Singleton.LocalClientId ? "0" : (targetBuilding.GetPriceOfMaterial(selectedMaterial) * inputFieldValue).ToString());
             }
         });
 
         confirmButton.onClick.AddListener(() =>
         {
+            if (amountInputField.text == "")
+                return;
             PlayerData.RawMaterial rawMaterial = (PlayerData.RawMaterial)Enum.Parse(typeof(PlayerData.RawMaterial), materialDropdown.options[materialDropdown.value].text);
             int amountToDeliver = Int16.Parse(amountInputField.text);
-            targetBuilding.DeliverMaterialsServerRpc(rawMaterial, amountToDeliver);
-            playerData.ChangeAmountOfMaterial(rawMaterial, -amountToDeliver);
+            targetBuilding.DeliverMaterialsServerRpc(rawMaterial, amountToDeliver, NetworkManager.Singleton.LocalClientId);
             int inputFieldText = ClampDeliverMaterialsPanelInputField(rawMaterial, targetBuilding, int.Parse(amountInputField.text));
             amountInputField.text = inputFieldText.ToString();
         });

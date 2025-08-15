@@ -703,6 +703,7 @@ MonoBehaviour:
   storageTradePanel: {fileID: 5019946015599092760, guid: 23ccfc9de3f301044842ff361d818b95, type: 3}
   storageManagmentPanel: {fileID: 5019946015599092760, guid: a1ce43178c8ae3a42b2bad09f5e65c0a, type: 3}
   materialDeliveryToUnbuiltBuildingPanel: {fileID: 5019946015599092760, guid: 273e446d722f9164f8c2f06094446c22, type: 3}
+  materialDeliveryPaymentManagmentPanel: {fileID: 5019946015599092760, guid: 2ec69cc8e1d0c4f4bbc276e80499e1ec, type: 3}
 --- !u!114 &4720389694948923985
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,17 +1,18 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.UI;
-using System.Linq;
-using static UnityEngine.GraphicsBuffer;
-using Unity.Collections;
+using UnityEngine.Rendering;
 
 public class UnbuiltBuilding : NetworkBehaviour
 {
     [SerializeField] List<PlayerData.MaterialData> _neededMaterials = new(); //maxAmount is materials needed, amount is materials already delivered
     public NetworkList<PlayerData.MaterialData> NeededMaterials { get;  private set; } = new(); //maxAmount is materials needed, amount is materials already delivered
     public NetworkVariable<ulong> OwnerId;
+    public NetworkList<float> MaterialPrices { get; private set; } = new(); //Materials in this list have same index as in NeededMaterials, so if you need a price, first find index of material in NeededMaterials and then use that index with this list
     [SerializeField] GameObject buildingToBuild;
     [SerializeField] GameObject singularMaterialDataInfo;
     [SerializeField] RawMaterialData rawMaterialData;
@@ -25,6 +26,7 @@ public class UnbuiltBuilding : NetworkBehaviour
         {
             foreach (PlayerData.MaterialData material in _neededMaterials) { 
                 NeededMaterials.Add(material);
+                MaterialPrices.Add(0f);
             }
         }
         Transform buildPartsParent = transform.Find("UnbuiltParts");
@@ -32,8 +34,12 @@ public class UnbuiltBuilding : NetworkBehaviour
         {
             buildingParts.Add(buildPartsParent.GetChild(i).gameObject);
         }
-        DisplayFinishedPartsEveryoneRpc();
+
+        DisplayFinishedParts(new NetworkListEvent<PlayerData.MaterialData>());
+        NeededMaterials.OnListChanged += DisplayFinishedParts;
+
         SetupNedeedMaterialUI();
+        NeededMaterials.OnListChanged += ModifyNeededMaterialAmountUI;
     }
     private void Update()
     {
@@ -64,13 +70,14 @@ public class UnbuiltBuilding : NetworkBehaviour
             TMP_Text materialAmount = materialInfo.transform.Find("AmountOfMaterial").GetComponent<TMP_Text>();
             SpriteRenderer materialSprite = materialInfo.transform.Find("MaterialTexture").GetComponent<SpriteRenderer>();
             PlayerData.MaterialData material = materialsToDisplay[i];
-            materialAmount.text = (material.maxAmount - material.amount).ToString();
+            materialAmount.text = (material.maxAmount - material.amount).ToString() + " P:" + MaterialPrices[i];
             materialSprite.sprite = rawMaterialData.GetMaterialObject(material.materialType).materialSprite;
             materialInfo.name = material.materialType.ToString();
         }
     }
 
-    void ModifyNeededMaterialAmountUI()
+    //Funtion has this argument, so it can be executed every time NeededMaterial changes
+    void ModifyNeededMaterialAmountUI(NetworkListEvent<PlayerData.MaterialData> _)
     {
         Transform materialsNeededPanel = transform.Find("MaterialsNeededPanel");
         for (int i = 0; i < NeededMaterials.Count; i++)
@@ -79,7 +86,7 @@ public class UnbuiltBuilding : NetworkBehaviour
             if (!materialPanel)
                 continue;
             TMP_Text materialAmount = materialPanel.Find("AmountOfMaterial").GetComponent<TMP_Text>();
-            materialAmount.text = (NeededMaterials[i].maxAmount - NeededMaterials[i].amount).ToString();
+            materialAmount.text = (NeededMaterials[i].maxAmount - NeededMaterials[i].amount).ToString() + " P:" + MaterialPrices[i];
         }
     }
 
@@ -107,33 +114,50 @@ public class UnbuiltBuilding : NetworkBehaviour
 
     //false if it method fails, but recommended to check manually if this method will fail
     [Rpc(SendTo.Server)]
-    public void DeliverMaterialsServerRpc(PlayerData.RawMaterial materialType, int amount)
+    public void DeliverMaterialsServerRpc(PlayerData.RawMaterial materialType, int amount, ulong deliveringPlayerId)
     {
         if (amount == 0)
             return;
-        for(int i = 0; i < NeededMaterials.Count; i++) {
-            var material = NeededMaterials[i];
-            if (material.materialType == materialType)
+
+        if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(OwnerId.Value, out var buildingOwner))
+            return;
+
+        if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(deliveringPlayerId, out var deliveringPlayer))
+            return;
+
+        if ((GetPriceOfMaterial(materialType) * amount <= buildingOwner.PlayerObject.GetComponent<PlayerData>().Money.Value || deliveringPlayerId == OwnerId.Value)
+            && deliveringPlayer.PlayerObject.GetComponent<PlayerData>().OwnedMaterials[(int)materialType].amount >= amount)
+        {
+            for (int i = 0; i < NeededMaterials.Count; i++)
             {
-                material.amount += amount;
-                if (material.amount > material.maxAmount)
-                    throw new System.Exception("If this was delivered, Amount would be greater than MaxAmount, reminder that validation is on your side, pal!");
-                NeededMaterials[i] = material;
-                if (material.amount == material.maxAmount) //We dont want to display material which has been fully delivered
+                var material = NeededMaterials[i];
+                if (material.materialType == materialType)
                 {
-                    ResetMaterialUI();
-                    bool didSucceed = TryBuildBuilding();
-                    if (didSucceed)
-                        return;
+                    material.amount += amount;
+                    if (material.amount > material.maxAmount)
+                        throw new System.Exception("If this was delivered, Amount would be greater than MaxAmount, reminder that validation is on your side, pal!");
+                    NeededMaterials[i] = material;
+                    deliveringPlayer.PlayerObject.GetComponent<PlayerData>().ChangeAmountOfMaterial(materialType, -amount);
+                    if (deliveringPlayerId != OwnerId.Value)
+                    {
+                        float pricePerUnit = GetPriceOfMaterial(materialType);
+                        deliveringPlayer.PlayerObject.GetComponent<PlayerData>().ChangeMoney(amount * pricePerUnit);
+                        buildingOwner.PlayerObject.GetComponent<PlayerData>().ChangeMoney(-amount * pricePerUnit);
+                    }
+                    if (material.amount == material.maxAmount) //We dont want to display material which has been fully delivered
+                    {
+                        ResetMaterialUI();
+                        bool didSucceed = TryBuildBuilding();
+                        if (didSucceed)
+                            return;
+                    }
                 }
             }
         }
-        ModifyNeededMaterialAmountUI();
-        DisplayFinishedPartsEveryoneRpc();
     }
 
-    [Rpc(SendTo.Everyone)]
-    public void DisplayFinishedPartsEveryoneRpc()
+    //Funtion has this argument, so it can be executed every time NeededMaterial changes
+    void DisplayFinishedParts(NetworkListEvent<PlayerData.MaterialData> _)
     {
         int amountOfNeededMaterials = 0;
         int amountOfDeliveredMaterials = 0;
@@ -156,6 +180,37 @@ public class UnbuiltBuilding : NetworkBehaviour
         }
     }
 
+    [Rpc(SendTo.Server)]
+    public void ChangePriceOfMaterialServerRpc(PlayerData.RawMaterial rawMaterial, float price)
+    {
+        //TODO: MAKE ANTICHEAT f.e. CHECK IF PLAYER CALLING THIS FUNCTION IS OWNER OF BUILDING etc.
+
+        for (int i = 0; i < NeededMaterials.Count; i++)
+        {
+            if (NeededMaterials[i].materialType == rawMaterial)
+                MaterialPrices[i] = (float)Mathf.Round(price * 100) / 100f;
+        }
+    }
+
+    public float GetPriceOfMaterial(PlayerData.RawMaterial rawMaterial)
+    {
+        for (int i = 0; i < NeededMaterials.Count; i++)
+        {
+            if (NeededMaterials[i].materialType == rawMaterial)
+                return MaterialPrices[i];
+        }
+        throw new System.Exception("Material of this type doesn't exist in this building");
+    }
+
+    public PlayerData.MaterialData GetMaterialDataOfMaterial(PlayerData.RawMaterial rawMaterial)
+    {
+        for (int i = 0; i < NeededMaterials.Count; i++)
+        {
+            if (NeededMaterials[i].materialType == rawMaterial)
+                return NeededMaterials[i];
+        }
+        throw new System.Exception("Material of this type doesn't exist in this building");
+    }
     public bool IsCompletelyUnbuilt()
     {
         bool isCompletelyUnbuilt = true;
