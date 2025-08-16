@@ -66,6 +66,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 060982c1663d9254e83574b39196173c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2348107281069265341}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 060982c1663d9254e83574b39196173c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6541428939285296418}
   m_SourcePrefab: {fileID: 100100000, guid: 060982c1663d9254e83574b39196173c, type: 3}
 --- !u!1 &485285212792236075 stripped
 GameObject:
@@ -125,3 +128,23 @@ MonoBehaviour:
     m_InternalValue: 0
   <MaxSupply>k__BackingField:
     m_InternalValue: 30
+--- !u!114 &6541428939285296418
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1475141186295774188}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0045f534312bba145948daf84d91e0d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  materialObjectData: {fileID: 11400000, guid: 18e85f7aab5a41d4f9eeb5d0d8cbe1db, type: 2}
+  MaximumHealth: 100
+  spawner: {fileID: 0}
+  land: {fileID: 0}
+  droppedMaterials: []
+  dropMaterialPositionSpawnVariance: 0.2
+  dropMaterialYOffset: 0.5

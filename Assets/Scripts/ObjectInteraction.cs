@@ -407,6 +407,7 @@ public class ObjectInteraction : NetworkBehaviour
         float itemTierValueMultiplier = itemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
         string targetObjectTag = targetObject.tag;
         int baseAttack = -20;
+        BreakableStructure breakableStructure;
         switch (targetObjectTag)
         {
             case "Player":
@@ -458,6 +459,32 @@ public class ObjectInteraction : NetworkBehaviour
                     break;
 
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
+                OnHittingSomething.Invoke(targetObject);
+                break;
+            case "Storage":
+                breakableStructure = targetObject.GetComponent<BreakableStructure>();
+                if (breakableStructure == null)
+                    break;
+
+                if (heldItem.itemType == ItemData.ItemType.Sword)
+                    baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
+                else
+                    break;
+
+                breakableStructure.ChangeHealth(baseAttack);
+                OnHittingSomething.Invoke(targetObject);
+                break;
+            case "Unbuilt":
+                breakableStructure = targetObject.GetComponent<BreakableStructure>();
+                if (breakableStructure == null  || !breakableStructure.enabled)
+                    break;
+
+                if (heldItem.itemType == ItemData.ItemType.Sword)
+                    baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
+                else
+                    break;
+
+                breakableStructure.ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;
             default: //here put all things that don't require punching at specific object

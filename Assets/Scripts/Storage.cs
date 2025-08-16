@@ -39,6 +39,8 @@ public class Storage : NetworkBehaviour
         };
         if(OwnerId.Value == 0 && IsServer && !IsHost)
             OwnerId.Value = NetworkManager.Singleton.LocalClientId; //Set owner to local client if it is server and owner is not set yet
+        if (IsServer)
+            CurrentSupply.OnValueChanged += AdjustDroppedItems;
     }
 
     public void ChangeLevelOfMaterial(int currentSupply, int maxSupply)
@@ -66,6 +68,28 @@ public class Storage : NetworkBehaviour
         }
         return true;
     }
+
+    void AdjustDroppedItems(int oldSupply, int newSupply)
+    {
+        if (!IsServer)
+            throw new System.Exception("Only server can change drop of items");
+        if (!TryGetComponent<BreakableStructure>(out var breakableStructure))
+            return;
+
+        for(int i = 0; i < breakableStructure.droppedMaterials.Count; i++)
+        {
+            if (breakableStructure.droppedMaterials[i].materialType == StoredMaterial.Value)
+            {
+                PlayerData.MaterialData newDroppedMaterial = breakableStructure.droppedMaterials[i];
+                newDroppedMaterial.amount += (newSupply - oldSupply);
+                breakableStructure.droppedMaterials[i] = newDroppedMaterial;
+                return;
+            }
+        }
+
+        breakableStructure.droppedMaterials.Add(new PlayerData.MaterialData() { materialType = StoredMaterial.Value, amount = CurrentSupply.Value });
+    }
+
     //For now below functions use id of gameObjects which are players, and not id of clients (except owner which uses NetworkClientId, as it is easier to test) TODO: MAKE THIS UNIFORM
     //[TODO: also make validation f.e. if client is near storage]
     [Rpc(SendTo.Server)]
@@ -93,7 +117,6 @@ public class Storage : NetworkBehaviour
                 sellerData.ChangeMoney(amountOfMaterials * SellingPrice.Value);
                 sellerData.GetComponent<PlayerData>().ChangeAmountOfMaterial(StoredMaterial.Value, -amountOfMaterials);
                 ChangeAmountOfMaterialInStorage(amountOfMaterials);
-
             }
         }
         else
@@ -126,7 +149,6 @@ public class Storage : NetworkBehaviour
                 buyerData.ChangeMoney(-amountOfMaterials * BuyingPrice.Value);
                 buyerData.GetComponent<PlayerData>().ChangeAmountOfMaterial(StoredMaterial.Value, amountOfMaterials);
                 ChangeAmountOfMaterialInStorage(-amountOfMaterials);
-
             }
         }
         else

@@ -210,13 +210,13 @@ public class PlayerUI : NetworkBehaviour
             case "Tree":
                 breakableStructure = targetObject.GetComponent<BreakableStructure>();
                 currentHealth = breakableStructure.Health.Value;
-                maxHealth = breakableStructure.MaximumHealth;
+                maxHealth = breakableStructure.MaximumHealth.Value;
                 centerText.text = $"Tree\n{currentHealth}/{maxHealth}";
                 break;
             case "Crop":
                 breakableStructure = targetObject.GetComponent<BreakableStructure>();
                 currentHealth = breakableStructure.Health.Value;
-                maxHealth = breakableStructure.MaximumHealth;
+                maxHealth = breakableStructure.MaximumHealth.Value;
                 centerText.text = $"Crop\n{currentHealth}/{maxHealth}";
                 break;
             case "Buy":
@@ -231,12 +231,14 @@ public class PlayerUI : NetworkBehaviour
                 shopScript = targetObject.GetComponent<Shop>();
                 breakableStructure = targetObject.GetComponent<BreakableStructure>();
                 currentHealth = breakableStructure.Health.Value;
-                maxHealth = breakableStructure.MaximumHealth;
+                maxHealth = breakableStructure.MaximumHealth.Value;
                 centerText.text = $"{shopScript.HoverText}\n{currentHealth}/{maxHealth}";
                 break;
             case "Storage":
                 storage = targetObject.GetComponent<Storage>();
                 centerText.text = $"{PlayerData.GetNicknameOfPlayer(storage.OwnerId.Value)}'s\n{storage.StoredMaterial.Value} Storage:\n{storage.CurrentSupply.Value}/{storage.MaxSupply.Value}";
+                if (targetObject.TryGetComponent<BreakableStructure>(out breakableStructure))
+                    centerText.text += $"\nHP: {breakableStructure.Health.Value}/{breakableStructure.MaximumHealth.Value}";
                 break;
             case "Money":
                 moneyObject = targetObject.GetComponent<MoneyObject>();
@@ -252,7 +254,7 @@ public class PlayerUI : NetworkBehaviour
             case "Rock":
                 breakableStructure = targetObject.GetComponent<BreakableStructure>();
                 currentHealth = breakableStructure.Health.Value;
-                maxHealth = breakableStructure.MaximumHealth;
+                maxHealth = breakableStructure.MaximumHealth.Value;
                 centerText.text = $"Rock\n{currentHealth}/{maxHealth}";
                 break;
             case "GatherableMaterial":
@@ -289,6 +291,8 @@ public class PlayerUI : NetworkBehaviour
             case "Unbuilt":
                 unbuiltBuilding = targetObject.GetComponent<UnbuiltBuilding>();
                 centerText.text = $"{PlayerData.GetNicknameOfPlayer(unbuiltBuilding.OwnerId.Value)}'s \n Unfinished {unbuiltBuilding.ObjectStringDescription.Value}";
+                if (targetObject.TryGetComponent<BreakableStructure>(out breakableStructure) && breakableStructure.enabled)
+                    centerText.text += $"\nHP: {breakableStructure.Health.Value}/{breakableStructure.MaximumHealth.Value}";
                 break;
         }
         ;
@@ -340,6 +344,8 @@ public class PlayerUI : NetworkBehaviour
                     ReplaceTextWithLineStartingWith(tooltipText, "E", "E - sell");
                     break;
                 case "Storage":
+                    if(heldItem == ItemType.Sword)
+                        ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Destroy Building");
                     if (lookedAtObject.GetComponent<Storage>().OwnerId.Value == NetworkManager.Singleton.LocalClientId) //If player is owner of storage
                         ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Manage storage");
                     else
@@ -369,6 +375,8 @@ public class PlayerUI : NetworkBehaviour
                     {
                         if(building.IsCompletelyUnbuilt())
                             ReplaceTextWithLineStartingWith(tooltipText, "X", "X - Delete building");
+                        else if(heldItem == ItemType.Sword)
+                            ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Destroy Building");
                         ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Manage Construction");
                         ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Open Delivery Menu");
                     }

@@ -7,7 +7,6 @@ using static UnityEngine.Rendering.DebugUI;
 
 public class BuildModeController : NetworkBehaviour
 {
-    Movement playerMovement;
     ObjectInteraction objectInteraction;
     [SerializeField] BuildingData buildingData;
     [SerializeField] Material correctGhostObjectMaterial;
@@ -41,8 +40,13 @@ public class BuildModeController : NetworkBehaviour
     public event Action<BuildingData.BuildingType, string> OnSelectedBuildingChanged;
     void Start()
     {
-        playerMovement = GetComponent<Movement>();
         objectInteraction = GetComponent<ObjectInteraction>();
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        subtypeStructureLength = buildingData.GetDataOfBuildingType(CurrentBuildingType).baseObjects.Count();
+        CurrentBuildingSubtype = Mathf.Clamp(CurrentBuildingSubtype, 0, subtypeStructureLength - 1);
     }
 
     private void Update()
@@ -51,7 +55,9 @@ public class BuildModeController : NetworkBehaviour
 
         if (Input.GetKeyDown(KeyCode.B))
         {
-            ToggleBuildModeServerRpc();
+            ToggleBuildModeServerRpc(); 
+            //Used so text will get updated when I press B first time
+            OnSelectedBuildingChanged?.Invoke(CurrentBuildingType, buildingData.GetDataOfBuildingType(CurrentBuildingType).subtypeNames[CurrentBuildingSubtype]);
         }
 
         if(IsBuildModeActive.Value && Input.GetKey(KeyCode.R))

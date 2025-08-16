@@ -7286,6 +7286,7 @@ GameObject:
   - component: {fileID: 1005445043632319536}
   - component: {fileID: 1092351080887399851}
   - component: {fileID: 8061637520423063932}
+  - component: {fileID: -7301738421116152307}
   m_Layer: 0
   m_Name: UnbuiltStoneStorag
   m_TagString: Unbuilt
@@ -7436,6 +7437,61 @@ MonoBehaviour:
   buildingToBuild: {fileID: 1531001309548608335, guid: 102652328f15b8a4fb1081aa3cadfa3d, type: 3}
   singularMaterialDataInfo: {fileID: 6541944257423500334, guid: 56e2906759da81741a51bcacc8355569, type: 3}
   rawMaterialData: {fileID: 11400000, guid: 18e85f7aab5a41d4f9eeb5d0d8cbe1db, type: 2}
+  ObjectStringDescription:
+    m_InternalValue:
+      utf8LengthInBytes: 8
+      bytes:
+        offset0000:
+          byte0000: 84
+          byte0001: 69
+          byte0002: 83
+          byte0003: 84
+          byte0004: 32
+          byte0005: 49
+          byte0006: 50
+          byte0007: 51
+          byte0008: 0
+          byte0009: 0
+          byte0010: 0
+          byte0011: 0
+          byte0012: 0
+          byte0013: 0
+          byte0014: 0
+          byte0015: 0
+        byte0016: 0
+        byte0017: 0
+        byte0018: 0
+        byte0019: 0
+        byte0020: 0
+        byte0021: 0
+        byte0022: 0
+        byte0023: 0
+        byte0024: 0
+        byte0025: 0
+        byte0026: 0
+        byte0027: 0
+        byte0028: 0
+        byte0029: 0
+--- !u!114 &-7301738421116152307
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6244798571495554277}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0045f534312bba145948daf84d91e0d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  materialObjectData: {fileID: 11400000, guid: 18e85f7aab5a41d4f9eeb5d0d8cbe1db, type: 2}
+  MaximumHealth: 100
+  spawner: {fileID: 0}
+  land: {fileID: 0}
+  droppedMaterials: []
+  dropMaterialPositionSpawnVariance: 1
+  dropMaterialYOffset: 0.1
 --- !u!1 &6560792670455148132
 GameObject:
   m_ObjectHideFlags: 0
