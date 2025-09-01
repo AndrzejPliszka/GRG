@@ -21,6 +21,7 @@ TagManager:
   - GatherableMaterial
   - BerryBush
   - MaterialObject
+  - Unbuilt
   layers:
   - Default
   - TransparentFX

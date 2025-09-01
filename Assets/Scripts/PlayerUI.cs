@@ -1,22 +1,21 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using TMPro;
 using Unity.Collections;
-using UnityEngine.UI;
 using Unity.Netcode;
+using UnityEditor;
 using UnityEngine;
-using System;
+using UnityEngine.UI;
 using static ItemData;
-using System.Text.RegularExpressions;
-using UnityEditor.SceneManagement;
-using System.Linq;
-using Unity.VisualScripting;
 [RequireComponent(typeof(PlayerData))]
 [RequireComponent(typeof(ObjectInteraction))] //this is because we will use function that says what are we looking at
 public class PlayerUI : NetworkBehaviour
 {
     ObjectInteraction objectInteraction;
+    BuildModeController buildMode;
     VoiceChat voiceChat;
     // Start is called before the first frame update
     [SerializeField] Sprite unusedInventorySlot;
@@ -24,10 +23,13 @@ public class PlayerUI : NetworkBehaviour
 
     [SerializeField] ItemTypeData itemTypeData;
     [SerializeField] ItemTierData itemTierData;
-
+    [SerializeField] BuildingData buildingData;
 
     [SerializeField] GameObject storageTradePanel;
     [SerializeField] GameObject storageManagmentPanel;
+
+    [SerializeField] GameObject materialDeliveryToUnbuiltBuildingPanel;
+    [SerializeField] GameObject materialDeliveryPaymentManagmentPanel;
 
     TMP_Text centerText;
     TMP_Text errorText;
@@ -40,20 +42,32 @@ public class PlayerUI : NetworkBehaviour
     TMP_Text foodMaterialText;
     TMP_Text stoneMaterialText;
     TMP_Text tooltipText;
+    TMP_Text selectedBuildingText;
     Image hitmark;
     Image cooldownMarker;
     Image micActivityIcon;
+    Image mainBuildingSlot;
+    Image previousBuildingSlot;
+    Image nextBuildingSlot;
     Slider hungerBar;
     Slider healthBar;
     Slider progressBar;
+    Transform buildMenu;
     readonly List<GameObject> inventorySlots = new();
     Coroutine progressBarCoroutine;
 
+    GameObject inventorySlotsContainer;
     PlayerData playerData;
+    Transform playerUI;
     bool isPlayerSelling = true; //Used in storage trade menu, global so it saves between menus, change name when more menus are added
     public override void OnNetworkSpawn()
     {
-        
+        buildMode = GetComponent<BuildModeController>();
+        playerData = GetComponent<PlayerData>();
+        objectInteraction = GetComponent<ObjectInteraction>();
+
+        playerUI = GameObject.Find("Canvas").transform.Find("PlayerUI");
+
         centerText = GameObject.Find("CenterText").GetComponent<TMP_Text>();
         errorText = GameObject.Find("ErrorText").GetComponent<TMP_Text>();
         hungerBarText = GameObject.Find("HungerBarText").GetComponent<TMP_Text>();
@@ -76,18 +90,22 @@ public class PlayerUI : NetworkBehaviour
 
         errorText.enabled = false; //We do this so DisplayError() works (see function)
 
-        GameObject inventorySlotsContainer = GameObject.Find("InventorySlots");
+        inventorySlotsContainer = GameObject.Find("InventorySlots");
         for (int i = 0; i < inventorySlotsContainer.transform.childCount; i++) {
             inventorySlots.Add(inventorySlotsContainer.transform.GetChild(i).gameObject);
         }
 
-
-        playerData = GetComponent<PlayerData>();
-        objectInteraction = GetComponent<ObjectInteraction>();
-
         if (IsOwner)
         {
+            mainBuildingSlot = GameObject.Find("SelectedBuildingSlot").transform.GetChild(0).GetComponent<Image>();
+            previousBuildingSlot = GameObject.Find("PreviousBuildingSlot").transform.GetChild(0).GetComponent<Image>();
+            nextBuildingSlot = GameObject.Find("NextBuildingSlot").transform.GetChild(0).GetComponent<Image>();
             progressBar = GameObject.Find("ProgressBar").GetComponent<Slider>();
+            buildMenu = GameObject.Find("BuildUI").transform;
+            selectedBuildingText = buildMenu.Find("SelectedBuildingText").GetComponent<TMP_Text>();
+            if (buildMode)
+                selectedBuildingText.text = buildMode.CurrentBuildingType.ToString();
+            buildMenu.gameObject.SetActive(false);
             progressBar.gameObject.SetActive(false);
             playerData.SelectedInventorySlot.OnValueChanged += ChangeInventorySlot;
             playerData.Inventory.OnListChanged += DisplayInventory;
@@ -97,6 +115,7 @@ public class PlayerUI : NetworkBehaviour
             playerData.CriminalCooldown.OnValueChanged += DisplayIsCriminalText;
             playerData.JailCooldown.OnValueChanged += DisplayInPrisonText;
             playerData.OwnedMaterials.OnListChanged += DisplayMaterialText;
+            buildMode.IsBuildModeActive.OnValueChanged += SetUpBuildMenu;
         }
 
         if (IsServer)
@@ -104,7 +123,7 @@ public class PlayerUI : NetworkBehaviour
             //Here are only server side events which call RPCs
             objectInteraction.OnHittingSomething += (GameObject hitGameObject) => { DisplayHitmarkOwnerRpc(); };
             objectInteraction.OnPunch += DisplayCooldownCircleOwnerRpc;
-            playerData.TownId.OnValueChanged += (int oldTownId, int newTownId) => { //MOVE TO OTHER FUNCTION IF IT GROWS TOO MUCH !!!
+            playerData.TownId.OnValueChanged += (oldTownId, newTownId) => { //MOVE TO OTHER FUNCTION IF IT GROWS TOO MUCH !!!
                 if(oldTownId >= 0 && oldTownId < GameManager.Instance.TownData.Count)
                     GameManager.Instance.TownData[oldTownId].OnTaxRateChange -= ModifyTaxRateTextOwnerRpc;
                 if (newTownId >= 0 && newTownId < GameManager.Instance.TownData.Count)
@@ -165,6 +184,11 @@ public class PlayerUI : NetworkBehaviour
             centerText.text = "";
             return;
         }
+        if (objectInteraction && objectInteraction.canInteract == false)
+        {
+            centerText.text = "";
+            return;
+        }
         //declare these here to avoid scope issues
         Shop shopScript;
         BreakableStructure breakableStructure;
@@ -172,6 +196,7 @@ public class PlayerUI : NetworkBehaviour
         MoneyObject moneyObject;
         House house;
         GatherableMaterial materialItem;
+        UnbuiltBuilding unbuiltBuilding;
         int currentHealth, maxHealth;
         switch (targetObject.tag)
         {
@@ -185,13 +210,13 @@ public class PlayerUI : NetworkBehaviour
             case "Tree":
                 breakableStructure = targetObject.GetComponent<BreakableStructure>();
                 currentHealth = breakableStructure.Health.Value;
-                maxHealth = breakableStructure.MaximumHealth;
+                maxHealth = breakableStructure.MaximumHealth.Value;
                 centerText.text = $"Tree\n{currentHealth}/{maxHealth}";
                 break;
             case "Crop":
                 breakableStructure = targetObject.GetComponent<BreakableStructure>();
                 currentHealth = breakableStructure.Health.Value;
-                maxHealth = breakableStructure.MaximumHealth;
+                maxHealth = breakableStructure.MaximumHealth.Value;
                 centerText.text = $"Crop\n{currentHealth}/{maxHealth}";
                 break;
             case "Buy":
@@ -206,12 +231,14 @@ public class PlayerUI : NetworkBehaviour
                 shopScript = targetObject.GetComponent<Shop>();
                 breakableStructure = targetObject.GetComponent<BreakableStructure>();
                 currentHealth = breakableStructure.Health.Value;
-                maxHealth = breakableStructure.MaximumHealth;
+                maxHealth = breakableStructure.MaximumHealth.Value;
                 centerText.text = $"{shopScript.HoverText}\n{currentHealth}/{maxHealth}";
                 break;
             case "Storage":
-                storage = targetObject.transform.parent.GetComponent<Storage>();
-                centerText.text = $"{storage.StoredMaterial.Value} Supply:\n{storage.CurrentSupply.Value}/{storage.MaxSupply.Value}";
+                storage = targetObject.GetComponent<Storage>();
+                centerText.text = $"{PlayerData.GetNicknameOfPlayer(storage.OwnerId.Value)}'s\n{storage.StoredMaterial.Value} Storage:\n{storage.CurrentSupply.Value}/{storage.MaxSupply.Value}";
+                if (targetObject.TryGetComponent<BreakableStructure>(out breakableStructure))
+                    centerText.text += $"\nHP: {breakableStructure.Health.Value}/{breakableStructure.MaximumHealth.Value}";
                 break;
             case "Money":
                 moneyObject = targetObject.GetComponent<MoneyObject>();
@@ -227,7 +254,7 @@ public class PlayerUI : NetworkBehaviour
             case "Rock":
                 breakableStructure = targetObject.GetComponent<BreakableStructure>();
                 currentHealth = breakableStructure.Health.Value;
-                maxHealth = breakableStructure.MaximumHealth;
+                maxHealth = breakableStructure.MaximumHealth.Value;
                 centerText.text = $"Rock\n{currentHealth}/{maxHealth}";
                 break;
             case "GatherableMaterial":
@@ -261,73 +288,148 @@ public class PlayerUI : NetworkBehaviour
                     _ => "",
                 };
                 break;
-        };
+            case "Unbuilt":
+                unbuiltBuilding = targetObject.GetComponent<UnbuiltBuilding>();
+                centerText.text = $"{PlayerData.GetNicknameOfPlayer(unbuiltBuilding.OwnerId.Value)}'s \n Unfinished {unbuiltBuilding.ObjectStringDescription.Value}";
+                if (targetObject.TryGetComponent<BreakableStructure>(out breakableStructure) && breakableStructure.enabled)
+                    centerText.text += $"\nHP: {breakableStructure.Health.Value}/{breakableStructure.MaximumHealth.Value}";
+                break;
+        }
+        ;
     }
 
     void UpdateTooltipText(GameObject lookedAtObject)
     {
-        if (lookedAtObject == null)
-            return;
-        
         ItemData.ItemType heldItem = playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType;
         ReplaceTextWithLineStartingWith(tooltipText, "F", "");
         ReplaceTextWithLineStartingWith(tooltipText, "E", "");
         ReplaceTextWithLineStartingWith(tooltipText, "Click", "");
-        switch (lookedAtObject.tag)
+        ReplaceTextWithLineStartingWith(tooltipText, "Scroll", "");
+        ReplaceTextWithLineStartingWith(tooltipText, "T", "");
+        ReplaceTextWithLineStartingWith(tooltipText, "R", "");
+        ReplaceTextWithLineStartingWith(tooltipText, "X", "");
+        if (buildMode.IsBuildModeActive.Value)
         {
-            case "Player":
-                ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Punch");
-                break;
-            case "Item":
-                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
-                break;
-            case "Tree":
-                if (heldItem == ItemType.Axe)
-                    ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Cut tree");
-                break;
-            case "Crop":
-                if (heldItem == ItemType.Sickle)
-                    ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Cut crop");
-                break;
-            case "Buy":
-                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - buy");
-                break;
-            case "Work":
-                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - sell");
-                break;
-            case "Storage":
-                //USING PARENT!!!! NEED TO BE MODIFIED IF IT GETS FIXED!
-                if(lookedAtObject.transform.parent.GetComponent<Storage>().OwnerId.Value == NetworkManager.Singleton.LocalClientId) //If player is owner of storage
-                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Manage storage");
-                else
-                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Sell all");
-                ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Open selling menu");
-                break;
-            case "Money":
-                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
-                break;
-            case "Rock":
-                if (heldItem == ItemType.Pickaxe)
-                    ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Break rock");
-                break;
-            case "GatherableMaterial":
-                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
-                break;
-            case "BerryBush":
-                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Eat");
-                ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Pick up");
-                break;
-            case "MaterialObject":
-                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
-                break;
-            default:
-                break;
-        };
+            ReplaceTextWithLineStartingWith(tooltipText, "Scroll", "Scroll - Change Building");
+            ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Place Building");
+            ReplaceTextWithLineStartingWith(tooltipText, "R", "R - Rotate Building");
+            ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Change Subtype");
+            ReplaceTextWithLineStartingWith(tooltipText, "B", "B - Disable Build Mode");
+        }
+        else
+        {
+            ReplaceTextWithLineStartingWith(tooltipText, "B", "B - Enable Build Mode");
+            if (lookedAtObject)
+            {
+            switch (lookedAtObject.tag)
+            {
+                case "Player":
+                    ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Punch");
+                    break;
+                case "Item":
+                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                    break;
+                case "Tree":
+                    if (heldItem == ItemType.Axe)
+                        ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Cut tree");
+                    break;
+                case "Crop":
+                    if (heldItem == ItemType.Sickle)
+                        ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Cut crop");
+                    break;
+                case "Buy":
+                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - buy");
+                    break;
+                case "Work":
+                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - sell");
+                    break;
+                case "Storage":
+                    if(heldItem == ItemType.Sword)
+                        ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Destroy Building");
+                    if (lookedAtObject.GetComponent<Storage>().OwnerId.Value == NetworkManager.Singleton.LocalClientId) //If player is owner of storage
+                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Manage storage");
+                    else
+                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Open selling menu");
+                    ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Sell all");
+                    break;
+                case "Money":
+                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                    break;
+                case "Rock":
+                    if (heldItem == ItemType.Pickaxe)
+                        ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Break rock");
+                    break;
+                case "GatherableMaterial":
+                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                    break;
+                case "BerryBush":
+                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Eat");
+                    ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Pick up");
+                    break;
+                case "MaterialObject":
+                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                    break;
+                case "Unbuilt":
+                    UnbuiltBuilding building = lookedAtObject.GetComponent<UnbuiltBuilding>();
+                    if(building.OwnerId.Value == NetworkManager.Singleton.LocalClientId)
+                    {
+                        if(building.IsCompletelyUnbuilt())
+                            ReplaceTextWithLineStartingWith(tooltipText, "X", "X - Delete building");
+                        else if(heldItem == ItemType.Sword)
+                            ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Destroy Building");
+                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Manage Construction");
+                        ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Open Delivery Menu");
+                    }
+                    else
+                    {
+                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Open Delivery Menu");
+                        ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Deliver All Materials");
+                    }
+                    break;
+                default:
+                    break;
 
-        if (heldItem == ItemType.Medkit)
-            ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Use medkit");
-        if (heldItem == ItemType.Food)
-            ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Eat food");
+                }
+            };
+
+            if (heldItem == ItemType.Medkit)
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Use medkit");
+            if (heldItem == ItemType.Food)
+                ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Eat food");
+            if (heldItem != ItemType.Null)
+                ReplaceTextWithLineStartingWith(tooltipText, "T", "T - Throw item");
+
+            tooltipText.text = tooltipText.text.Trim();
+        }
+    }
+    void SetUpBuildMenu(bool wasBuildMenuActive, bool isBuildMenuActive)
+    {
+        if (!TryGetComponent<BuildModeController>(out var buildMode))
+            return;
+        if (isBuildMenuActive)
+        {
+            inventorySlotsContainer.SetActive(false);
+            buildMenu.gameObject.SetActive(true);
+            buildMode.OnSelectedBuildingChanged += UpdateSelectedBuilding;
+        }
+        else
+        {
+            inventorySlotsContainer.SetActive(true);
+            buildMenu.gameObject.SetActive(false);
+            buildMode.OnSelectedBuildingChanged -= UpdateSelectedBuilding;
+        }
+    }
+    void UpdateSelectedBuilding(BuildingData.BuildingType buildingType, string subtype)
+    {
+        mainBuildingSlot.sprite = buildingData.GetDataOfBuildingType(buildingType).buildingSprite;
+        BuildingData.BuildingType previousBuilding = BuildModeController.GetAdjacentBuildingType(false, buildingType);
+        previousBuildingSlot.sprite = buildingData.GetDataOfBuildingType(previousBuilding).buildingSprite;
+        BuildingData.BuildingType nextBuilding = BuildModeController.GetAdjacentBuildingType(true, buildingType);
+        nextBuildingSlot.sprite = buildingData.GetDataOfBuildingType(nextBuilding).buildingSprite;
+
+        selectedBuildingText.text = subtype + " " + buildingType.ToString();
+
+
     }
     //Used so tooltips can be dynamic
     void ReplaceTextWithLineStartingWith(TMP_Text text, string startingCharacters, string replacement)
@@ -532,13 +634,9 @@ public class PlayerUI : NetworkBehaviour
     [Rpc(SendTo.Owner)]
     public void DisplayStorageTradeMenuOwnerRpc(ulong storageObjectId)
     {
-        Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.None;
-        GetComponent<Movement>().blockRotation = true;
-        GetComponent<ObjectInteraction>().canInteract = false;
-        GameObject.Find("Canvas").GetComponent<Menu>().amountOfDisplayedMenus++;
+        MakePanelInteractible();
 
-        GameObject storageMenu = Instantiate(storageTradePanel, GameObject.Find("Canvas").transform.Find("PlayerUI").transform); //Maybe use var instead of Find();
+        GameObject storageMenu = Instantiate(storageTradePanel, playerUI); //Maybe use var instead of Find();
         //We need storage as we need data about it and we will call its function on button click
         Storage targetStorage = NetworkManager.SpawnManager.SpawnedObjects[storageObjectId].GetComponent<Storage>();
 
@@ -603,7 +701,6 @@ public class PlayerUI : NetworkBehaviour
         {
             if (amountInputField.text == "")
                 return;
-
             if (isPlayerSelling)
                 targetStorage.SellMaterialsServerRpc(NetworkManager.Singleton.LocalClientId, Convert.ToInt16(amountInputField.text));
             else
@@ -616,16 +713,21 @@ public class PlayerUI : NetworkBehaviour
         StartCoroutine(CheckIfMenuGotDestroyed(storageMenu));
     }
 
-    [Rpc(SendTo.Owner)]
-    public void DisplayStorageManagementMenuOwnerRpc(ulong storageObjectId)
+    void MakePanelInteractible()
     {
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
         GetComponent<Movement>().blockRotation = true;
         GetComponent<ObjectInteraction>().canInteract = false;
         GameObject.Find("Canvas").GetComponent<Menu>().amountOfDisplayedMenus++;
+    }
 
-        GameObject storageMenu = Instantiate(storageManagmentPanel, GameObject.Find("Canvas").transform.Find("PlayerUI").transform); //Maybe use var instead of Find();
+    [Rpc(SendTo.Owner)]
+    public void DisplayStorageManagementMenuOwnerRpc(ulong storageObjectId)
+    {
+        MakePanelInteractible();
+
+        GameObject storageMenu = Instantiate(storageManagmentPanel, playerUI);
         //We need storage as we need data about it and we will call its function on button click
         Storage targetStorage = NetworkManager.SpawnManager.SpawnedObjects[storageObjectId].GetComponent<Storage>();
 
@@ -675,6 +777,129 @@ public class PlayerUI : NetworkBehaviour
         StartCoroutine(CheckIfMenuGotDestroyed(storageMenu));
     }
 
+    [Rpc(SendTo.Owner)]
+    public void DisplayDeliveryPricesManagmentPanelOwnerRpc(ulong unbuiltBuildingId)
+    {
+        MakePanelInteractible();
+
+        UnbuiltBuilding targetBuilding = NetworkManager.SpawnManager.SpawnedObjects[unbuiltBuildingId].GetComponent<UnbuiltBuilding>();
+        GameObject materialDeliveryMenu = Instantiate(materialDeliveryPaymentManagmentPanel, playerUI);
+
+        TMP_Dropdown materialDropdown = materialDeliveryMenu.transform.Find("MaterialDropdown").GetComponent<TMP_Dropdown>();
+        TMP_InputField amountInputField = materialDeliveryMenu.transform.Find("PaymentInputField").GetComponent<TMP_InputField>();
+        Button confirmButton = materialDeliveryMenu.transform.Find("ConfirmButton").GetComponent<Button>();
+
+        List<string> options = new();
+        foreach (PlayerData.MaterialData material in targetBuilding.NeededMaterials)
+            if (material.amount < material.maxAmount)
+                options.Add(material.materialType.ToString());
+
+        materialDropdown.ClearOptions();
+        materialDropdown.AddOptions(options);
+
+        materialDropdown.onValueChanged.AddListener((int newValue) =>
+        {
+            PlayerData.RawMaterial material = (PlayerData.RawMaterial)Enum.Parse(typeof(PlayerData.RawMaterial), materialDropdown.options[newValue].text);
+            for(int i = 0; i < targetBuilding.NeededMaterials.Count; i++)
+            {
+                if (targetBuilding.NeededMaterials[i].materialType == material)
+                    amountInputField.placeholder.GetComponent<TMP_Text>().text = targetBuilding.MaterialPrices[i].ToString();
+            }
+            amountInputField.text = "";
+        });
+
+        amountInputField.onValueChanged.AddListener((string newAmount) =>
+        {
+            RoundInputFieldToTwoDecimalPlaces(amountInputField);
+        });
+
+        confirmButton.onClick.AddListener(() =>
+        {
+            if (amountInputField.text == "")
+                return;
+            PlayerData.RawMaterial rawMaterial = (PlayerData.RawMaterial)Enum.Parse(typeof(PlayerData.RawMaterial), materialDropdown.options[materialDropdown.value].text);
+            float newPrice = float.Parse(amountInputField.text);
+            amountInputField.placeholder.GetComponent<TMP_Text>().text = newPrice.ToString();
+            amountInputField.text = "";
+            targetBuilding.ChangePriceOfMaterialServerRpc(rawMaterial, newPrice);
+        });
+
+        StartCoroutine(CheckIfMenuGotDestroyed(materialDeliveryMenu));
+    }
+
+
+    [Rpc(SendTo.Owner)]
+    public void DisplayMaterialDeliveryPanelClientRpc(ulong unbuiltBuildingId)
+    {
+        MakePanelInteractible();
+
+        UnbuiltBuilding targetBuilding = NetworkManager.SpawnManager.SpawnedObjects[unbuiltBuildingId].GetComponent<UnbuiltBuilding>();
+        GameObject materialDeliveryMenu = Instantiate(materialDeliveryToUnbuiltBuildingPanel, playerUI);
+
+        TMP_Dropdown materialDropdown = materialDeliveryMenu.transform.Find("MaterialDropdown").GetComponent<TMP_Dropdown>();
+        TMP_InputField amountInputField = materialDeliveryMenu.transform.Find("AmountInputField").GetComponent<TMP_InputField>();
+        Button confirmButton = materialDeliveryMenu.transform.Find("ConfirmButton").GetComponent<Button>();
+        TMP_Text paymentInfoText = materialDeliveryMenu.transform.Find("PaymentTextBackground").transform.Find("PaymentText").GetComponent<TMP_Text>();
+        List<string> options = new();
+        foreach (PlayerData.MaterialData material in targetBuilding.NeededMaterials)
+            if(material.amount < material.maxAmount)
+                options.Add(material.materialType.ToString());
+
+        materialDropdown.ClearOptions();
+        materialDropdown.AddOptions(options);
+
+        materialDropdown.onValueChanged.AddListener((int newValue) =>
+        {
+            if (amountInputField.text == "")
+                return;
+            int inputFieldValue = ClampDeliverMaterialsPanelInputField((PlayerData.RawMaterial)Enum.Parse(typeof(PlayerData.RawMaterial), materialDropdown.options[newValue].text), targetBuilding, int.Parse(amountInputField.text));
+            amountInputField.text = inputFieldValue.ToString();
+        });
+
+        amountInputField.onValueChanged.AddListener((string newAmount) =>
+        {
+            if (int.TryParse(newAmount, out int value))
+            {
+                PlayerData.RawMaterial selectedMaterial = (PlayerData.RawMaterial)Enum.Parse(typeof(PlayerData.RawMaterial), materialDropdown.options[materialDropdown.value].text);
+                int inputFieldValue = ClampDeliverMaterialsPanelInputField(selectedMaterial, targetBuilding, value);
+                amountInputField.text = inputFieldValue.ToString();
+                //if is owner then always display 0, as he will never receive money
+                paymentInfoText.text = Regex.Replace(paymentInfoText.text, @"\d+", targetBuilding.OwnerId.Value == NetworkManager.Singleton.LocalClientId ? "0" : (targetBuilding.GetPriceOfMaterial(selectedMaterial) * inputFieldValue).ToString());
+            }
+        });
+
+        confirmButton.onClick.AddListener(() =>
+        {
+            if (amountInputField.text == "")
+                return;
+            PlayerData.RawMaterial rawMaterial = (PlayerData.RawMaterial)Enum.Parse(typeof(PlayerData.RawMaterial), materialDropdown.options[materialDropdown.value].text);
+            int amountToDeliver = Int16.Parse(amountInputField.text);
+            targetBuilding.DeliverMaterialsServerRpc(rawMaterial, amountToDeliver, NetworkManager.Singleton.LocalClientId);
+            int inputFieldText = ClampDeliverMaterialsPanelInputField(rawMaterial, targetBuilding, int.Parse(amountInputField.text));
+            amountInputField.text = inputFieldText.ToString();
+        });
+
+        StartCoroutine(CheckIfMenuGotDestroyed(materialDeliveryMenu));
+    } 
+    int ClampDeliverMaterialsPanelInputField(PlayerData.RawMaterial selectedMaterial, UnbuiltBuilding targetBuilding, int value)
+    {
+        int playerMaterialAmount = 0;
+        int unbuiltBuildingNeededMaterialAmount = 0;
+        foreach (PlayerData.MaterialData material in playerData.OwnedMaterials)
+            if (material.materialType == selectedMaterial)
+                playerMaterialAmount = material.amount;
+        foreach (PlayerData.MaterialData material in targetBuilding.NeededMaterials)
+            if (material.materialType == selectedMaterial)
+                unbuiltBuildingNeededMaterialAmount = material.maxAmount - material.amount;
+        int maximumAmount = Mathf.Min(playerMaterialAmount, unbuiltBuildingNeededMaterialAmount);
+        int minimumAmount = 0;
+
+        if (value < minimumAmount || value > maximumAmount)
+        {
+            value = Mathf.Clamp(value, minimumAmount, maximumAmount);
+        }
+        return value;
+    }
     void RoundInputFieldToTwoDecimalPlaces(TMP_InputField inputField)
     {
         string input = inputField.text;

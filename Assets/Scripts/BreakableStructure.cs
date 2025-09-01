@@ -6,17 +6,21 @@ using UnityEngine.SceneManagement;
 
 public class BreakableStructure : NetworkBehaviour
 {
-    [SerializeField] MaterialObjectData materialObjectData;
-    [field: SerializeField] public int MaximumHealth { get; private set; } = new();
+    [SerializeField] RawMaterialData materialObjectData;
+    public NetworkVariable<int> MaximumHealth = new();
     public NetworkVariable<int> Health { get; private set; } = new();
     public DynamicObjectSpawning spawner; //this is used to communicate with spawner. it may be empty if object was put manually itp.
     public LandScript land; //also used to communicate with spawner, but in case of land plot in town
-    [field: SerializeField] List<PlayerData.MaterialData> droppedMaterials = new(); //maxAmount in this structure should be unused, if in future you want to modify this in runtime, use NetworkList<>
-    float dropMaterialPositionSpawnVariance = 0.2f;
+    [field: SerializeField] public List<PlayerData.MaterialData> droppedMaterials = new(); //maxAmount in this structure should be unused, if in future you want to modify this in runtime, use NetworkList<>
+    [SerializeField] float dropMaterialPositionSpawnVariance = 0.2f;
+    [SerializeField] float dropMaterialYOffset = 0.5f;
+
+    PlayerData.RawMaterial repairMaterial;
+
     public override void OnNetworkSpawn()
     {
         if(!IsServer) return;
-        Health.Value = MaximumHealth;
+        Health.Value = MaximumHealth.Value;
     }
 
     public void ChangeHealth(int amountToChange)
@@ -32,8 +36,8 @@ public class BreakableStructure : NetworkBehaviour
         }
             
 
-        if (Health.Value > MaximumHealth)
-            Health.Value = MaximumHealth;
+        if (Health.Value > MaximumHealth.Value)
+            Health.Value = MaximumHealth.Value;
     }
     private bool isShuttingDown = false;
 
@@ -59,7 +63,7 @@ public class BreakableStructure : NetworkBehaviour
             for (int i = 0; i < material.amount; i++)
             {
                 GameObject spawnedObject = Instantiate(materialObjectData.GetMaterialObject(material.materialType).droppedMaterialObject,
-                    transform.position + new Vector3(Random.Range(-dropMaterialPositionSpawnVariance, dropMaterialPositionSpawnVariance), i * 0.5f, Random.Range(-dropMaterialPositionSpawnVariance, dropMaterialPositionSpawnVariance)),
+                    transform.position + new Vector3(Random.Range(-dropMaterialPositionSpawnVariance, dropMaterialPositionSpawnVariance), i * dropMaterialYOffset, Random.Range(-dropMaterialPositionSpawnVariance, dropMaterialPositionSpawnVariance)),
                     Quaternion.identity
                 );
                 if (spawnedObject.GetComponent<NetworkObject>() != null)

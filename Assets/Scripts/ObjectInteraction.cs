@@ -6,6 +6,7 @@ using TMPro;
 using Unity.Collections;
 using Unity.Netcode;
 using Unity.VisualScripting;
+using UnityEditor;
 using UnityEngine;
 [RequireComponent(typeof(Movement))]
 [RequireComponent(typeof(PlayerData))]
@@ -54,7 +55,10 @@ public class ObjectInteraction : NetworkBehaviour
         if (Input.GetKeyDown(KeyCode.E)) //E is interaction key
             InteractWithObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId, true);
 
-        if (Input.GetKeyDown(KeyCode.F)) //E is interaction key
+        if (Input.GetKeyDown(KeyCode.X)) //X is disabling/destroying key
+            DisableObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId);
+
+        if (Input.GetKeyDown(KeyCode.F)) //F is secondary interaction key
             InteractWithObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId, false);
 
         if (Input.GetKeyDown(KeyCode.T)) //T is dropping items key
@@ -114,9 +118,9 @@ public class ObjectInteraction : NetworkBehaviour
         Debug.DrawRay(cameraPosition, rayDirection * 100f, Color.red, 0.01f);
         LayerMask layersToDetect;
         if (timeWhenHit != 0)
-            layersToDetect = ~LayerMask.GetMask("UnsyncedObject", "LocalObject"); //when timeWhenHit is specified, then it is on server so, do not check unsynced player side object
+            layersToDetect = ~LayerMask.GetMask("UnsyncedObject", "LocalObject", "Ignore Raycast"); //when timeWhenHit is specified, then it is on server so, do not check unsynced player side object
         else
-            layersToDetect = ~LayerMask.GetMask("LocalObject"); //else it is probably executed on client (and even if not if timeWhenHit is not specified we dont probably care so much about accuracy), so we can detect everything (except localPlayerModel)
+            layersToDetect = ~LayerMask.GetMask("LocalObject", "Ignore Raycast"); //else it is probably executed on client (and even if not if timeWhenHit is not specified we dont probably care so much about accuracy), so we can detect everything (except localPlayerModel)
 
         RaycastHit[] hits = new RaycastHit[10]; //LIMITATION: if looking at more than 10 things it can interact with NOT the first thing in front of camera! (it is becuse hits in raycastNonAlloc needs to be array and arrays have fixed length)
         int numberOfHits = Physics.RaycastNonAlloc(ray, hits, 10, layersToDetect);
@@ -187,6 +191,24 @@ public class ObjectInteraction : NetworkBehaviour
         heldItem.name = "HeldItem"; 
     }
 
+    //Function in which there is functionality that works when you press X on object, consistantly it should be disabling or destroying something
+    [Rpc(SendTo.Server)]
+    void DisableObjectServerRpc(float cameraXRotation, ulong playerId)
+    {
+        GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
+        switch (targetObject.tag)
+        {
+            case "Unbuilt":
+                UnbuiltBuilding building = targetObject.GetComponent<UnbuiltBuilding>();
+                if (playerId == building.OwnerId.Value && building.IsCompletelyUnbuilt())
+                {
+                    Destroy(building.gameObject);
+                }
+                break;
+
+        }
+    }
+
     //This function will detect what object is in front of you and interact with this object (it takes cameraXRotation which is in euler angles form) 
     [Rpc(SendTo.Server)]
     void InteractWithObjectServerRpc(float cameraXRotation, ulong playerId, bool isPrimaryInteraction) //some objects can be interacted in two ways, bool isPrimaryInteraction regulates which one is it
@@ -198,7 +220,30 @@ public class ObjectInteraction : NetworkBehaviour
         MoneyObject moneyObject;
         House houseScript;
         Storage storage;
+        UnbuiltBuilding unbuiltBuilding;
         //first see if is looking at interactive object
+        if (isPrimaryInteraction)
+        {
+            //if is not looking at interactive object, check if has interactible item in hand
+            float itemTierValueMultiplier = itemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
+            switch (playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType)
+            {
+                case ItemData.ItemType.Medkit:
+                    int baseMedkitHealhValue = 30;
+                    int medkitHealhValue = Convert.ToInt16(baseMedkitHealhValue * itemTierValueMultiplier);
+                    playerData.ChangeHealth(medkitHealhValue);
+                    playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
+                    ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
+                    return;
+                case ItemData.ItemType.Food:
+                    int baseFoodHungerValue = 30;
+                    int foodHungerValue = Convert.ToInt16(baseFoodHungerValue * itemTierValueMultiplier);
+                    playerData.ChangeHunger(foodHungerValue);
+                    playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
+                    ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
+                    return;
+            }
+        }
         switch (targetObjectTag)
         {
             case "Item":
@@ -255,22 +300,57 @@ public class ObjectInteraction : NetworkBehaviour
                 break;
             case "Storage":
                 //for now only storage prefab has collider in child, TO DO: Change to not depend on hierarchy
-                storage = targetObject.transform.parent.GetComponent<Storage>();
+                storage = targetObject.GetComponent<Storage>();
                 //Check if PlayerUI exists before calling it
                 if(storage.OwnerId.Value == playerId)
                     if(isPrimaryInteraction)
-                        GetComponent<PlayerUI>().DisplayStorageManagementMenuOwnerRpc(targetObject.transform.parent.GetComponent<NetworkObject>().NetworkObjectId);
+                        GetComponent<PlayerUI>().DisplayStorageManagementMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     else
-                        GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.transform.parent.GetComponent<NetworkObject>().NetworkObjectId);
+                        GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                 else
                 {
                     if (isPrimaryInteraction)
+                        GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                    else
                     {
                         int amountToSell = Mathf.Min(storage.MaxSupply.Value - storage.CurrentSupply.Value, playerData.OwnedMaterials[(int)storage.StoredMaterial.Value].amount); //We cannot sell more than storage can hold
                         storage.SellMaterialsServerRpc(playerId, amountToSell);
                     }
+                }
+                break;
+            case "Unbuilt":
+                unbuiltBuilding = targetObject.GetComponent<UnbuiltBuilding>();
+                if (unbuiltBuilding.OwnerId.Value == playerId)
+                {
+                    if(isPrimaryInteraction)
+                        GetComponent<PlayerUI>().DisplayDeliveryPricesManagmentPanelOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     else
-                        GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.transform.parent.GetComponent<NetworkObject>().NetworkObjectId);
+                        GetComponent<PlayerUI>().DisplayMaterialDeliveryPanelClientRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                    return;
+                }
+                //This part of code is executed only when is no owner
+
+                if (isPrimaryInteraction)
+                {
+                    GetComponent<PlayerUI>().DisplayMaterialDeliveryPanelClientRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                    return;
+                }
+                Dictionary<PlayerData.RawMaterial, int> amountOfPlayerMaterials = new();
+                Dictionary<PlayerData.RawMaterial, int> amountOfNeededMaterials = new();
+
+                foreach (PlayerData.MaterialData ownedMaterial in playerData.OwnedMaterials)
+                    amountOfPlayerMaterials.Add(ownedMaterial.materialType, ownedMaterial.amount);
+                foreach (PlayerData.MaterialData neededMaterial in unbuiltBuilding.NeededMaterials)
+                    amountOfNeededMaterials.Add(neededMaterial.materialType, neededMaterial.maxAmount - neededMaterial.amount);
+
+                foreach (PlayerData.RawMaterial rawMaterial in Enum.GetValues(typeof(PlayerData.RawMaterial)))
+                {
+                    if (!amountOfNeededMaterials.ContainsKey(rawMaterial))
+                        continue;
+                    int amountToDeliver = Mathf.Min(amountOfNeededMaterials[rawMaterial], amountOfPlayerMaterials[rawMaterial]);
+                    if (amountToDeliver == 0)
+                        continue;
+                    unbuiltBuilding.DeliverMaterialsServerRpc(rawMaterial, amountToDeliver, playerId);
                 }
                 break;
             case "BerryBush":
@@ -304,27 +384,6 @@ public class ObjectInteraction : NetworkBehaviour
                 break;
 
         }
-        if (!isPrimaryInteraction)
-            return;
-        //if is not looking at interactive object, check if has interactible item in hand
-        float itemTierValueMultiplier = itemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
-        switch (playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType)
-        {
-            case ItemData.ItemType.Medkit:
-                int baseMedkitHealhValue = 30;
-                int medkitHealhValue = Convert.ToInt16(baseMedkitHealhValue * itemTierValueMultiplier);
-                playerData.ChangeHealth(medkitHealhValue);
-                playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
-                ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
-                break;
-            case ItemData.ItemType.Food:
-                int baseFoodHungerValue = 30;
-                int foodHungerValue = Convert.ToInt16(baseFoodHungerValue * itemTierValueMultiplier);
-                playerData.ChangeHunger(foodHungerValue);
-                playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
-                ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
-                break;
-        }
     }
 
     //Function that does of all things that happen when you press left mouse button
@@ -348,6 +407,7 @@ public class ObjectInteraction : NetworkBehaviour
         float itemTierValueMultiplier = itemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
         string targetObjectTag = targetObject.tag;
         int baseAttack = -20;
+        BreakableStructure breakableStructure;
         switch (targetObjectTag)
         {
             case "Player":
@@ -401,6 +461,34 @@ public class ObjectInteraction : NetworkBehaviour
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;
+            case "Storage":
+                breakableStructure = targetObject.GetComponent<BreakableStructure>();
+                if (breakableStructure == null)
+                    break;
+
+                if (heldItem.itemType == ItemData.ItemType.Sword)
+                    baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
+                else if (heldItem.itemType == ItemData.ItemType.Hammer)
+                    baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier * -1);
+                else
+                    break;
+
+                breakableStructure.ChangeHealth(baseAttack);
+                OnHittingSomething.Invoke(targetObject);
+                break;
+            case "Unbuilt":
+                breakableStructure = targetObject.GetComponent<BreakableStructure>();
+                if (breakableStructure == null  || !breakableStructure.enabled)
+                    break;
+
+                if (heldItem.itemType == ItemData.ItemType.Sword)
+                    baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
+                else
+                    break;
+
+                breakableStructure.ChangeHealth(baseAttack);
+                OnHittingSomething.Invoke(targetObject);
+                break;
             default: //here put all things that don't require punching at specific object
                 if(heldItem.itemType == ItemData.ItemType.FishingRod)
                 {
@@ -435,7 +523,7 @@ public class ObjectInteraction : NetworkBehaviour
                             //Fishing successfull
                             OnHittingSomething.Invoke(null);
                             if (playerData)
-                                playerData.ChangeMoney(2f * itemTierValueMultiplier);
+                                playerData.ChangeAmountOfMaterial(PlayerData.RawMaterial.Food, Mathf.RoundToInt(1f * itemTierValueMultiplier));
                             return;
                         }
                     }
@@ -470,6 +558,12 @@ public class ObjectInteraction : NetworkBehaviour
     void InvokeOnPunchEventOwnerRpc(float maximumCooldownValue)
     {
         OnPunch.Invoke(maximumCooldownValue); //cooldown float is 0, because it is invoked on owner, to play animations so it doesn't matter
+    }
+
+    [Rpc(SendTo.Owner)]
+    public void ToggleCanInteractOwnerRpc(bool canInteractValue)
+    {
+        canInteract = canInteractValue;
     }
 
     IEnumerator DeacreaseCooldown()

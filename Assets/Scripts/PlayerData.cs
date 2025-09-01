@@ -4,10 +4,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using NUnit.Framework;
 using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
 using Unity.Netcode;
 using UnityEngine;
-using static ItemData;
 
 public class PlayerData : NetworkBehaviour
 {
@@ -313,7 +311,7 @@ public class PlayerData : NetworkBehaviour
     void CheckIfHitIsIllegal(GameObject hitObject)
     {
         if(!IsServer) throw new Exception("Client does not have authority to do that");
-        if (IsInJail.Value) //if player is in jail, he cannot be criminal
+        if (hitObject == null || IsInJail.Value) //if player is in jail, he cannot be criminal
             return;
         string hitTag = hitObject.tag;
         if (hitTag == "Shop")
@@ -438,5 +436,18 @@ public class PlayerData : NetworkBehaviour
         if (playerMovement)
             playerMovement.TeleportPlayerToPosition(playerMovement.StartingPosition);
         IsInJail.Value = false;
+    }
+
+
+    public static FixedString32Bytes GetNicknameOfPlayer(ulong playerId)
+    {
+        if (NetworkManager.Singleton.ConnectedClients.TryGetValue(playerId, out var networkClient))
+        {
+            return networkClient.PlayerObject.GetComponent<PlayerData>().Nickname.Value;
+        }
+        else
+        {
+            return null;
+        }
     }
 }
