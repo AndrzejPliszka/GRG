@@ -311,7 +311,7 @@ public class PlayerData : NetworkBehaviour
     void CheckIfHitIsIllegal(GameObject hitObject)
     {
         if(!IsServer) throw new Exception("Client does not have authority to do that");
-        if (IsInJail.Value) //if player is in jail, he cannot be criminal
+        if (hitObject == null || IsInJail.Value) //if player is in jail, he cannot be criminal
             return;
         string hitTag = hitObject.tag;
         if (hitTag == "Shop")

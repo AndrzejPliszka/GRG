@@ -14,6 +14,9 @@ public class BreakableStructure : NetworkBehaviour
     [field: SerializeField] public List<PlayerData.MaterialData> droppedMaterials = new(); //maxAmount in this structure should be unused, if in future you want to modify this in runtime, use NetworkList<>
     [SerializeField] float dropMaterialPositionSpawnVariance = 0.2f;
     [SerializeField] float dropMaterialYOffset = 0.5f;
+
+    PlayerData.RawMaterial repairMaterial;
+
     public override void OnNetworkSpawn()
     {
         if(!IsServer) return;

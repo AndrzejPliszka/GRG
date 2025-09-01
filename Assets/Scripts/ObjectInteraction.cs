@@ -468,6 +468,8 @@ public class ObjectInteraction : NetworkBehaviour
 
                 if (heldItem.itemType == ItemData.ItemType.Sword)
                     baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
+                else if (heldItem.itemType == ItemData.ItemType.Hammer)
+                    baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier * -1);
                 else
                     break;
 
@@ -521,7 +523,7 @@ public class ObjectInteraction : NetworkBehaviour
                             //Fishing successfull
                             OnHittingSomething.Invoke(null);
                             if (playerData)
-                                playerData.ChangeMoney(2f * itemTierValueMultiplier);
+                                playerData.ChangeAmountOfMaterial(PlayerData.RawMaterial.Food, Mathf.RoundToInt(1f * itemTierValueMultiplier));
                             return;
                         }
                     }
