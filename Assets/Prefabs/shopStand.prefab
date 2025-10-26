@@ -54,6 +54,9 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -142,15 +145,17 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_enableWordWrapping: 0
+  m_TextWrappingMode: 0
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 1
+  m_ActiveFontFeatures: 00000000
   m_enableExtraPadding: 0
   checkPaddingRequired: 0
   m_isRichText: 1
+  m_EmojiFallbackSupport: 1
   m_parseCtrlCharacters: 1
   m_isOrthographic: 0
   m_isCullingEnabled: 0
@@ -225,6 +230,9 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -315,15 +323,17 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_enableWordWrapping: 0
+  m_TextWrappingMode: 0
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 1
+  m_ActiveFontFeatures: 00000000
   m_enableExtraPadding: 0
   checkPaddingRequired: 0
   m_isRichText: 1
+  m_EmojiFallbackSupport: 1
   m_parseCtrlCharacters: 1
   m_isOrthographic: 0
   m_isCullingEnabled: 0
@@ -539,8 +549,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1931308958
+  GlobalObjectIdHash: 1473166660
   InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
@@ -548,6 +560,8 @@ MonoBehaviour:
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!114 &7689533759277966306
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -560,9 +574,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0045f534312bba145948daf84d91e0d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  <MaximumHealth>k__BackingField: 100
+  ShowTopMostFoldoutHeaderGroup: 1
+  materialObjectData: {fileID: 0}
+  startingMaximumHealth: 100
+  MaximumHealth:
+    m_InternalValue: 0
   spawner: {fileID: 0}
   land: {fileID: 0}
+  droppedMaterials: []
+  dropMaterialPositionSpawnVariance: 0.2
+  dropMaterialYOffset: 0.5
 --- !u!114 &2063323180561659438
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -575,15 +596,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea9fa34ab69282248bbf5d79a56832e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  townId: 0
+  ShowTopMostFoldoutHeaderGroup: 1
+  <TownId>k__BackingField: 0
   shopText: {fileID: 8087584040987217906}
   workerInfoText: {fileID: 3547531348788532337}
   customerChair: {fileID: 2030290912516330414}
   workerChair: {fileID: 6120367659829091188}
   soldItemTier: 0
   soldItemType: 0
-  isUsingFood: 0
-  amountOfFoodNeeded: 0
   isBuyingRole: 0
   playerRole: 0
   noWorkerRequiredOnEmptyTown: 0

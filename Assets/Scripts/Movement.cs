@@ -57,6 +57,7 @@ public class Movement : NetworkBehaviour
     {
         if (IsServer) //here will be movement set done on server, because only it can manage positions
         {
+            GetComponent<Collider>().excludeLayers = LayerMask.GetMask("NoPlayerCollision");
             characterController.enabled = false; //temporary disabling characterController because otherwise it will move from (0, 0, 0) on .Move()
             transform.position = StartingPosition;
             characterController.enabled = true;
@@ -85,7 +86,9 @@ public class Movement : NetworkBehaviour
         if (!IsHost) //character controller is disabled to disable its collision (if enabled there would be two collisions in one place, because of localPlayerModel character controller)
             gameObject.GetComponent<CharacterController>().enabled = false;
         else
-            gameObject.GetComponent<CharacterController>().excludeLayers = LayerMask.GetMask("LocalObject");  //on host i cannot disable entire component cos it is referenced in ("client side") script
+            gameObject.GetComponent<CharacterController>().excludeLayers = LayerMask.GetMask("LocalObject", "NoPlayerCollision");  //on host i cannot disable entire component cos it is referenced in ("client side") script
+
+        LocalPlayerModel.GetComponent<Collider>().excludeLayers = LayerMask.GetMask("NoPlayerCollision");
 
         //Position camera
         playerCamera.transform.position = LocalPlayerModel.transform.position + CameraOffset;

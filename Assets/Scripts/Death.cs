@@ -71,7 +71,14 @@ public class Death : NetworkBehaviour
 
         //instantainte ragdoll
         GameObject ragdollObject = Instantiate(ragdoll, transform.position, transform.rotation);
+        ragdollObject.GetComponent<PlayerData>().Role.Value = playerData.Role.Value;
+        PlayerAppearance ragdollAppearance = ragdollObject.GetComponent<PlayerAppearance>();
+        PlayerAppearance playerAppearance = GetComponent<PlayerAppearance>();
         ragdollObject.GetComponent<NetworkObject>().Spawn();
+        ragdollAppearance.hatId.Value = playerAppearance.hatId.Value;
+        ragdollAppearance.inprintId.Value = playerAppearance.inprintId.Value;
+        ragdollAppearance.skinId.Value = playerAppearance.skinId.Value;
+        ragdollAppearance.faceId.Value = playerAppearance.faceId.Value;
     }
 
     [Rpc(SendTo.Owner)]

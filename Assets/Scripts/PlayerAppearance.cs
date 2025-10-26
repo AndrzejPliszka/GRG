@@ -22,10 +22,10 @@ public class PlayerAppearance : NetworkBehaviour
     }
 
     //all textures data
-    readonly NetworkVariable<int> hatId = new(-999, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner); //Change into server if taken from serv -999, means that it is unset yet
-    readonly NetworkVariable<int> faceId = new(-999, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-    readonly NetworkVariable<int> skinId = new(-999, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-    readonly NetworkVariable<int> inprintId = new(-999, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    public NetworkVariable<int> hatId = new(-999, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner); //Change into server if taken from serv -999, means that it is unset yet
+    public NetworkVariable<int> faceId = new(-999, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    public NetworkVariable<int> skinId = new(-999, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    public NetworkVariable<int> inprintId = new(-999, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
     private void Awake()
     {
@@ -40,7 +40,7 @@ public class PlayerAppearance : NetworkBehaviour
             return;
         }
 
-        if (IsOwner)
+        if (IsOwner && gameObject.CompareTag("Player")) //If is not player, it means that it is corpse, and as such these thing should not happen
         {
             ChangePlayerRoleTextureRpc(playerData.Role.Value, playerData.Role.Value);
             hatId.Value = PlayerPrefs.GetInt("Hat");
@@ -50,6 +50,8 @@ public class PlayerAppearance : NetworkBehaviour
 
             ChangePlayerSkin(skinId.Value);
             ChangePlayerInprint(inprintId.Value);
+            if(!gameObject.CompareTag("Player"))
+                ChangePlayerHat(hatId.Value);
         }
         else
         {
@@ -85,6 +87,8 @@ public class PlayerAppearance : NetworkBehaviour
     
     public void ChangePlayerHat(int hatId)
     {
+        Debug.Log("Changing hat into " + hatId);
+
         if (currentHat)
             Destroy(currentHat);
         GameObject hatToSpawn = appearanceData.GetHat(hatId);
@@ -98,7 +102,8 @@ public class PlayerAppearance : NetworkBehaviour
 
     public void ChangePlayerFace(int faceId)
     {
-        if (IsOwner)
+        //CompareTag is needed, as this script is used in corpses which are owned by server/host and do not have movement script
+        if (IsOwner && gameObject.CompareTag("Player"))
         {
             //if is this player only change localTexture
             Movement movement = GetComponent<Movement>();
@@ -114,7 +119,7 @@ public class PlayerAppearance : NetworkBehaviour
 
     public void ChangePlayerSkin(int skinId)
     {
-        if (IsOwner)
+        if (IsOwner && gameObject.CompareTag("Player"))
         {
             //if is this player only change localTexture
             Movement movement = GetComponent<Movement>();
@@ -129,7 +134,7 @@ public class PlayerAppearance : NetworkBehaviour
     }
     public void ChangePlayerInprint(int inprintId)
     {
-        if (IsOwner)
+        if (IsOwner && gameObject.CompareTag("Player"))
         {
             //if is this player only change localTexture
             Movement movement = GetComponent<Movement>();
@@ -154,7 +159,7 @@ public class PlayerAppearance : NetworkBehaviour
     [Rpc(SendTo.Everyone)]
     void ChangePlayerRoleTextureRpc(PlayerData.PlayerRole previousRole, PlayerData.PlayerRole currentRole)
     {
-        if (IsOwner)
+        if (IsOwner && gameObject.CompareTag("Player"))
         {
             //if is this player only change localTexture
             Movement movement = GetComponent<Movement>();
