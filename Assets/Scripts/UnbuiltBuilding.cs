@@ -30,11 +30,6 @@ public class UnbuiltBuilding : NetworkBehaviour
                 NeededMaterials.Add(material);
                 MaterialPrices.Add(0f);
             }
-            if (TryGetComponent<BreakableStructure>(out BreakableStructure breakableStructure))
-            {
-                breakableStructure.enabled = false;
-                maxHealth = breakableStructure.MaximumHealth.Value;
-            }
         }
         Transform buildPartsParent = transform.Find("UnbuiltParts");
         for(int i = 0; i < buildPartsParent.childCount; i++)
@@ -48,6 +43,18 @@ public class UnbuiltBuilding : NetworkBehaviour
         SetupNedeedMaterialUI();
         NeededMaterials.OnListChanged += ModifyNeededMaterialAmountUI;
     }
+
+    protected override void OnNetworkPostSpawn()
+    {
+        //This needs MaximumHealth from BreakableStructures, so it needs to be postSpawn
+        if(!IsServer) { return; }
+        if (TryGetComponent<BreakableStructure>(out BreakableStructure breakableStructure))
+        {
+            breakableStructure.enabled = false;
+            maxHealth = breakableStructure.MaximumHealth.Value;
+        }
+    }
+
     private void Update()
     {
         RotateNeededMaterialUI();

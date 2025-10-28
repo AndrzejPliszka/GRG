@@ -146,7 +146,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   materialObjectData: {fileID: 11400000, guid: 18e85f7aab5a41d4f9eeb5d0d8cbe1db, type: 2}
-  MaximumHealth: 100
+  startingMaximumHealth: 100
+  MaximumHealth:
+    m_InternalValue: 0
   spawner: {fileID: 0}
   land: {fileID: 0}
   droppedMaterials: []

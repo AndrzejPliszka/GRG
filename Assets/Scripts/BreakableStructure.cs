@@ -7,7 +7,8 @@ using UnityEngine.SceneManagement;
 public class BreakableStructure : NetworkBehaviour
 {
     [SerializeField] RawMaterialData materialObjectData;
-    public NetworkVariable<int> MaximumHealth = new();
+    public int startingMaximumHealth;
+    [HideInInspector] public NetworkVariable<int> MaximumHealth = new();
     public NetworkVariable<int> Health { get; private set; } = new();
     public DynamicObjectSpawning spawner; //this is used to communicate with spawner. it may be empty if object was put manually itp.
     public LandScript land; //also used to communicate with spawner, but in case of land plot in town
@@ -19,7 +20,8 @@ public class BreakableStructure : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        if(!IsServer) return;
+        if (!IsServer) return;
+        MaximumHealth.Value = startingMaximumHealth;
         Health.Value = MaximumHealth.Value;
     }
 
