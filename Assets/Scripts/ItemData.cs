@@ -49,7 +49,7 @@ public class ItemData : NetworkBehaviour
         }
     }
 
-    //Static function that changes texture of given item to appropariate material (it is here, because I have no script to handle behaviour and putting it in player scripts would be odd, but it is *theoretically* changing data)
+    //Static function that changes texture of given item to appropariate material (it is here, because I have no script to handle behaviour and putting it in player scripts would be odd, but it is *technically* changing data)
     public static void RetextureItem(GameObject item, ItemTier itemTier, ItemTierData itemMaterials)
     {
         foreach (Renderer itemPartRenderer in item.GetComponentsInChildren<Renderer>())
@@ -60,9 +60,12 @@ public class ItemData : NetworkBehaviour
             }
         }
     }
-    private void Start()
+    public override void OnNetworkSpawn()
     {
-        RetextureItem(transform.gameObject, itemProperties.Value.itemTier, itemTierData);
+        if (itemProperties.Value.itemType != ItemType.Null)
+            RetextureItem(transform.gameObject, itemProperties.Value.itemTier, itemTierData);
+        else
+            itemProperties.OnValueChanged += (oldItemProperties, itemProperties) => RetextureItem(transform.gameObject, itemProperties.itemTier, itemTierData);
     }
 
 }
