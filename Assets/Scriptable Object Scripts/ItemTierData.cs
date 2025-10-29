@@ -10,6 +10,7 @@ public class MaterialEntry
     public Material itemMaterial;
     public Color UIColor;
     public float multiplier; //used how much more efficent is item in this tier compared to different one
+    public int maximumDurability;
 }
 
 [CreateAssetMenu(fileName = "ItemTierData", menuName = "ScriptableObjects/ItemTierData", order = 1)]

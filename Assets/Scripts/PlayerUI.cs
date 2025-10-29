@@ -548,6 +548,7 @@ public class PlayerUI : NetworkBehaviour
         if (inventorySlot == null) { return; }
         Image staticItemImage = inventorySlot.transform.Find("StaticItemImage").GetComponent<Image>();
         Image coloredItemImage = inventorySlot.transform.Find("ColoredItemImage").GetComponent<Image>();
+        Slider durabilitySlider = inventorySlot.transform.Find("DurabilityBar").GetComponent<Slider>();
         if (e.Value.itemType != ItemType.Null)
         {
             staticItemImage.enabled = true;
@@ -556,11 +557,17 @@ public class PlayerUI : NetworkBehaviour
             coloredItemImage.enabled = true;
             coloredItemImage.sprite = itemTypeData.GetDataOfItemType(e.Value.itemType).coloredItemSprite;
             coloredItemImage.color = itemTierData.GetDataOfItemTier(e.Value.itemTier).UIColor;
+
+
+            durabilitySlider.gameObject.SetActive(true);
+            durabilitySlider.maxValue = itemTierData.GetDataOfItemTier(e.Value.itemTier).maximumDurability;
+            durabilitySlider.value = e.Value.durablity;
         }
         else
         {
             staticItemImage.enabled = false;
             coloredItemImage.enabled = false;
+            durabilitySlider.gameObject.SetActive(false);
         }
     }
     public void ChangeInventorySlot(int oldInventorySlot, int newInventorySlot) {

@@ -78,6 +78,7 @@ public class GameManager : NetworkBehaviour
     public static GameManager Instance { get; private set; }
 
     [SerializeField] ItemTypeData itemTypeData; //used for spawning items
+    [SerializeField] ItemTierData itemTierData; //used for durability
     [SerializeField] GameObject landObject;
 
     private void Awake()
@@ -123,7 +124,7 @@ public class GameManager : NetworkBehaviour
             {
                 GameObject item = Instantiate(itemTypeData.GetDataOfItemType(itemType).droppedItemPrefab, new Vector3(10, 5, itemSpawnZPos), new Quaternion());
                 item.GetComponent<NetworkObject>().Spawn();
-                item.GetComponent<ItemData>().itemProperties.Value = new ItemProperties { itemTier = itemTier, itemType = itemType };
+                item.GetComponent<ItemData>().itemProperties.Value = new ItemProperties(itemType, itemTier, itemTierData.GetDataOfItemTier(itemTier).maximumDurability);
                 itemSpawnZPos += 2;
             }
         }

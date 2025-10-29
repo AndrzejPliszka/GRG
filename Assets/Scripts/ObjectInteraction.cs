@@ -426,8 +426,8 @@ public class ObjectInteraction : NetworkBehaviour
                     baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
                 else
                     break;
-                
 
+                heldItem.ChangeDurability(-10);
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
 
