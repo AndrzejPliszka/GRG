@@ -46,21 +46,6 @@ public class ItemData : NetworkBehaviour
             durablity = initialDurablity;
         }
 
-        //return true if item should be destroyed
-        public bool ChangeDurability(int changeAmount)
-        {
-            if (durablity < 0)
-            {
-                Debug.LogWarning("You are changing durability of object, which has no durability (which means it has negative durability)");
-                return false;
-            }
-            durablity += changeAmount;
-            if (durablity < 0)
-                return true;
-
-            return false;
-        }
-
         public readonly bool Equals(ItemProperties other) //this function is required for marking function IEquatable
         {
             return itemType == other.itemType && itemTier == other.itemTier;
@@ -69,18 +54,7 @@ public class ItemData : NetworkBehaviour
         {
             serializer.SerializeValue(ref itemType);
             serializer.SerializeValue(ref itemTier);
-        }
-    }
-
-    public void ReduceDurability(int amountToReduce)
-    {
-        if(!IsServer) { throw new Exception("Only server can change durability of tools"); }
-
-        ItemProperties newItemProperties = itemProperties.Value;
-        newItemProperties.durablity -= amountToReduce;
-        itemProperties.Value = newItemProperties;
-        if (newItemProperties.durablity < 0) {
-            Destroy(gameObject);
+            serializer.SerializeValue(ref durablity);
         }
     }
 

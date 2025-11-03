@@ -418,6 +418,7 @@ public class ObjectInteraction : NetworkBehaviour
                 else
                     break;
 
+                ChangeDurabilityOfHeldItem(-10);
                 targetObject.GetComponent<PlayerData>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;
@@ -427,10 +428,10 @@ public class ObjectInteraction : NetworkBehaviour
                 else
                     break;
 
-                heldItem.ChangeDurability(-10);
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
 
+                ChangeDurabilityOfHeldItem(-10);
                 break;
             case "Shop":
                 if (heldItem.itemType == ItemData.ItemType.Sword)
@@ -449,6 +450,7 @@ public class ObjectInteraction : NetworkBehaviour
                 else
                     break;
 
+                ChangeDurabilityOfHeldItem(-10);
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;
@@ -458,6 +460,7 @@ public class ObjectInteraction : NetworkBehaviour
                 else
                     break;
 
+                ChangeDurabilityOfHeldItem(-10);
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;
@@ -535,6 +538,21 @@ public class ObjectInteraction : NetworkBehaviour
         }
     }
 
+    void ChangeDurabilityOfHeldItem(int addedDurability)
+    {
+        ItemData.ItemProperties heldItem = playerData.Inventory[playerData.SelectedInventorySlot.Value];
+        heldItem.durablity += addedDurability;
+        if (heldItem.durablity <= 0)
+        {
+            playerData.Inventory[playerData.SelectedInventorySlot.Value] =
+                new ItemData.ItemProperties { itemType = ItemData.ItemType.Null };
+            ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
+        }
+        else
+        {
+            playerData.Inventory[playerData.SelectedInventorySlot.Value] = heldItem;
+        }
+    }
 
     //tries to remove currently holded item in Inventory and spawn Item with same properties as those dropped
     [Rpc(SendTo.Server)]
