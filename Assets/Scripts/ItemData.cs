@@ -38,6 +38,14 @@ public class ItemData : NetworkBehaviour
     {
         public ItemType itemType;
         public ItemTier itemTier;
+        public int durablity; //if item doesn't have durability, then assign -1
+        public ItemProperties(ItemType initialItemType, ItemTier initialItemTier, int initialDurablity)
+        {
+            itemType = initialItemType;
+            itemTier = initialItemTier;
+            durablity = initialDurablity;
+        }
+
         public readonly bool Equals(ItemProperties other) //this function is required for marking function IEquatable
         {
             return itemType == other.itemType && itemTier == other.itemTier;
@@ -46,6 +54,7 @@ public class ItemData : NetworkBehaviour
         {
             serializer.SerializeValue(ref itemType);
             serializer.SerializeValue(ref itemTier);
+            serializer.SerializeValue(ref durablity);
         }
     }
 
