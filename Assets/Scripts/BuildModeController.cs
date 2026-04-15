@@ -218,7 +218,12 @@ public class BuildModeController : NetworkBehaviour
         {
             ghostCollider = ghostObject.GetComponentInChildren<Collider>();
         }
+
+        if (ghostCollider == null)
+            throw new Exception("Current Ghost build mode prefab has no collider!");
+
         Vector3 center = ghostCollider.bounds.center;
+       
         Vector3 halfExtents = ghostCollider.bounds.extents;
 
         Collider[] hits = Physics.OverlapBox(center, halfExtents, ghostObject.transform.rotation);
@@ -236,14 +241,24 @@ public class BuildModeController : NetworkBehaviour
         {
             foreach (Renderer renderer in objectRenderers)
             {
-                renderer.material = wrongPlacementGhostObjectMaterial;
+                Material[] sharedMats = renderer.sharedMaterials;
+                for (int i = 0; i < sharedMats.Length; i++)
+                {
+                    sharedMats[i] = wrongPlacementGhostObjectMaterial;
+                }
+                renderer.sharedMaterials = sharedMats;
             }
         }
         else
         {
             foreach (Renderer renderer in objectRenderers)
             {
-                renderer.material = correctGhostObjectMaterial;
+                Material[] sharedMats = renderer.sharedMaterials;
+                for (int i = 0; i < sharedMats.Length; i++)
+                {
+                    sharedMats[i] = correctGhostObjectMaterial;
+                }
+                renderer.sharedMaterials = sharedMats;
             }
         }
     }

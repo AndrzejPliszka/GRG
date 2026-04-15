@@ -281,7 +281,8 @@ public class UnbuiltBuilding : NetworkBehaviour
         GameObject building = Instantiate(buildingToBuild, transform.position, transform.rotation);
         //CHANGE THIS CODE TO INCLUDE OTHER BUILDINGS !!!!!
         building.GetComponent<NetworkObject>().Spawn();
-        building.GetComponent<Storage>().OwnerId.Value = OwnerId.Value;
+        if (building.TryGetComponent<Storage>(out Storage storageScript) )
+            storageScript.OwnerId.Value = OwnerId.Value;
         Destroy(gameObject);
         GetComponent<NetworkObject>().Despawn();
         return true;

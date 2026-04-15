@@ -10,7 +10,8 @@ public class BuildingData : ScriptableObject
     public enum BuildingType
     {
         Storage,
-        TestCube
+        TestCube,
+        Workshop
     }
     //Used when you have building that have subtypes (like storage which can be wood, stone or food, so it uses Material BuildingSubtype)
     public enum BuildingSubtypeStructure

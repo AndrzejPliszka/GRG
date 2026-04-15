@@ -1,2 +1,14 @@
 fileFormatVersion: 2
 guid: 65b9a9e059c991e4d9f37693934abdd4
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - buildingToBuild: {instanceID: 0}
+  - singularMaterialDataInfo: {fileID: 6541944257423500334, guid: 56e2906759da81741a51bcacc8355569, type: 3}
+  - rawMaterialData: {fileID: 11400000, guid: 18e85f7aab5a41d4f9eeb5d0d8cbe1db, type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
