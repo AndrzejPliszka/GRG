@@ -197,6 +197,7 @@ public class PlayerUI : NetworkBehaviour
         House house;
         GatherableMaterial materialItem;
         UnbuiltBuilding unbuiltBuilding;
+        Workshop workshop;
         int currentHealth, maxHealth;
         switch (targetObject.tag)
         {
@@ -291,6 +292,12 @@ public class PlayerUI : NetworkBehaviour
             case "Unbuilt":
                 unbuiltBuilding = targetObject.GetComponent<UnbuiltBuilding>();
                 centerText.text = $"{PlayerData.GetNicknameOfPlayer(unbuiltBuilding.OwnerId.Value)}'s \n Unfinished {unbuiltBuilding.ObjectStringDescription.Value}";
+                if (targetObject.TryGetComponent<BreakableStructure>(out breakableStructure) && breakableStructure.enabled)
+                    centerText.text += $"\nHP: {breakableStructure.Health.Value}/{breakableStructure.MaximumHealth.Value}";
+                break;
+            case "Workshop":
+                workshop = targetObject.GetComponent<Workshop>();
+                centerText.text = $"{workshop.itemTier} {workshop.itemType} Workshop";
                 if (targetObject.TryGetComponent<BreakableStructure>(out breakableStructure) && breakableStructure.enabled)
                     centerText.text += $"\nHP: {breakableStructure.Health.Value}/{breakableStructure.MaximumHealth.Value}";
                 break;

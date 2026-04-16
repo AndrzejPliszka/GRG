@@ -24,6 +24,7 @@ MonoBehaviour:
     - {fileID: 6244798571495554277, guid: 897fbccf6e70d5f4f839671d64b3e728, type: 3}
     buildingModeObject: {fileID: 3473316540135098929, guid: ea8b92badec081544963dcf50ab65aae, type: 3}
     buildingSprite: {fileID: 21300000, guid: bc65beabe08efe14c9e9629bd9f63ddd, type: 3}
+    areSubtypeBuildingsSame: 0
   - type: 1
     subtypeNames:
     - Wood
@@ -35,10 +36,21 @@ MonoBehaviour:
     - {fileID: 3146689396921256991, guid: 8f2dafeca3b8d304483f62f99a2448af, type: 3}
     buildingModeObject: {fileID: 4976748002079104000, guid: 71f0ad8931dc6c044b4d4208be1527b7, type: 3}
     buildingSprite: {fileID: 21300000, guid: 3d06ddff6694c2e499aa1fa965425511, type: 3}
+    areSubtypeBuildingsSame: 0
   - type: 2
     subtypeNames:
-    - 
+    - Axe
+    - Sword
+    - Pickaxe
+    - Medkit
+    - Food
+    - Sickle
     baseObjects:
+    - {fileID: 4224487992910878155, guid: 532949cf8325b7e4c8da5e3f62b39d1c, type: 3}
+    - {fileID: 4224487992910878155, guid: 532949cf8325b7e4c8da5e3f62b39d1c, type: 3}
+    - {fileID: 4224487992910878155, guid: 532949cf8325b7e4c8da5e3f62b39d1c, type: 3}
+    - {fileID: 4224487992910878155, guid: 532949cf8325b7e4c8da5e3f62b39d1c, type: 3}
     - {fileID: 4224487992910878155, guid: 532949cf8325b7e4c8da5e3f62b39d1c, type: 3}
     buildingModeObject: {fileID: 6141735396470641175, guid: 56d2e9ca8a55a5444a31ec2fb8451c09, type: 3}
     buildingSprite: {fileID: 21300000, guid: 398f929b629821941b259a03e8b13bb8, type: 3}
+    areSubtypeBuildingsSame: 0

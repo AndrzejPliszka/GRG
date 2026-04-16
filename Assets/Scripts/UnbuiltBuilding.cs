@@ -283,6 +283,11 @@ public class UnbuiltBuilding : NetworkBehaviour
         building.GetComponent<NetworkObject>().Spawn();
         if (building.TryGetComponent<Storage>(out Storage storageScript) )
             storageScript.OwnerId.Value = OwnerId.Value;
+        if (building.TryGetComponent<Workshop>(out Workshop buildingWorkshop))
+        {
+            buildingWorkshop.itemTier = GetComponent<Workshop>().itemTier;
+            buildingWorkshop.itemType = GetComponent<Workshop>().itemType;
+        }
         Destroy(gameObject);
         GetComponent<NetworkObject>().Despawn();
         return true;

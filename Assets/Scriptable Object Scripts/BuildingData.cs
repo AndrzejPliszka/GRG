@@ -29,6 +29,7 @@ public class BuildingData : ScriptableObject
         public List<GameObject> baseObjects; //should be in order of subtypeNames
         public GameObject buildingModeObject;
         public Sprite buildingSprite;
+        public bool needToModifyBuildingsInCode; //if this is checked, then instead of spawning we will do custom code, that will modify placed object
     }
 
     public List<Building> buildingDataList = new();

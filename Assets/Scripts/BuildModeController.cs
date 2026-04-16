@@ -108,6 +108,17 @@ public class BuildModeController : NetworkBehaviour
         GameObject spawnedObject = Instantiate(buildingToSpawn.baseObjects[currentBuildingSubtype], objectPosition, objectRotation);
 
         spawnedObject.GetComponent<NetworkObject>().Spawn();
+        if (buildingToSpawn.needToModifyBuildingsInCode)
+        {
+            if(buildingToSpawn.type == BuildingData.BuildingType.Workshop)
+            {
+                Workshop workshopScript = spawnedObject.GetComponent<Workshop>();
+                workshopScript.itemType = (ItemData.ItemType)Enum.Parse(typeof(ItemData.ItemType), buildingToSpawn.subtypeNames[currentBuildingSubtype]);
+                workshopScript.itemTier = ItemData.ItemTier.Wood;
+            }
+        }
+
+
         if (spawnedObject.GetComponent<UnbuiltBuilding>() == null)
             return;
         spawnedObject.GetComponent<UnbuiltBuilding>().OwnerId.Value = playerId;

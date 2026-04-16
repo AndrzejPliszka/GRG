@@ -382,6 +382,12 @@ public class ObjectInteraction : NetworkBehaviour
                     Destroy(targetObject.transform.gameObject);
                 }
                 break;
+            case "Workshop":
+                Workshop workshop = targetObject.GetComponent<Workshop>();
+                if (workshop == null)
+                    throw new Exception("Object with workshop tag doesn't have Workshop script");
+                workshop.CreateItemServerRpc();
+                break;
 
         }
     }

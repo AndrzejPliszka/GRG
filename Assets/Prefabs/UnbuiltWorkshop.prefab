@@ -6479,6 +6479,7 @@ GameObject:
   - component: {fileID: 7685276880038160610}
   - component: {fileID: 1928659362707690160}
   - component: {fileID: 1740956477191622702}
+  - component: {fileID: -3241554503256492345}
   m_Layer: 0
   m_Name: UnbuiltWorkshop
   m_TagString: Unbuilt
@@ -6596,7 +6597,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1217134178
+  GlobalObjectIdHash: 29391908
   InScenePlacedSourceGlobalObjectIdHash: 920950511
   DeferredDespawnTick: 0
   Ownership: 1
@@ -6688,6 +6689,22 @@ MonoBehaviour:
   droppedMaterials: []
   dropMaterialPositionSpawnVariance: 0.2
   dropMaterialYOffset: 0.5
+--- !u!114 &-3241554503256492345
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4224487992910878155}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d7a00d374c8e8c4685f6a638b50bf86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  itemType: 0
+  itemTier: 0
+  itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}
+  itemTierData: {fileID: 11400000, guid: e6c211ddcaf602045b55cbfd0c77ed64, type: 2}
 --- !u!1 &4320908844555059550
 GameObject:
   m_ObjectHideFlags: 0
