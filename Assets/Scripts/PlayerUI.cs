@@ -297,7 +297,7 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "Workshop":
                 workshop = targetObject.GetComponent<Workshop>();
-                centerText.text = $"{workshop.itemTier} {workshop.itemType} Workshop";
+                centerText.text = $"{workshop.itemTier} {workshop.ItemType} Workshop";
                 if (targetObject.TryGetComponent<BreakableStructure>(out breakableStructure) && breakableStructure.enabled)
                     centerText.text += $"\nHP: {breakableStructure.Health.Value}/{breakableStructure.MaximumHealth.Value}";
                 break;

@@ -286,7 +286,7 @@ public class UnbuiltBuilding : NetworkBehaviour
         if (building.TryGetComponent<Workshop>(out Workshop buildingWorkshop))
         {
             buildingWorkshop.itemTier = GetComponent<Workshop>().itemTier;
-            buildingWorkshop.itemType = GetComponent<Workshop>().itemType;
+            buildingWorkshop.ItemType = GetComponent<Workshop>().ItemType;
         }
         Destroy(gameObject);
         GetComponent<NetworkObject>().Despawn();
