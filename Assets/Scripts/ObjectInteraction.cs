@@ -313,8 +313,11 @@ public class ObjectInteraction : NetworkBehaviour
                         GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     else
                     {
-                        int amountToSell = Mathf.Min(storage.MaxSupply.Value - storage.CurrentSupply.Value, playerData.OwnedMaterials[(int)storage.StoredMaterial.Value].amount); //We cannot sell more than storage can hold
-                        storage.SellMaterialsServerRpc(playerId, amountToSell);
+                        foreach (PlayerData.MaterialData materialData in storage.StoredMaterialData)
+                        {
+                            int amountToSell = Mathf.Min(materialData.maxAmount - materialData.amount, playerData.GetMaterialDataOfOwnedRawMaterial(materialData.materialType).amount); //We cannot sell more than storage can hold
+                            storage.SellMaterialsServerRpc(playerId, amountToSell, materialData.materialType);
+                        }
                     }
                 }
                 break;

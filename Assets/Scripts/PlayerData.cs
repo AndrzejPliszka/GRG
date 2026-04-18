@@ -349,6 +349,7 @@ public class PlayerData : NetworkBehaviour
         }
     }
 
+    //TODO: FUCKING CHANGE THIS FUNCTION SO IT DOESN'T USE RETARED INT CASTING, THIS IS SO FUCKING MUCH PRONE TO BUGS I CANTTTT AAAAAAAAAAAA
     public int ChangeAmountOfMaterial(RawMaterial material, int amountToIncrease)
     {
         MaterialData materialData = OwnedMaterials[(int)material];
@@ -373,6 +374,7 @@ public class PlayerData : NetworkBehaviour
             return 0;
         }
     }
+    //WHY IS THIS NPOPT USEED ERJAOA"A??A?A?A?A? (TODO: change retarded int casting)
     public void SetAmountOfMaterial(RawMaterial material, int amountToSet)
     {
         MaterialData materialData = OwnedMaterials[(int)material];
@@ -386,6 +388,19 @@ public class PlayerData : NetworkBehaviour
             materialData.amount = amountToSet;
 
         OwnedMaterials.Insert((int)material, materialData);
+    }
+    /// <summary>
+    /// Getter for OwnedMaterials; Get materialData object corresponding to given RawMaterial, that exists in OwnedMaterials
+    /// </summary>
+    /// <param name="material">RawMaterial that you will get corresponding materialData struct</param>
+    /// <returns>MaterialData struct from OwnedMaterials corresponding to RawMaterial </returns>
+    /// <exception cref="Exception">Somehow OwnedMaterials doesn't contain your RawMaterial</exception>
+    public MaterialData GetMaterialDataOfOwnedRawMaterial(RawMaterial material)
+    {
+        foreach (MaterialData materialData in OwnedMaterials)
+            if (materialData.materialType == material)
+                return materialData;
+        throw new Exception("I don't know what the fuck did you do, to get this error, but \nI suggest making sure that next time you add all MaterialData corresponding to all RawMaterials to OwnedMaterials");
     }
 
     IEnumerator CheckTownPlayerIsIn()

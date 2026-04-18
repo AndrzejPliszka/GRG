@@ -237,7 +237,9 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "Storage":
                 storage = targetObject.GetComponent<Storage>();
-                centerText.text = $"{PlayerData.GetNicknameOfPlayer(storage.OwnerId.Value)}'s\n{storage.StoredMaterial.Value} Storage:\n{storage.CurrentSupply.Value}/{storage.MaxSupply.Value}";
+                centerText.text = $"{PlayerData.GetNicknameOfPlayer(storage.OwnerId.Value)}'s Storage:";
+                foreach (PlayerData.MaterialData materialData in storage.StoredMaterialData)
+                    centerText.text += $"\n {materialData.amount}/{materialData.maxAmount} of {materialData.materialType}";
                 if (targetObject.TryGetComponent<BreakableStructure>(out breakableStructure))
                     centerText.text += $"\nHP: {breakableStructure.Health.Value}/{breakableStructure.MaximumHealth.Value}";
                 break;
@@ -649,6 +651,9 @@ public class PlayerUI : NetworkBehaviour
     public void DisplayStorageTradeMenuOwnerRpc(ulong storageObjectId)
     {
         MakePanelInteractible();
+        //MAJOR TODO: Make this rawMaterial setteble from menu!
+        PlayerData.RawMaterial selectedRawMaterial = PlayerData.RawMaterial.Wood;
+
 
         GameObject storageMenu = Instantiate(storageTradePanel, playerUI); //Maybe use var instead of Find();
         //We need storage as we need data about it and we will call its function on button click
@@ -691,11 +696,12 @@ public class PlayerUI : NetworkBehaviour
             if (int.TryParse(newAmount, out int value))
             {
                 int maximumAmount;
-                PlayerData.MaterialData playerMaterial = playerData.OwnedMaterials[(int)targetStorage.StoredMaterial.Value];
+                PlayerData.MaterialData playerMaterial = playerData.GetMaterialDataOfOwnedRawMaterial(selectedRawMaterial);
+                PlayerData.MaterialData storageMaterial = targetStorage.GetMaterialDataOfRawMaterial(selectedRawMaterial);
                 if (isPlayerSelling)
-                    maximumAmount = Mathf.Min(playerMaterial.amount, targetStorage.MaxSupply.Value - targetStorage.CurrentSupply.Value);
+                    maximumAmount = Mathf.Min(playerMaterial.amount, storageMaterial.maxAmount - storageMaterial.amount);
                 else
-                    maximumAmount = Mathf.Min(targetStorage.CurrentSupply.Value, playerMaterial.maxAmount - playerMaterial.amount);
+                    maximumAmount = Mathf.Min(storageMaterial.amount, playerMaterial.maxAmount - playerMaterial.amount);
 
                 int minimumAmount = 0;
                 if (value < minimumAmount || value > maximumAmount)
@@ -716,9 +722,9 @@ public class PlayerUI : NetworkBehaviour
             if (amountInputField.text == "")
                 return;
             if (isPlayerSelling)
-                targetStorage.SellMaterialsServerRpc(NetworkManager.Singleton.LocalClientId, Convert.ToInt16(amountInputField.text));
+                targetStorage.SellMaterialsServerRpc(NetworkManager.Singleton.LocalClientId, Convert.ToInt16(amountInputField.text), selectedRawMaterial);
             else
-                targetStorage.BuyMaterialsServerRpc(NetworkManager.Singleton.LocalClientId, Convert.ToInt16(amountInputField.text));
+                targetStorage.BuyMaterialsServerRpc(NetworkManager.Singleton.LocalClientId, Convert.ToInt16(amountInputField.text), selectedRawMaterial);
 
 
             paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", "0");

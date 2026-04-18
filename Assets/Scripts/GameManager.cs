@@ -20,6 +20,7 @@ public class GameManager : NetworkBehaviour
     //TownProperties and TownData are server only!
     public class TownProperties
     {
+        //TODO: make townMaterialSupply actually work
         public List<PlayerData.MaterialData> townMaterialSupply; //Keep in mind that townMaterialSupply is only to keep track of materials across different storages, these materials should not be used to make building etc., they also may not be reliable
         //To display this data in player leader create NetworkList<MaterialData>, make event fire on every material and leader change and this event should be able to change this NetworkList on server so it is updated on client
         public float _taxRate = 0.25f;
