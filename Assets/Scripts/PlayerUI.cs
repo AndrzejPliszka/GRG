@@ -651,14 +651,19 @@ public class PlayerUI : NetworkBehaviour
     public void DisplayStorageTradeMenuOwnerRpc(ulong storageObjectId)
     {
         MakePanelInteractible();
-        //MAJOR TODO: Make this rawMaterial setteble from menu!
-        PlayerData.RawMaterial selectedRawMaterial = PlayerData.RawMaterial.Wood;
-
 
         GameObject storageMenu = Instantiate(storageTradePanel, playerUI); //Maybe use var instead of Find();
         //We need storage as we need data about it and we will call its function on button click
         Storage targetStorage = NetworkManager.SpawnManager.SpawnedObjects[storageObjectId].GetComponent<Storage>();
 
+
+        //MAJOR TODO: Make this rawMaterial setteble from menu!
+        PlayerData.RawMaterial selectedRawMaterial;
+        if (targetStorage.StoredMaterialData.Count == 1)
+            selectedRawMaterial = targetStorage.StoredMaterialData[0].materialType;
+        else
+            throw new Exception("Trade menu for storage with more than one material is not yet implemented!");
+        
         bool isStorageOwner = targetStorage.OwnerId.Value == NetworkManager.Singleton.LocalClientId;
 
         TMP_InputField amountInputField = storageMenu.transform.Find("AmountInputField").GetComponent<TMP_InputField>();

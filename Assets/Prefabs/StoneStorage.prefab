@@ -123,10 +123,16 @@ MonoBehaviour:
   yOffset: -0.08
   OwnerId:
     m_InternalValue: 0
-  <StoredMaterial>k__BackingField:
-    m_InternalValue: 2
-  <MaxSupply>k__BackingField:
-    m_InternalValue: 30
+  isStandalone: 0
+  materialDisplayMethod: 0
+  _storedMaterialData:
+  - materialType: 2
+    amount: 0
+    maxAmount: 30
+  <StoredMaterial_>k__BackingField:
+    m_InternalValue: 0
+  <MaxSupply_>k__BackingField:
+    m_InternalValue: 0
 --- !u!114 &2476513330300764786
 MonoBehaviour:
   m_ObjectHideFlags: 0

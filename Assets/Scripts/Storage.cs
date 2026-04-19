@@ -27,11 +27,10 @@ public class Storage : NetworkBehaviour
     [SerializeField] bool isStandalone; //This script may be attached to other objects that have material storing function (such as workshops), not only stand alone storage
     [SerializeField] DisplayMethod materialDisplayMethod;
 
-    public NetworkList<PlayerData.MaterialData> StoredMaterialData = new();
+
     [SerializeField] List<PlayerData.MaterialData> _storedMaterialData;
-    [field: SerializeField] public NetworkVariable<PlayerData.RawMaterial> StoredMaterial_ { get; private set; }
-    public NetworkVariable<int> CurrentSupply_ { get; private set; } = new();
-    [field: SerializeField] public NetworkVariable<int> MaxSupply_ { get; private set; } = new();
+    [HideInInspector] public NetworkList<PlayerData.MaterialData> StoredMaterialData = new();
+
     public NetworkVariable<float> SellingPrice { get; private set; } = new(1);
     public NetworkVariable<float> BuyingPrice { get; private set; } = new(1);
 
@@ -99,8 +98,10 @@ public class Storage : NetworkBehaviour
         for (int i = 0; i < StoredMaterialData.Count; i++)
         {
             if (StoredMaterialData[i].materialType == rawMaterial)
+            {
                 StoredMaterialData[i] = materialData;
                 return;
+            }
         }
         throw new Exception($"This storage doesn't store material: {rawMaterial}");
     }

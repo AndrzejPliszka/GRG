@@ -349,45 +349,68 @@ public class PlayerData : NetworkBehaviour
         }
     }
 
-    //TODO: FUCKING CHANGE THIS FUNCTION SO IT DOESN'T USE RETARED INT CASTING, THIS IS SO FUCKING MUCH PRONE TO BUGS I CANTTTT AAAAAAAAAAAA
+    /// <summary>
+    /// Change amount property of MaterialData of corresponding material in OwnedMaterial
+    /// </summary>
+    /// <param name="material">RawMaterial for which we change amount property</param>
+    /// <param name="amountToIncrease">Amount which will be added to amount property (can be negative)</param>
+    /// <returns>Amount of material that was NOT added to OwnedMaterial (because final amount exceded maxAmount or was lower than 0)</returns>
+    /// <exception cref="Exception"></exception>
     public int ChangeAmountOfMaterial(RawMaterial material, int amountToIncrease)
     {
-        MaterialData materialData = OwnedMaterials[(int)material];
-        int newAmount = materialData.amount + amountToIncrease;
+        for (int i = 0; i < OwnedMaterials.Count; i++) {
+            if (OwnedMaterials[i].materialType != material)
+                continue;
+            
+            MaterialData materialData = OwnedMaterials[i];
 
-        if (newAmount > materialData.maxAmount)
-        {
-            int excessiveAmount = newAmount - materialData.maxAmount;
-            materialData.amount = materialData.maxAmount;
-            OwnedMaterials[(int)material] = materialData;
-            return excessiveAmount; //returning amount that was not added to material, because excessive material can be dropped, or dealt with other way etc.
+            int newAmount = materialData.amount + amountToIncrease;
+
+            if (newAmount > materialData.maxAmount)
+            {
+                int excessiveAmount = newAmount - materialData.maxAmount;
+                materialData.amount = materialData.maxAmount;
+                OwnedMaterials[i] = materialData;
+                return excessiveAmount; //returning amount that was not added to material, because excessive material can be dropped, or dealt with other way etc.
+            }
+            else if (newAmount < 0)
+            {
+                //This means that we wanted to deduct material, but there was not enough of it, so we do nothing
+                return newAmount; //returning amount that was not removed from material, so it can be used in other way (for example added to inventory)
+            }
+            else
+            {
+                materialData.amount = newAmount;
+                OwnedMaterials[i] = materialData;
+                return 0;
+            }
         }
-        else if (newAmount < 0)
-        {
-            //This means that we wanted to deduct material, but there was not enough of it, so we do nothing
-            return newAmount; //returning amount that was not removed from material, so it can be used in other way (for example added to inventory)
-        }
-        else
-        {
-            materialData.amount = newAmount;
-            OwnedMaterials[(int)material] = materialData;
-            return 0;
-        }
+        throw new Exception($"There is somehow no {material} in OwnedMaterials variable");
     }
-    //WHY IS THIS NPOPT USEED ERJAOA"A??A?A?A?A? (TODO: change retarded int casting)
+    /// <summary>
+    /// Sets amount property of MaterialData of corresponding material to amountToSet, works for all values of amountToSet
+    /// </summary>
+    /// <param name="material">RawMaterial for which we set amount property</param>
+    /// <param name="amountToSet">Amount that will be set, if amountToSet < 0, then amount will be 0, if amountToSet > maxAmount, then amountToSet = maxAmount</param>
     public void SetAmountOfMaterial(RawMaterial material, int amountToSet)
     {
-        MaterialData materialData = OwnedMaterials[(int)material];
-        OwnedMaterials.RemoveAt((int)material);
+        for(int i = 0; i < OwnedMaterials.Count; i++)
+        {
+            if (OwnedMaterials[i].materialType != material)
+                continue;
 
-        if (amountToSet > materialData.maxAmount)
-            materialData.amount = materialData.maxAmount;
-        else if (amountToSet < 0)
-            amountToSet = 0;
-        else
-            materialData.amount = amountToSet;
+            MaterialData materialData = OwnedMaterials[i];
+            OwnedMaterials.RemoveAt(i);
 
-        OwnedMaterials.Insert((int)material, materialData);
+            if (amountToSet > materialData.maxAmount)
+                materialData.amount = materialData.maxAmount;
+            else if (amountToSet < 0)
+                amountToSet = 0;
+            else
+                materialData.amount = amountToSet;
+
+            OwnedMaterials.Insert(i, materialData);
+        }
     }
     /// <summary>
     /// Getter for OwnedMaterials; Get materialData object corresponding to given RawMaterial, that exists in OwnedMaterials

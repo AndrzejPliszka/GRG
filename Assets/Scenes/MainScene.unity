@@ -289,6 +289,18 @@ PrefabInstance:
       propertyPath: storedMaterialObject
       value: 
       objectReference: {fileID: 789177819}
+    - target: {fileID: 7845544013123758571, guid: 102652328f15b8a4fb1081aa3cadfa3d, type: 3}
+      propertyPath: _storedMaterialData.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7845544013123758571, guid: 102652328f15b8a4fb1081aa3cadfa3d, type: 3}
+      propertyPath: _storedMaterialData.Array.data[0].maxAmount
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 7845544013123758571, guid: 102652328f15b8a4fb1081aa3cadfa3d, type: 3}
+      propertyPath: _storedMaterialData.Array.data[0].materialType
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -13119,6 +13131,14 @@ PrefabInstance:
       propertyPath: maximumMaterialLevel
       value: 1.25
       objectReference: {fileID: 0}
+    - target: {fileID: 2348107281069265341, guid: 3b5585b061866944fad7c35d2a2bd520, type: 3}
+      propertyPath: _storedMaterialData.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2348107281069265341, guid: 3b5585b061866944fad7c35d2a2bd520, type: 3}
+      propertyPath: _storedMaterialData.Array.data[0].maxAmount
+      value: 30
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -17729,6 +17749,18 @@ PrefabInstance:
     - target: {fileID: 5228168961964922432, guid: 944c324d6b1769543892264c42ef18a9, type: 3}
       propertyPath: maximumMaterialLevel
       value: 1.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 5228168961964922432, guid: 944c324d6b1769543892264c42ef18a9, type: 3}
+      propertyPath: _storedMaterialData.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5228168961964922432, guid: 944c324d6b1769543892264c42ef18a9, type: 3}
+      propertyPath: _storedMaterialData.Array.data[0].maxAmount
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 5228168961964922432, guid: 944c324d6b1769543892264c42ef18a9, type: 3}
+      propertyPath: _storedMaterialData.Array.data[0].materialType
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6246024945684447844, guid: 944c324d6b1769543892264c42ef18a9, type: 3}
       propertyPath: GlobalObjectIdHash
