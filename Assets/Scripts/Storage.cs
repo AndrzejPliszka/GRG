@@ -8,6 +8,30 @@ using UnityEngine;
 using static PlayerData;
 using static UnityEngine.Rendering.DebugUI;
 
+/// <summary>
+/// For given amountOfMinimumMaterial stores what is object that should be displayed. Used In StorageMaterialData. 
+/// I use this class instead of key value pair like in dictionary, so it can be serializable and settable in inspector.
+/// </summary>
+[System.Serializable]
+public class MaterialDisplayObjectData
+{
+    public int amountOfMinimumMaterial;
+    public GameObject displayGameObject;
+}
+
+/// <summary>
+/// Determines where and how given materials will be displayed. Usefull when storage stores more than one material. 
+/// displayParent is Transform that will be parent of instantianted object representing material.
+/// DisplayMaterialObjects specifies what object should be displayed on minimum value of material.
+/// </summary>
+[System.Serializable]
+public class StorageMaterialData
+{
+    public PlayerData.RawMaterial materialType;
+    public Transform displayParent;
+    public List<MaterialDisplayObjectData> displayedMaterialObjects;
+}
+
 public class Storage : NetworkBehaviour
 {
     enum DisplayMethod{
@@ -17,14 +41,20 @@ public class Storage : NetworkBehaviour
 
     [SerializeField] int townId;
 
+    //TODO: make that you don't see this in inspector unless SingularHeap is selected materialDisplayMethod
+    //Used only when there is SingularHeap
     [SerializeField] GameObject storedMaterialObject;
     [SerializeField] float maximumMaterialLevel;
     [SerializeField] float yOffset = -0.25f;
     float yOriginalPosition;
 
+    //Used when small batches are used
+    [SerializeField] List<StorageMaterialData> materialDisplayData;
+
     public NetworkVariable<ulong> OwnerId = new(0); //Netcode player id, not object id
 
-    [SerializeField] bool isStandalone; //This script may be attached to other objects that have material storing function (such as workshops), not only stand alone storage
+
+    //This script may be attached to other objects that have material storing function (such as workshops), not only stand alone storage
     [SerializeField] DisplayMethod materialDisplayMethod;
 
 
@@ -47,20 +77,52 @@ public class Storage : NetworkBehaviour
 
             yOriginalPosition = storedMaterialObject.transform.position.y;
             ChangeLevelOfMaterial(StoredMaterialData[0].amount, StoredMaterialData[0].maxAmount);
-            StoredMaterialData.OnListChanged += (NetworkListEvent<PlayerData.MaterialData> networkListEvent) =>
+            StoredMaterialData.OnListChanged += networkListEvent =>
             {
                 ChangeLevelOfMaterial(networkListEvent.Value.amount, networkListEvent.Value.maxAmount);
             };
+        } 
+        else if (materialDisplayMethod == DisplayMethod.SmallBatches)
+        {
+            StoredMaterialData.OnListChanged += ChangeBatchesOfMaterial;
         }
 
         if (OwnerId.Value == 0 && IsServer && !IsHost)
             OwnerId.Value = NetworkManager.Singleton.LocalClientId; //Set owner to local client if it is server and owner is not set yet
         if (IsServer)
         {
-            StoredMaterialData.OnListChanged += (NetworkListEvent<PlayerData.MaterialData> networkListEvent) =>
+            StoredMaterialData.OnListChanged += networkListEvent =>
             {
                 AdjustDroppedItems(networkListEvent.PreviousValue.amount, networkListEvent.Value.amount);
             };
+        }
+    }
+
+    /// <summary>
+    /// Updates the displayed material objects to match specification from materialDisplayData. Should be called when StoredMaterialData is changed.
+    /// </summary>
+    /// <param name="materialListEvent">The event containing changes of the material data that are processed.</param>
+    void ChangeBatchesOfMaterial(NetworkListEvent<PlayerData.MaterialData> materialListEvent)
+    {
+        if (materialDisplayMethod != DisplayMethod.SmallBatches)
+            throw new Exception("This method should be used ONLY when displayMethod is SmallBatches!");
+        foreach (var material in materialDisplayData) {
+            if (material.materialType == materialListEvent.Value.materialType)
+            {
+                MaterialDisplayObjectData finalMaterialObject = material.displayedMaterialObjects[0];
+                int currentValue = materialListEvent.Value.amount;
+                foreach(var materialObject in material.displayedMaterialObjects)
+                {
+                    if (finalMaterialObject.amountOfMinimumMaterial < materialObject.amountOfMinimumMaterial &&
+                        materialObject.amountOfMinimumMaterial <= currentValue)
+                        finalMaterialObject = materialObject;
+                }
+
+
+                foreach (Transform child in material.displayParent)
+                    Destroy(child.gameObject);
+                Instantiate(finalMaterialObject.displayGameObject, material.displayParent);
+            }
         }
     }
 

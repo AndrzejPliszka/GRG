@@ -189,6 +189,8 @@ public class PlayerUI : NetworkBehaviour
             centerText.text = "";
             return;
         }
+
+        string targetObjectTag = targetObject.tag;
         //declare these here to avoid scope issues
         Shop shopScript;
         BreakableStructure breakableStructure;
@@ -199,7 +201,12 @@ public class PlayerUI : NetworkBehaviour
         UnbuiltBuilding unbuiltBuilding;
         Workshop workshop;
         int currentHealth, maxHealth;
-        switch (targetObject.tag)
+
+        //If object with tag has reference to another object we want to get data from referenced object instead
+        if (targetObject.TryGetComponent<ObjectReference>(out ObjectReference objectReference))
+            targetObject = objectReference.objectReference;
+
+        switch (targetObjectTag)
         {
             case "Player":
                 PlayerData playerData = targetObject.GetComponent<PlayerData>();
@@ -330,7 +337,15 @@ public class PlayerUI : NetworkBehaviour
             ReplaceTextWithLineStartingWith(tooltipText, "B", "B - Enable Build Mode");
             if (lookedAtObject)
             {
-            switch (lookedAtObject.tag)
+                
+            string objectTag = lookedAtObject.tag;
+
+            //If object with tag has reference to another object we want to get data from referenced object instead
+            if (lookedAtObject.TryGetComponent<ObjectReference>(out ObjectReference objectReference))
+                lookedAtObject = objectReference.objectReference;
+
+
+            switch (objectTag)
             {
                 case "Player":
                     ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Punch");

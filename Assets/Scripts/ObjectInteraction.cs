@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using TMPro;
 using Unity.Collections;
 using Unity.Netcode;
@@ -221,7 +222,6 @@ public class ObjectInteraction : NetworkBehaviour
         House houseScript;
         Storage storage;
         UnbuiltBuilding unbuiltBuilding;
-        //first see if is looking at interactive object
         if (isPrimaryInteraction)
         {
             //if is not looking at interactive object, check if has interactible item in hand
@@ -244,6 +244,11 @@ public class ObjectInteraction : NetworkBehaviour
                     return;
             }
         }
+
+        //If object with tag has reference to another object we want to get data from referenced object instead
+        if (targetObject.TryGetComponent<ObjectReference>(out ObjectReference objectReference))
+            targetObject = objectReference.objectReference;
+
         switch (targetObjectTag)
         {
             case "Item":
