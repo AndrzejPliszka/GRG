@@ -582,3 +582,9 @@ MonoBehaviour:
   - materialType: 1
     amount: 0
     maxAmount: 30
+  - materialType: 0
+    amount: 0
+    maxAmount: 30
+  - materialType: 2
+    amount: 0
+    maxAmount: 30

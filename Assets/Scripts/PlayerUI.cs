@@ -661,7 +661,11 @@ public class PlayerUI : NetworkBehaviour
         progressBar.value = 0;
         progressBarCoroutine = StartCoroutine(FillProgressBar(amountOfTime));
     }
-
+    
+    /// <summary>
+    /// Displays and sets up storage trade menu, enabling interaction with stored materials.
+    /// </summary>
+    /// <param name="storageObjectId">The unique identifier of the storage object to interact with.</param>
     [Rpc(SendTo.Owner)]
     public void DisplayStorageTradeMenuOwnerRpc(ulong storageObjectId)
     {
@@ -670,14 +674,6 @@ public class PlayerUI : NetworkBehaviour
         GameObject storageMenu = Instantiate(storageTradePanel, playerUI); //Maybe use var instead of Find();
         //We need storage as we need data about it and we will call its function on button click
         Storage targetStorage = NetworkManager.SpawnManager.SpawnedObjects[storageObjectId].GetComponent<Storage>();
-
-
-        //MAJOR TODO: Make this rawMaterial setteble from menu!
-        PlayerData.RawMaterial selectedRawMaterial;
-        if (targetStorage.StoredMaterialData.Count == 1)
-            selectedRawMaterial = targetStorage.StoredMaterialData[0].materialType;
-        else
-            throw new Exception("Trade menu for storage with more than one material is not yet implemented!");
         
         bool isStorageOwner = targetStorage.OwnerId.Value == NetworkManager.Singleton.LocalClientId;
 
@@ -686,6 +682,33 @@ public class PlayerUI : NetworkBehaviour
         Button modeChangeButton = storageMenu.transform.Find("ModeChangeButton").GetComponent<Button>();
         TMP_Text explanatoryText = storageMenu.transform.Find("ExplanatoryText").GetComponent<TMP_Text>();
         TMP_Text paymentText = storageMenu.transform.Find("PaymentText").GetComponent<TMP_Text>();
+        TMP_Dropdown materialDropdown = storageMenu.transform.Find("MaterialDropdown").GetComponent<TMP_Dropdown>();
+
+        PlayerData.RawMaterial selectedRawMaterial;
+        if (targetStorage.StoredMaterialData.Count == 1)
+        {
+            selectedRawMaterial = targetStorage.StoredMaterialData[0].materialType;
+            Destroy(materialDropdown.gameObject);
+        }
+        else
+        {
+            List<TMP_Dropdown.OptionData> options = new();
+            selectedRawMaterial = targetStorage.StoredMaterialData[0].materialType;
+            foreach (PlayerData.MaterialData material in targetStorage.StoredMaterialData)
+            {
+                options.Add(new TMP_Dropdown.OptionData(material.materialType.ToString()));
+            }
+            materialDropdown.AddOptions(options);
+
+            materialDropdown.onValueChanged.AddListener(currentDropdownSlot =>
+            {
+                string selectedOption = materialDropdown.options[currentDropdownSlot].text;
+                selectedRawMaterial = (PlayerData.RawMaterial)Enum.Parse(typeof(PlayerData.RawMaterial), selectedOption);
+
+                amountInputField.text = ClampStorageTradeMenuInputField(selectedRawMaterial, targetStorage, int.Parse(amountInputField.text)).ToString();
+            });
+
+        }
 
         if (!isPlayerSelling) //listener is not run on initialization and I don't want to create function from this
         {
@@ -711,24 +734,11 @@ public class PlayerUI : NetworkBehaviour
             }
         });
 
-        amountInputField.onValueChanged.AddListener((string newAmount) =>
+        amountInputField.onValueChanged.AddListener(newAmount =>
         {
             if (int.TryParse(newAmount, out int value))
             {
-                int maximumAmount;
-                PlayerData.MaterialData playerMaterial = playerData.GetMaterialDataOfOwnedRawMaterial(selectedRawMaterial);
-                PlayerData.MaterialData storageMaterial = targetStorage.GetMaterialDataOfRawMaterial(selectedRawMaterial);
-                if (isPlayerSelling)
-                    maximumAmount = Mathf.Min(playerMaterial.amount, storageMaterial.maxAmount - storageMaterial.amount);
-                else
-                    maximumAmount = Mathf.Min(storageMaterial.amount, playerMaterial.maxAmount - playerMaterial.amount);
-
-                int minimumAmount = 0;
-                if (value < minimumAmount || value > maximumAmount)
-                {
-                    value = Mathf.Clamp(value, minimumAmount, maximumAmount);
-                    amountInputField.text = value.ToString();
-                }
+                amountInputField.text = ClampStorageTradeMenuInputField(selectedRawMaterial, targetStorage, int.Parse(amountInputField.text)).ToString();
 
                 if(isPlayerSelling)
                     paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", isStorageOwner ? "0" : Convert.ToString(value * targetStorage.SellingPrice.Value));
@@ -751,6 +761,30 @@ public class PlayerUI : NetworkBehaviour
             amountInputField.text = "";
         });
         StartCoroutine(CheckIfMenuGotDestroyed(storageMenu));
+    }
+
+    /// <summary>
+    /// Clamps given value within the range that can be sold/bought in given storage
+    /// </summary>
+    /// <param name="selectedRawMaterial">The raw material being traded.</param>
+    /// <param name="targetStorage">The storage involved in the trade.</param>
+    /// <param name="value">The input value to clamp.</param>
+    /// <returns>The clamped value within the valid trade range.</returns>
+    int ClampStorageTradeMenuInputField(PlayerData.RawMaterial selectedRawMaterial, Storage targetStorage, int value)
+    {
+        int maximumAmount;
+        PlayerData.MaterialData playerMaterial = playerData.GetMaterialDataOfOwnedRawMaterial(selectedRawMaterial);
+        PlayerData.MaterialData storageMaterial = targetStorage.GetMaterialDataOfRawMaterial(selectedRawMaterial);
+        if (isPlayerSelling)
+            maximumAmount = Mathf.Min(playerMaterial.amount, storageMaterial.maxAmount - storageMaterial.amount);
+        else
+            maximumAmount = Mathf.Min(storageMaterial.amount, playerMaterial.maxAmount - playerMaterial.amount);
+
+        int minimumAmount = 0;
+        if (value < minimumAmount || value > maximumAmount)
+            value = Mathf.Clamp(value, minimumAmount, maximumAmount);
+
+        return value;
     }
 
     void MakePanelInteractible()
