@@ -319,10 +319,10 @@ public class ObjectInteraction : NetworkBehaviour
                         GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     else
                     {
-                        foreach (PlayerData.MaterialData materialData in storage.StoredMaterialData)
+                        foreach (PlayerData.ExtendedMaterialData materialData in storage.StoredMaterialData)
                         {
-                            int amountToSell = Mathf.Min(materialData.maxAmount - materialData.amount, playerData.GetMaterialDataOfOwnedRawMaterial(materialData.materialType).amount); //We cannot sell more than storage can hold
-                            storage.SellMaterialsServerRpc(playerId, amountToSell, materialData.materialType);
+                            int amountToSell = Mathf.Min(materialData.MaxAmount - materialData.Amount, playerData.GetMaterialDataOfOwnedRawMaterial(materialData.MaterialType).Amount); //We cannot sell more than storage can hold
+                            storage.SellMaterialsServerRpc(playerId, amountToSell, materialData.MaterialType);
                         }
                     }
                 }
@@ -347,10 +347,10 @@ public class ObjectInteraction : NetworkBehaviour
                 Dictionary<PlayerData.RawMaterial, int> amountOfPlayerMaterials = new();
                 Dictionary<PlayerData.RawMaterial, int> amountOfNeededMaterials = new();
 
-                foreach (PlayerData.MaterialData ownedMaterial in playerData.OwnedMaterials)
-                    amountOfPlayerMaterials.Add(ownedMaterial.materialType, ownedMaterial.amount);
-                foreach (PlayerData.MaterialData neededMaterial in unbuiltBuilding.NeededMaterials)
-                    amountOfNeededMaterials.Add(neededMaterial.materialType, neededMaterial.maxAmount - neededMaterial.amount);
+                foreach (PlayerData.ExtendedMaterialData ownedMaterial in playerData.OwnedMaterials)
+                    amountOfPlayerMaterials.Add(ownedMaterial.MaterialType, ownedMaterial.Amount);
+                foreach (PlayerData.ExtendedMaterialData neededMaterial in unbuiltBuilding.NeededMaterials)
+                    amountOfNeededMaterials.Add(neededMaterial.MaterialType, neededMaterial.MaxAmount - neededMaterial.Amount);
 
                 foreach (PlayerData.RawMaterial rawMaterial in Enum.GetValues(typeof(PlayerData.RawMaterial)))
                 {
@@ -384,7 +384,7 @@ public class ObjectInteraction : NetworkBehaviour
                 if (!isPrimaryInteraction)
                     return;
                 GatherableMaterial materialItem = targetObject.GetComponent<GatherableMaterial>();
-                int didSucced = playerData.ChangeAmountOfMaterial(materialItem.Material.Value, materialItem.Amount.Value);
+                int didSucced = playerData.ChangeAmountOfMaterial(materialItem.Material.Value.MaterialType, materialItem.Material.Value.Amount);
                 if (didSucced == 0) //doesn't handle material.Material.Value > 1)
                 {
                     materialItem.GetComponent<NetworkObject>().Despawn();
@@ -617,7 +617,7 @@ public class ObjectInteraction : NetworkBehaviour
         if (collision.transform.CompareTag("MaterialObject") && collision.transform.GetComponent<NetworkObject>().IsSpawned)
         {
             GatherableMaterial material = collision.transform.GetComponent<GatherableMaterial>();
-            int didSucced = playerData.ChangeAmountOfMaterial(material.Material.Value, material.Amount.Value);
+            int didSucced = playerData.ChangeAmountOfMaterial(material.Material.Value.MaterialType, material.Material.Value.Amount);
             if(didSucced == 0) //DOESNT HANDLE NUMBERS GREATER THAN 1 (can happen if material.Material.Value > 1)
             {
                 material.GetComponent<NetworkObject>().Despawn();

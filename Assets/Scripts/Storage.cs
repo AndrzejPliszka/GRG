@@ -58,15 +58,15 @@ public class Storage : NetworkBehaviour
     [SerializeField] DisplayMethod materialDisplayMethod;
 
 
-    [SerializeField] List<PlayerData.MaterialData> _storedMaterialData;
-    [HideInInspector] public NetworkList<PlayerData.MaterialData> StoredMaterialData = new();
+    [SerializeField] List<PlayerData.ExtendedMaterialData> _storedMaterialData;
+    [HideInInspector] public NetworkList<PlayerData.ExtendedMaterialData> StoredMaterialData = new();
 
     public NetworkVariable<float> SellingPrice { get; private set; } = new(1);
     public NetworkVariable<float> BuyingPrice { get; private set; } = new(1);
 
     public override void OnNetworkSpawn()
     {
-        foreach (PlayerData.MaterialData materialData in _storedMaterialData)
+        foreach (PlayerData.ExtendedMaterialData materialData in _storedMaterialData)
             StoredMaterialData.Add(materialData);
 
 
@@ -76,10 +76,10 @@ public class Storage : NetworkBehaviour
                 throw new Exception("This display method doesn't support multiple materials in one storage");
 
             yOriginalPosition = storedMaterialObject.transform.position.y;
-            ChangeLevelOfMaterial(StoredMaterialData[0].amount, StoredMaterialData[0].maxAmount);
+            ChangeLevelOfMaterial(StoredMaterialData[0].Amount, StoredMaterialData[0].MaxAmount);
             StoredMaterialData.OnListChanged += networkListEvent =>
             {
-                ChangeLevelOfMaterial(networkListEvent.Value.amount, networkListEvent.Value.maxAmount);
+                ChangeLevelOfMaterial(networkListEvent.Value.Amount, networkListEvent.Value.MaxAmount);
             };
         } 
         else if (materialDisplayMethod == DisplayMethod.SmallBatches)
@@ -93,7 +93,7 @@ public class Storage : NetworkBehaviour
         {
             StoredMaterialData.OnListChanged += networkListEvent =>
             {
-                AdjustDroppedItems(networkListEvent.PreviousValue.amount, networkListEvent.Value.amount);
+                AdjustDroppedItems(networkListEvent.PreviousValue.Amount, networkListEvent.Value.Amount);
             };
         }
     }
@@ -102,15 +102,15 @@ public class Storage : NetworkBehaviour
     /// Updates the displayed material objects to match specification from materialDisplayData. Should be called when StoredMaterialData is changed.
     /// </summary>
     /// <param name="materialListEvent">The event containing changes of the material data that are processed.</param>
-    void ChangeBatchesOfMaterial(NetworkListEvent<PlayerData.MaterialData> materialListEvent)
+    void ChangeBatchesOfMaterial(NetworkListEvent<PlayerData.ExtendedMaterialData> materialListEvent)
     {
         if (materialDisplayMethod != DisplayMethod.SmallBatches)
             throw new Exception("This method should be used ONLY when displayMethod is SmallBatches!");
         foreach (var material in materialDisplayData) {
-            if (material.materialType == materialListEvent.Value.materialType)
+            if (material.materialType == materialListEvent.Value.MaterialType)
             {
                 MaterialDisplayObjectData finalMaterialObject = material.displayedMaterialObjects[0];
-                int currentValue = materialListEvent.Value.amount;
+                int currentValue = materialListEvent.Value.Amount;
                 foreach(var materialObject in material.displayedMaterialObjects)
                 {
                     if (finalMaterialObject.amountOfMinimumMaterial < materialObject.amountOfMinimumMaterial &&
@@ -141,11 +141,11 @@ public class Storage : NetworkBehaviour
     /// <returns>The material data object corresponding to the specified raw material.</returns>
     /// <exception cref="Exception">Thrown when the specified raw material cannot be stored in storage.</exception>
 
-    public PlayerData.MaterialData GetMaterialDataOfRawMaterial(PlayerData.RawMaterial rawMaterial)
+    public PlayerData.ExtendedMaterialData GetMaterialDataOfRawMaterial(PlayerData.RawMaterial rawMaterial)
     {
-        foreach (PlayerData.MaterialData material in StoredMaterialData)
+        foreach (PlayerData.ExtendedMaterialData material in StoredMaterialData)
         {
-            if (material.materialType == rawMaterial)
+            if (material.MaterialType == rawMaterial)
                 return material;
         }
         throw new Exception($"This storage doesn't store material: {rawMaterial}");
@@ -157,11 +157,11 @@ public class Storage : NetworkBehaviour
     /// <param name="rawMaterial">Raw material for which materialData will be updated</param>
     /// <param name="materialData">MaterialData struct that will replace existing data to corresponding raw material</param>
     /// <exception cref="Exception">Thrown when the specified raw material cannot be stored in storage.</exception>
-    public void UpdateMaterialDataGivenRawMaterial(PlayerData.RawMaterial rawMaterial, PlayerData.MaterialData materialData)
+    public void UpdateMaterialDataGivenRawMaterial(PlayerData.RawMaterial rawMaterial, PlayerData.ExtendedMaterialData materialData)
     {
         for (int i = 0; i < StoredMaterialData.Count; i++)
         {
-            if (StoredMaterialData[i].materialType == rawMaterial)
+            if (StoredMaterialData[i].MaterialType == rawMaterial)
             {
                 StoredMaterialData[i] = materialData;
                 return;
@@ -179,7 +179,7 @@ public class Storage : NetworkBehaviour
     {
         for (int i = 0; i < StoredMaterialData.Count; i++)
         {
-            if (StoredMaterialData[i].materialType == rawMaterial)
+            if (StoredMaterialData[i].MaterialType == rawMaterial)
                 return true;
         }
         return false;
@@ -190,13 +190,13 @@ public class Storage : NetworkBehaviour
     {
         if (!IsServer) { throw new System.Exception("Only server can add material!"); }
 
-        PlayerData.MaterialData materialData = GetMaterialDataOfRawMaterial(material);
-        materialData.amount += amountToIncrease;
-        if (materialData.amount > materialData.maxAmount)
+        PlayerData.ExtendedMaterialData materialData = GetMaterialDataOfRawMaterial(material);
+        materialData.Amount += amountToIncrease;
+        if (materialData.Amount > materialData.MaxAmount)
         {
             return false;
         }
-        else if (materialData.amount < 0)
+        else if (materialData.Amount < 0)
         {
             return false;
         }
@@ -214,15 +214,15 @@ public class Storage : NetworkBehaviour
         if (!TryGetComponent<BreakableStructure>(out var breakableStructure))
             return;
 
-        foreach (MaterialData storageMaterialData in StoredMaterialData)
+        foreach (ExtendedMaterialData storageMaterialData in StoredMaterialData)
         {
             bool wasMaterialUpdated = false;
             for (int i = 0; i < breakableStructure.droppedMaterials.Count; i++)
             {
-                if (breakableStructure.droppedMaterials[i].materialType == storageMaterialData.materialType)
+                if (breakableStructure.droppedMaterials[i].MaterialType == storageMaterialData.MaterialType)
                 {
                     PlayerData.MaterialData newDroppedMaterial = breakableStructure.droppedMaterials[i];
-                    newDroppedMaterial.amount += (newSupply - oldSupply);
+                    newDroppedMaterial.Amount += (newSupply - oldSupply);
                     breakableStructure.droppedMaterials[i] = newDroppedMaterial;
                     wasMaterialUpdated = true;
                     break;
@@ -230,7 +230,7 @@ public class Storage : NetworkBehaviour
             }
             if (!wasMaterialUpdated)
             {
-                breakableStructure.droppedMaterials.Add(storageMaterialData);
+                breakableStructure.droppedMaterials.Add(new PlayerData.MaterialData { MaterialType = storageMaterialData.MaterialType, Amount = storageMaterialData.Amount });
             }
 
         }
@@ -245,11 +245,11 @@ public class Storage : NetworkBehaviour
         {
             PlayerData ownerData = ownerClient.PlayerObject.gameObject.GetComponent<PlayerData>();
             PlayerData sellerData = sellerClient.PlayerObject.gameObject.GetComponent<PlayerData>();
-            MaterialData materialData = GetMaterialDataOfRawMaterial(material);
+            ExtendedMaterialData materialData = GetMaterialDataOfRawMaterial(material);
 
             //In edge case when owner wants to put things in storage, paying money etc. is not needed
-            if (isSellerOwner && amountOfMaterials <= materialData.maxAmount - materialData.amount &&
-                sellerData.GetMaterialDataOfOwnedRawMaterial(material).amount >= amountOfMaterials)
+            if (isSellerOwner && amountOfMaterials <= materialData.MaxAmount - materialData.Amount &&
+                sellerData.GetMaterialDataOfOwnedRawMaterial(material).Amount >= amountOfMaterials)
             {
                 sellerData.GetComponent<PlayerData>().ChangeAmountOfMaterial(material, -amountOfMaterials);
                 ChangeAmountOfMaterialInStorage(material, amountOfMaterials);
@@ -257,8 +257,8 @@ public class Storage : NetworkBehaviour
             
 
             if (!isSellerOwner && ownerData.Money.Value >= (amountOfMaterials * SellingPrice.Value) &&
-                amountOfMaterials <= materialData.maxAmount - materialData.amount &&
-                sellerData.GetMaterialDataOfOwnedRawMaterial(material).amount >= amountOfMaterials)
+                amountOfMaterials <= materialData.MaxAmount - materialData.Amount &&
+                sellerData.GetMaterialDataOfOwnedRawMaterial(material).Amount >= amountOfMaterials)
             {
                 ownerData.ChangeMoney(-amountOfMaterials * SellingPrice.Value);
                 sellerData.ChangeMoney(amountOfMaterials * SellingPrice.Value);
@@ -279,10 +279,10 @@ public class Storage : NetworkBehaviour
         {
             PlayerData ownerData = ownerClient.PlayerObject.gameObject.GetComponent<PlayerData>();
             PlayerData buyerData = buyerClient.PlayerObject.gameObject.GetComponent<PlayerData>();
-            MaterialData materialData = GetMaterialDataOfRawMaterial(material);
+            ExtendedMaterialData materialData = GetMaterialDataOfRawMaterial(material);
 
             //In edge case when owner wants to get things from storage, paying money etc. is not needed
-            if (isBuyerOwner && amountOfMaterials <= materialData.amount && amountOfMaterials <= buyerData.GetMaterialDataOfOwnedRawMaterial(material).maxAmount - buyerData.GetMaterialDataOfOwnedRawMaterial(material).amount)
+            if (isBuyerOwner && amountOfMaterials <= materialData.Amount && amountOfMaterials <= buyerData.GetMaterialDataOfOwnedRawMaterial(material).MaxAmount - buyerData.GetMaterialDataOfOwnedRawMaterial(material).Amount)
             {
                 ChangeAmountOfMaterialInStorage(material, -amountOfMaterials);
                 buyerData.GetComponent<PlayerData>().ChangeAmountOfMaterial(material, amountOfMaterials);
@@ -290,8 +290,8 @@ public class Storage : NetworkBehaviour
             }
 
             if (buyerData.Money.Value >= (amountOfMaterials * BuyingPrice.Value) &&
-                amountOfMaterials <= materialData.amount &&
-                amountOfMaterials <= buyerData.GetMaterialDataOfOwnedRawMaterial(material).maxAmount - buyerData.GetMaterialDataOfOwnedRawMaterial(material).amount)
+                amountOfMaterials <= materialData.Amount &&
+                amountOfMaterials <= buyerData.GetMaterialDataOfOwnedRawMaterial(material).MaxAmount - buyerData.GetMaterialDataOfOwnedRawMaterial(material).Amount)
             {
                 ownerData.ChangeMoney(amountOfMaterials * BuyingPrice.Value);
                 buyerData.ChangeMoney(-amountOfMaterials * BuyingPrice.Value);

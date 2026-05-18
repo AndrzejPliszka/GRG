@@ -147,28 +147,28 @@ public class PlayerUI : NetworkBehaviour
 
     }
 
-    void DisplayMaterialText(NetworkListEvent<PlayerData.MaterialData> listChange)
+    void DisplayMaterialText(NetworkListEvent<PlayerData.ExtendedMaterialData> listChange)
     {
-        PlayerData.MaterialData changedMaterialData = listChange.Value;
+        PlayerData.ExtendedMaterialData changedMaterialData = listChange.Value;
         TMP_Text modifiedText;
-        switch(changedMaterialData.materialType)
+        switch(changedMaterialData.MaterialType)
         {
             case PlayerData.RawMaterial.Wood:
-                woodMaterialText.text = $"{changedMaterialData.amount}";
+                woodMaterialText.text = $"{changedMaterialData.Amount}";
                 modifiedText = woodMaterialText;
                 break;
             case PlayerData.RawMaterial.Food:
-                foodMaterialText.text = $"{changedMaterialData.amount}";
+                foodMaterialText.text = $"{changedMaterialData.Amount}";
                 modifiedText = foodMaterialText;
                 break;
             case PlayerData.RawMaterial.Stone:
-                stoneMaterialText.text = $"{changedMaterialData.amount}";
+                stoneMaterialText.text = $"{changedMaterialData.Amount}";
                 modifiedText = stoneMaterialText;
                 break;
             default:
                 return;
         }
-        if(changedMaterialData.amount == changedMaterialData.maxAmount)
+        if(changedMaterialData.Amount == changedMaterialData.MaxAmount)
             modifiedText.color = new Color(0, 255, 0, 1);
         else
             modifiedText.color = new Color(0, 0, 0, 1);
@@ -245,8 +245,8 @@ public class PlayerUI : NetworkBehaviour
             case "Storage":
                 storage = targetObject.GetComponent<Storage>();
                 centerText.text = $"{PlayerData.GetNicknameOfPlayer(storage.OwnerId.Value)}'s Storage:";
-                foreach (PlayerData.MaterialData materialData in storage.StoredMaterialData)
-                    centerText.text += $"\n {materialData.amount}/{materialData.maxAmount} of {materialData.materialType}";
+                foreach (PlayerData.ExtendedMaterialData materialData in storage.StoredMaterialData)
+                    centerText.text += $"\n {materialData.Amount}/{materialData.MaxAmount} of {materialData.MaterialType}";
                 if (targetObject.TryGetComponent<BreakableStructure>(out breakableStructure))
                     centerText.text += $"\nHP: {breakableStructure.Health.Value}/{breakableStructure.MaximumHealth.Value}";
                 break;
@@ -269,7 +269,7 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "GatherableMaterial":
                 materialItem = targetObject.GetComponent<GatherableMaterial>();
-                switch (materialItem.Material.Value)
+                switch (materialItem.Material.Value.MaterialType)
                 {
                     case PlayerData.RawMaterial.Wood:
                         centerText.text = $"Stick";
@@ -290,7 +290,7 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "MaterialObject":
                 materialItem = targetObject.GetComponent<GatherableMaterial>();
-                centerText.text = materialItem.Material.Value switch
+                centerText.text = materialItem.Material.Value.MaterialType switch
                 {
                     PlayerData.RawMaterial.Wood => $"Wood Material",
                     PlayerData.RawMaterial.Stone => $"Stone Material",
@@ -310,7 +310,7 @@ public class PlayerUI : NetworkBehaviour
                 if (workshop.ItemMaterialCost.Count != 0)
                     centerText.text += $"\nCost:";
                 foreach (PlayerData.MaterialData material in workshop.ItemMaterialCost)
-                    centerText.text += $" {material.amount} of {material.materialType}";
+                    centerText.text += $" {material.Amount} of {material.MaterialType}";
                 if (targetObject.TryGetComponent<BreakableStructure>(out breakableStructure) && breakableStructure.enabled)
                     centerText.text += $"\nHP: {breakableStructure.Health.Value}/{breakableStructure.MaximumHealth.Value}";
                 break;
@@ -691,16 +691,16 @@ public class PlayerUI : NetworkBehaviour
         PlayerData.RawMaterial selectedRawMaterial;
         if (targetStorage.StoredMaterialData.Count == 1)
         {
-            selectedRawMaterial = targetStorage.StoredMaterialData[0].materialType;
+            selectedRawMaterial = targetStorage.StoredMaterialData[0].MaterialType;
             Destroy(materialDropdown.gameObject);
         }
         else
         {
             List<TMP_Dropdown.OptionData> options = new();
-            selectedRawMaterial = targetStorage.StoredMaterialData[0].materialType;
-            foreach (PlayerData.MaterialData material in targetStorage.StoredMaterialData)
+            selectedRawMaterial = targetStorage.StoredMaterialData[0].MaterialType;
+            foreach (PlayerData.ExtendedMaterialData material in targetStorage.StoredMaterialData)
             {
-                options.Add(new TMP_Dropdown.OptionData(material.materialType.ToString()));
+                options.Add(new TMP_Dropdown.OptionData(material.MaterialType.ToString()));
             }
             materialDropdown.AddOptions(options);
 
@@ -777,12 +777,12 @@ public class PlayerUI : NetworkBehaviour
     int ClampStorageTradeMenuInputField(PlayerData.RawMaterial selectedRawMaterial, Storage targetStorage, int value)
     {
         int maximumAmount;
-        PlayerData.MaterialData playerMaterial = playerData.GetMaterialDataOfOwnedRawMaterial(selectedRawMaterial);
-        PlayerData.MaterialData storageMaterial = targetStorage.GetMaterialDataOfRawMaterial(selectedRawMaterial);
+        PlayerData.ExtendedMaterialData playerMaterial = playerData.GetMaterialDataOfOwnedRawMaterial(selectedRawMaterial);
+        PlayerData.ExtendedMaterialData storageMaterial = targetStorage.GetMaterialDataOfRawMaterial(selectedRawMaterial);
         if (isPlayerSelling)
-            maximumAmount = Mathf.Min(playerMaterial.amount, storageMaterial.maxAmount - storageMaterial.amount);
+            maximumAmount = Mathf.Min(playerMaterial.Amount, storageMaterial.MaxAmount - storageMaterial.Amount);
         else
-            maximumAmount = Mathf.Min(storageMaterial.amount, playerMaterial.maxAmount - playerMaterial.amount);
+            maximumAmount = Mathf.Min(storageMaterial.Amount, playerMaterial.MaxAmount - playerMaterial.Amount);
 
         int minimumAmount = 0;
         if (value < minimumAmount || value > maximumAmount)
@@ -868,9 +868,9 @@ public class PlayerUI : NetworkBehaviour
         Button confirmButton = materialDeliveryMenu.transform.Find("ConfirmButton").GetComponent<Button>();
 
         List<string> options = new();
-        foreach (PlayerData.MaterialData material in targetBuilding.NeededMaterials)
-            if (material.amount < material.maxAmount)
-                options.Add(material.materialType.ToString());
+        foreach (PlayerData.ExtendedMaterialData material in targetBuilding.NeededMaterials)
+            if (material.Amount < material.MaxAmount)
+                options.Add(material.MaterialType.ToString());
 
         materialDropdown.ClearOptions();
         materialDropdown.AddOptions(options);
@@ -880,7 +880,7 @@ public class PlayerUI : NetworkBehaviour
             PlayerData.RawMaterial material = (PlayerData.RawMaterial)Enum.Parse(typeof(PlayerData.RawMaterial), materialDropdown.options[newValue].text);
             for(int i = 0; i < targetBuilding.NeededMaterials.Count; i++)
             {
-                if (targetBuilding.NeededMaterials[i].materialType == material)
+                if (targetBuilding.NeededMaterials[i].MaterialType == material)
                     amountInputField.placeholder.GetComponent<TMP_Text>().text = targetBuilding.MaterialPrices[i].ToString();
             }
             amountInputField.text = "";
@@ -919,9 +919,9 @@ public class PlayerUI : NetworkBehaviour
         Button confirmButton = materialDeliveryMenu.transform.Find("ConfirmButton").GetComponent<Button>();
         TMP_Text paymentInfoText = materialDeliveryMenu.transform.Find("PaymentTextBackground").transform.Find("PaymentText").GetComponent<TMP_Text>();
         List<string> options = new();
-        foreach (PlayerData.MaterialData material in targetBuilding.NeededMaterials)
-            if(material.amount < material.maxAmount)
-                options.Add(material.materialType.ToString());
+        foreach (PlayerData.ExtendedMaterialData material in targetBuilding.NeededMaterials)
+            if(material.Amount < material.MaxAmount)
+                options.Add(material.MaterialType.ToString());
 
         materialDropdown.ClearOptions();
         materialDropdown.AddOptions(options);
@@ -963,12 +963,12 @@ public class PlayerUI : NetworkBehaviour
     {
         int playerMaterialAmount = 0;
         int unbuiltBuildingNeededMaterialAmount = 0;
-        foreach (PlayerData.MaterialData material in playerData.OwnedMaterials)
-            if (material.materialType == selectedMaterial)
-                playerMaterialAmount = material.amount;
-        foreach (PlayerData.MaterialData material in targetBuilding.NeededMaterials)
-            if (material.materialType == selectedMaterial)
-                unbuiltBuildingNeededMaterialAmount = material.maxAmount - material.amount;
+        foreach (PlayerData.ExtendedMaterialData material in playerData.OwnedMaterials)
+            if (material.MaterialType == selectedMaterial)
+                playerMaterialAmount = material.Amount;
+        foreach (PlayerData.ExtendedMaterialData material in targetBuilding.NeededMaterials)
+            if (material.MaterialType == selectedMaterial)
+                unbuiltBuildingNeededMaterialAmount = material.MaxAmount - material.Amount;
         int maximumAmount = Mathf.Min(playerMaterialAmount, unbuiltBuildingNeededMaterialAmount);
         int minimumAmount = 0;
 

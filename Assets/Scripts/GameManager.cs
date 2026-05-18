@@ -21,7 +21,7 @@ public class GameManager : NetworkBehaviour
     public class TownProperties
     {
         //TODO: make townMaterialSupply actually work
-        public List<PlayerData.MaterialData> townMaterialSupply; //Keep in mind that townMaterialSupply is only to keep track of materials across different storages, these materials should not be used to make building etc., they also may not be reliable
+        public List<PlayerData.ExtendedMaterialData> townMaterialSupply; //Keep in mind that townMaterialSupply is only to keep track of materials across different storages, these materials should not be used to make building etc., they also may not be reliable
         //To display this data in player leader create NetworkList<MaterialData>, make event fire on every material and leader change and this event should be able to change this NetworkList on server so it is updated on client
         public float _taxRate = 0.25f;
         public float TaxRate
@@ -95,10 +95,10 @@ public class GameManager : NetworkBehaviour
 
         for (int i = 0; i < 1; i++)
         {
-            List<PlayerData.MaterialData> townMaterials = new();
+            List<PlayerData.ExtendedMaterialData> townMaterials = new();
             foreach (PlayerData.RawMaterial material in Enum.GetValues(typeof(PlayerData.RawMaterial)))
             {
-                townMaterials.Add(new PlayerData.MaterialData { materialType = material, amount = 0, maxAmount = 20 });
+                townMaterials.Add(new PlayerData.ExtendedMaterialData { MaterialType = material, Amount = 0, MaxAmount = 20 });
             }
             TownData.Add(new TownProperties() { townMaterialSupply = townMaterials, townBase = GameObject.Find("Town" + i).transform.Find("Pavement") }); //Pavement cos it has approperiate size (at least for now)
         }
@@ -159,16 +159,16 @@ public class GameManager : NetworkBehaviour
     public void ChangeMaterialAmount(int townId, PlayerData.RawMaterial material, int amountToChange) //TO DO: make that you can change it in every city (currently only in 1st one)
     {
         if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); };
-        PlayerData.MaterialData materialData = TownData[townId].townMaterialSupply[(int)material];
-        materialData.amount += amountToChange;
+        PlayerData.ExtendedMaterialData materialData = TownData[townId].townMaterialSupply[(int)material];
+        materialData.Amount += amountToChange;
         TownData[townId].townMaterialSupply[(int)material] = materialData;
     }
 
     public void ChangeMaxMaterialAmount(int townId, PlayerData.RawMaterial material, int amountToChange) //TO DO: make that you can change it in every city (currently only in 1st one)
     {
         if (!IsServer) { throw new Exception("You can modify things in GameManager only on server!"); };
-        PlayerData.MaterialData materialData = TownData[townId].townMaterialSupply[(int)material];
-        materialData.maxAmount += amountToChange;
+        PlayerData.ExtendedMaterialData materialData = TownData[townId].townMaterialSupply[(int)material];
+        materialData.MaxAmount += amountToChange;
         TownData[townId].townMaterialSupply[(int)material] = materialData;
     }
 

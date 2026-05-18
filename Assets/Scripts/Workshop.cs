@@ -64,7 +64,7 @@ public class Workshop : MonoBehaviour
         if (TryGetComponent<Storage>(out Storage storage) || ItemMaterialCost.Count == 0)
         {
             foreach (PlayerData.MaterialData neededMaterial in ItemMaterialCost)
-                if (neededMaterial.amount > storage.GetMaterialDataOfRawMaterial(neededMaterial.materialType).amount)
+                if (neededMaterial.Amount > storage.GetMaterialDataOfRawMaterial(neededMaterial.MaterialType).Amount)
                     areMaterialsAvailable = false;
         }
         else
@@ -80,7 +80,7 @@ public class Workshop : MonoBehaviour
         if (storage || ItemMaterialCost.Count == 0)
         {
             foreach (PlayerData.MaterialData neededMaterial in ItemMaterialCost)
-                storage.ChangeAmountOfMaterialInStorage(neededMaterial.materialType, -neededMaterial.amount);
+                storage.ChangeAmountOfMaterialInStorage(neededMaterial.MaterialType, -neededMaterial.Amount);
                 
         }
 

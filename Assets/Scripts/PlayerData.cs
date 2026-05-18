@@ -25,21 +25,53 @@ public class PlayerData : NetworkBehaviour
         Stone
     }
 
+    /// <summary>
+    /// Binds materialType and some int value together. Use when you need to store material and amount of it. Networkable.
+    /// </summary>
     [Serializable]
-    public struct MaterialData : INetworkSerializable, IEquatable<MaterialData>
+    public struct MaterialData : INetworkSerializable, IEquatable<ExtendedMaterialData>
     {
-        public RawMaterial materialType;
-        public int amount;
-        public int maxAmount; //this is implemented in setter ChangeAmountOfMaterial
-        public readonly bool Equals(MaterialData other) //this function is required for marking function IEquatable
+        public RawMaterial MaterialType;
+        public int Amount;
+        public readonly bool Equals(ExtendedMaterialData other) //this function is required for marking function IEquatable
         {
-            return materialType == other.materialType && amount == other.amount;
+            return MaterialType == other.MaterialType && Amount == other.Amount;
         }
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
-            serializer.SerializeValue(ref materialType);
-            serializer.SerializeValue(ref amount);
-            serializer.SerializeValue(ref maxAmount);
+            serializer.SerializeValue(ref MaterialType);
+            serializer.SerializeValue(ref Amount);
+        }
+    }
+    /// <summary>
+    /// Binds materialType to two int values. Use when except amount of material you also need to store second value like maxAmount, or targetAmount. Networkable.
+    /// </summary>
+    [Serializable]
+    public struct ExtendedMaterialData : INetworkSerializable, IEquatable<ExtendedMaterialData>
+    {
+        public MaterialData BaseData; 
+        public int MaxAmount;
+
+        public RawMaterial MaterialType
+        {
+            readonly get => BaseData.MaterialType;
+            set => BaseData.MaterialType = value;
+        }
+
+        public int Amount
+        {
+            readonly get => BaseData.Amount;
+            set => BaseData.Amount = value;
+        }
+
+        public readonly bool Equals(ExtendedMaterialData other) //this function is required for marking function IEquatable
+        {
+            return MaterialType == other.MaterialType && Amount == other.Amount;
+        }
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            BaseData.NetworkSerialize(serializer);
+            serializer.SerializeValue(ref MaxAmount);
         }
     }
 
@@ -69,7 +101,7 @@ public class PlayerData : NetworkBehaviour
 
     public NetworkVariable<int> TownPlayerIsIn { get; private set; } = new(-1); //physical location, -1 means no town
 
-    public NetworkList<MaterialData> OwnedMaterials { get; private set; }
+    public NetworkList<ExtendedMaterialData> OwnedMaterials { get; private set; }
 
     //Variables that hold things related to managing data above
     bool decreaseHungerFaster = false;
@@ -84,7 +116,7 @@ public class PlayerData : NetworkBehaviour
     {
         //we need to do this before connection (so before Start()/OnNetworkSpawn()), but not on declaration, because there will be memory leak
         Inventory = new NetworkList<ItemData.ItemProperties>();
-        OwnedMaterials = new NetworkList<MaterialData>();
+        OwnedMaterials = new NetworkList<ExtendedMaterialData>();
         playerMovement = GetComponent<Movement>();
     }
 
@@ -106,7 +138,7 @@ public class PlayerData : NetworkBehaviour
             }
             foreach(PlayerData.RawMaterial material in Enum.GetValues(typeof(PlayerData.RawMaterial)))
             {
-                OwnedMaterials.Add(new MaterialData { materialType = material, amount = 0, maxAmount = 20 });
+                OwnedMaterials.Add(new ExtendedMaterialData { MaterialType = material, Amount = 0, MaxAmount = 20 });
             }
 
             if (TryGetComponent<ObjectInteraction>(out var objectInteraction))
@@ -359,17 +391,17 @@ public class PlayerData : NetworkBehaviour
     public int ChangeAmountOfMaterial(RawMaterial material, int amountToIncrease)
     {
         for (int i = 0; i < OwnedMaterials.Count; i++) {
-            if (OwnedMaterials[i].materialType != material)
+            if (OwnedMaterials[i].MaterialType != material)
                 continue;
             
-            MaterialData materialData = OwnedMaterials[i];
+            ExtendedMaterialData materialData = OwnedMaterials[i];
 
-            int newAmount = materialData.amount + amountToIncrease;
+            int newAmount = materialData.Amount + amountToIncrease;
 
-            if (newAmount > materialData.maxAmount)
+            if (newAmount > materialData.MaxAmount)
             {
-                int excessiveAmount = newAmount - materialData.maxAmount;
-                materialData.amount = materialData.maxAmount;
+                int excessiveAmount = newAmount - materialData.MaxAmount;
+                materialData.Amount = materialData.MaxAmount;
                 OwnedMaterials[i] = materialData;
                 return excessiveAmount; //returning amount that was not added to material, because excessive material can be dropped, or dealt with other way etc.
             }
@@ -380,7 +412,7 @@ public class PlayerData : NetworkBehaviour
             }
             else
             {
-                materialData.amount = newAmount;
+                materialData.Amount = newAmount;
                 OwnedMaterials[i] = materialData;
                 return 0;
             }
@@ -396,18 +428,18 @@ public class PlayerData : NetworkBehaviour
     {
         for(int i = 0; i < OwnedMaterials.Count; i++)
         {
-            if (OwnedMaterials[i].materialType != material)
+            if (OwnedMaterials[i].MaterialType != material)
                 continue;
 
-            MaterialData materialData = OwnedMaterials[i];
+            ExtendedMaterialData materialData = OwnedMaterials[i];
             OwnedMaterials.RemoveAt(i);
 
-            if (amountToSet > materialData.maxAmount)
-                materialData.amount = materialData.maxAmount;
+            if (amountToSet > materialData.MaxAmount)
+                materialData.Amount = materialData.MaxAmount;
             else if (amountToSet < 0)
                 amountToSet = 0;
             else
-                materialData.amount = amountToSet;
+                materialData.Amount = amountToSet;
 
             OwnedMaterials.Insert(i, materialData);
         }
@@ -418,10 +450,10 @@ public class PlayerData : NetworkBehaviour
     /// <param name="material">RawMaterial that you will get corresponding materialData struct</param>
     /// <returns>MaterialData struct from OwnedMaterials corresponding to RawMaterial </returns>
     /// <exception cref="Exception">Somehow OwnedMaterials doesn't contain your RawMaterial</exception>
-    public MaterialData GetMaterialDataOfOwnedRawMaterial(RawMaterial material)
+    public ExtendedMaterialData GetMaterialDataOfOwnedRawMaterial(RawMaterial material)
     {
-        foreach (MaterialData materialData in OwnedMaterials)
-            if (materialData.materialType == material)
+        foreach (ExtendedMaterialData materialData in OwnedMaterials)
+            if (materialData.MaterialType == material)
                 return materialData;
         throw new Exception("I don't know what the fuck did you do, to get this error, but \nI suggest making sure that next time you add all MaterialData corresponding to all RawMaterials to OwnedMaterials");
     }
