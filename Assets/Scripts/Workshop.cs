@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using static ItemData;
@@ -22,6 +23,15 @@ public class Workshop : MonoBehaviour
     [SerializeField] ItemTypeData itemTypeData;
     [SerializeField] ItemTierData itemTierData;
 
+    [SerializeField] List<PlayerData.MaterialData> _itemMaterialCost;
+    [HideInInspector] public List<PlayerData.MaterialData> ItemMaterialCost { get; private set; } = new();
+
+
+    private void Awake()
+    {
+        foreach (PlayerData.MaterialData material in _itemMaterialCost)
+            ItemMaterialCost.Add(material);
+    }
 
     [Rpc(SendTo.Everyone)]
     public void UpdateWorkshopSpriteClientRpc()
@@ -44,9 +54,39 @@ public class Workshop : MonoBehaviour
     }
 
     [Rpc(SendTo.Server)]
-    public void CreateItemServerRpc()
+    public void CreateItemServerRpc(RpcParams rpcParams = default)
     {
-        ItemProperties itemProperties = new() { 
+        ulong playerId = rpcParams.Receive.SenderClientId;
+        NetworkManager.Singleton.ConnectedClients.TryGetValue(playerId, out var player);
+
+        //Check if there are materials in storage to create item
+        bool areMaterialsAvailable = true;
+        if (TryGetComponent<Storage>(out Storage storage) || ItemMaterialCost.Count == 0)
+        {
+            foreach (PlayerData.MaterialData neededMaterial in ItemMaterialCost)
+                if (neededMaterial.amount > storage.GetMaterialDataOfRawMaterial(neededMaterial.materialType).amount)
+                    areMaterialsAvailable = false;
+        }
+        else
+            throw new System.Exception("There is no storage script attached to Workshop, even though items cost materials to be made");
+
+        if (!areMaterialsAvailable) {
+            if (player?.PlayerObject.TryGetComponent<PlayerUI>(out PlayerUI playerUI) ?? false)
+                playerUI.DisplayErrorOwnerRpc("There are no materials in storage to create an item!");
+            return;
+        }
+
+        //Subtract items
+        if (storage || ItemMaterialCost.Count == 0)
+        {
+            foreach (PlayerData.MaterialData neededMaterial in ItemMaterialCost)
+                storage.ChangeAmountOfMaterialInStorage(neededMaterial.materialType, -neededMaterial.amount);
+                
+        }
+
+        //Spawn item
+        ItemProperties itemProperties = new()
+        {
             itemType = ItemType,
             itemTier = itemTier,
             durablity = itemTierData.GetDataOfItemTier(itemTier).maximumDurability

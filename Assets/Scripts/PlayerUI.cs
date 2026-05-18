@@ -307,6 +307,10 @@ public class PlayerUI : NetworkBehaviour
             case "Workshop":
                 workshop = targetObject.GetComponent<Workshop>();
                 centerText.text = $"{workshop.itemTier} {workshop.ItemType} Workshop";
+                if (workshop.ItemMaterialCost.Count != 0)
+                    centerText.text += $"\nCost:";
+                foreach (PlayerData.MaterialData material in workshop.ItemMaterialCost)
+                    centerText.text += $" {material.amount} of {material.materialType}";
                 if (targetObject.TryGetComponent<BreakableStructure>(out breakableStructure) && breakableStructure.enabled)
                     centerText.text += $"\nHP: {breakableStructure.Health.Value}/{breakableStructure.MaximumHealth.Value}";
                 break;
@@ -705,7 +709,7 @@ public class PlayerUI : NetworkBehaviour
                 string selectedOption = materialDropdown.options[currentDropdownSlot].text;
                 selectedRawMaterial = (PlayerData.RawMaterial)Enum.Parse(typeof(PlayerData.RawMaterial), selectedOption);
 
-                amountInputField.text = ClampStorageTradeMenuInputField(selectedRawMaterial, targetStorage, int.Parse(amountInputField.text)).ToString();
+                amountInputField.text = ClampStorageTradeMenuInputField(selectedRawMaterial, targetStorage, int.Parse(amountInputField.text == "" ? "0" : amountInputField.text)).ToString();
             });
 
         }

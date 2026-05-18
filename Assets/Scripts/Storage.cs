@@ -9,9 +9,9 @@ using static PlayerData;
 using static UnityEngine.Rendering.DebugUI;
 
 /// <summary>
-/// For given amountOfMinimumMaterial stores what is object that should be displayed. Used In StorageMaterialData. 
-/// I use this class instead of key value pair like in dictionary, so it can be serializable and settable in inspector.
+/// For given amountOfMinimumMaterial stores what is object that should be displayed. Used In StorageMaterialData.
 /// </summary>
+// I use this class instead of key value pair like in dictionary, so it can be serializable and settable in inspector.
 [System.Serializable]
 public class MaterialDisplayObjectData
 {
@@ -121,12 +121,14 @@ public class Storage : NetworkBehaviour
 
                 foreach (Transform child in material.displayParent)
                     Destroy(child.gameObject);
-                Instantiate(finalMaterialObject.displayGameObject, material.displayParent);
+
+                if (currentValue >= finalMaterialObject.amountOfMinimumMaterial)
+                    Instantiate(finalMaterialObject.displayGameObject, material.displayParent);
             }
         }
     }
 
-    public void ChangeLevelOfMaterial(int currentSupply, int maxSupply)
+    void ChangeLevelOfMaterial(int currentSupply, int maxSupply)
     {
         storedMaterialObject.transform.position = new Vector3(
             storedMaterialObject.transform.position.x, yOriginalPosition + (1.0f * currentSupply / maxSupply) * maximumMaterialLevel + yOffset, storedMaterialObject.transform.position.z); //multiplying times 1.0f to avoid integer devision and always getting 0

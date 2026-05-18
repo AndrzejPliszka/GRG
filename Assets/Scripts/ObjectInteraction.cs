@@ -54,13 +54,13 @@ public class ObjectInteraction : NetworkBehaviour
             return;
 
         if (Input.GetKeyDown(KeyCode.E)) //E is interaction key
-            InteractWithObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId, true);
+            InteractWithObjectServerRpc(cameraXRotation, true);
 
         if (Input.GetKeyDown(KeyCode.X)) //X is disabling/destroying key
             DisableObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId);
 
         if (Input.GetKeyDown(KeyCode.F)) //F is secondary interaction key
-            InteractWithObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId, false);
+            InteractWithObjectServerRpc(cameraXRotation, false);
 
         if (Input.GetKeyDown(KeyCode.T)) //T is dropping items key
             DropItemServerRpc();
@@ -212,8 +212,9 @@ public class ObjectInteraction : NetworkBehaviour
 
     //This function will detect what object is in front of you and interact with this object (it takes cameraXRotation which is in euler angles form) 
     [Rpc(SendTo.Server)]
-    void InteractWithObjectServerRpc(float cameraXRotation, ulong playerId, bool isPrimaryInteraction) //some objects can be interacted in two ways, bool isPrimaryInteraction regulates which one is it
+    void InteractWithObjectServerRpc(float cameraXRotation, bool isPrimaryInteraction, RpcParams rpcParams = default) //some objects can be interacted in two ways, bool isPrimaryInteraction regulates which one is it
     {
+        ulong playerId = rpcParams.Receive.SenderClientId;
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
         if (targetObject == null) { return; }
         string targetObjectTag = targetObject.tag;
