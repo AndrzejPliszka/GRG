@@ -31,6 +31,8 @@ public class PlayerUI : NetworkBehaviour
     [SerializeField] GameObject materialDeliveryToUnbuiltBuildingPanel;
     [SerializeField] GameObject materialDeliveryPaymentManagmentPanel;
 
+    [SerializeField] GameObject workshopWorkPanel;
+
     TMP_Text centerText;
     TMP_Text errorText;
     TMP_Text hungerBarText;
@@ -121,7 +123,7 @@ public class PlayerUI : NetworkBehaviour
         if (IsServer)
         {
             //Here are only server side events which call RPCs
-            objectInteraction.OnHittingSomething += (GameObject hitGameObject) => { DisplayHitmarkOwnerRpc(); };
+            objectInteraction.OnHittingSomething += hitGameObject => { DisplayHitmarkOwnerRpc(); };
             objectInteraction.OnPunch += DisplayCooldownCircleOwnerRpc;
             playerData.TownId.OnValueChanged += (oldTownId, newTownId) => { //MOVE TO OTHER FUNCTION IF IT GROWS TOO MUCH !!!
                 if(oldTownId >= 0 && oldTownId < GameManager.Instance.TownData.Count)
@@ -673,8 +675,6 @@ public class PlayerUI : NetworkBehaviour
     [Rpc(SendTo.Owner)]
     public void DisplayStorageTradeMenuOwnerRpc(ulong storageObjectId)
     {
-        MakePanelInteractible();
-
         GameObject storageMenu = Instantiate(storageTradePanel, playerUI); //Maybe use var instead of Find();
         //We need storage as we need data about it and we will call its function on button click
         Storage targetStorage = NetworkManager.SpawnManager.SpawnedObjects[storageObjectId].GetComponent<Storage>();
@@ -764,7 +764,7 @@ public class PlayerUI : NetworkBehaviour
             paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", "0");
             amountInputField.text = "";
         });
-        StartCoroutine(CheckIfMenuGotDestroyed(storageMenu));
+        MakePanelInteractible(storageMenu);
     }
 
     /// <summary>
@@ -791,20 +791,25 @@ public class PlayerUI : NetworkBehaviour
         return value;
     }
 
-    void MakePanelInteractible()
+    /// <summary>
+    /// Call this function when spawning some panel to make player able to interact with it.
+    /// When panel is destroyed, function handles rewerting to normal player control.
+    /// </summary>
+    /// <param name="panel">GameObject of panel that we are making interactible.</param>
+    void MakePanelInteractible(GameObject panel)
     {
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
         GetComponent<Movement>().blockRotation = true;
         GetComponent<ObjectInteraction>().canInteract = false;
         GameObject.Find("Canvas").GetComponent<Menu>().amountOfDisplayedMenus++;
+
+        StartCoroutine(CheckIfMenuGotDestroyed(panel));
     }
 
     [Rpc(SendTo.Owner)]
     public void DisplayStorageManagementMenuOwnerRpc(ulong storageObjectId)
     {
-        MakePanelInteractible();
-
         GameObject storageMenu = Instantiate(storageManagmentPanel, playerUI);
         //We need storage as we need data about it and we will call its function on button click
         Storage targetStorage = NetworkManager.SpawnManager.SpawnedObjects[storageObjectId].GetComponent<Storage>();
@@ -819,10 +824,10 @@ public class PlayerUI : NetworkBehaviour
         Button confirmSellingPriceButton = sellingPanel.Find("SellingPriceConfirmButton").GetComponent<Button>();
         Button confirmBuyingPriceButton = buyingPanel.Find("BuyingPriceConfirmButton").GetComponent<Button>();
 
-        sellingPriceInputField.onValueChanged.AddListener((string _) =>
+        sellingPriceInputField.onValueChanged.AddListener(_ =>
             RoundInputFieldToTwoDecimalPlaces(sellingPriceInputField)
         );
-        buyingPriceInputField.onValueChanged.AddListener((string _) =>
+        buyingPriceInputField.onValueChanged.AddListener(_ =>
             RoundInputFieldToTwoDecimalPlaces(buyingPriceInputField)
         );
 
@@ -852,14 +857,12 @@ public class PlayerUI : NetworkBehaviour
             }
         });
 
-        StartCoroutine(CheckIfMenuGotDestroyed(storageMenu));
+        MakePanelInteractible(storageMenu);
     }
 
     [Rpc(SendTo.Owner)]
     public void DisplayDeliveryPricesManagmentPanelOwnerRpc(ulong unbuiltBuildingId)
     {
-        MakePanelInteractible();
-
         UnbuiltBuilding targetBuilding = NetworkManager.SpawnManager.SpawnedObjects[unbuiltBuildingId].GetComponent<UnbuiltBuilding>();
         GameObject materialDeliveryMenu = Instantiate(materialDeliveryPaymentManagmentPanel, playerUI);
 
@@ -875,7 +878,7 @@ public class PlayerUI : NetworkBehaviour
         materialDropdown.ClearOptions();
         materialDropdown.AddOptions(options);
 
-        materialDropdown.onValueChanged.AddListener((int newValue) =>
+        materialDropdown.onValueChanged.AddListener(newValue =>
         {
             PlayerData.RawMaterial material = (PlayerData.RawMaterial)Enum.Parse(typeof(PlayerData.RawMaterial), materialDropdown.options[newValue].text);
             for(int i = 0; i < targetBuilding.NeededMaterials.Count; i++)
@@ -886,7 +889,7 @@ public class PlayerUI : NetworkBehaviour
             amountInputField.text = "";
         });
 
-        amountInputField.onValueChanged.AddListener((string newAmount) =>
+        amountInputField.onValueChanged.AddListener(newAmount =>
         {
             RoundInputFieldToTwoDecimalPlaces(amountInputField);
         });
@@ -902,15 +905,13 @@ public class PlayerUI : NetworkBehaviour
             targetBuilding.ChangePriceOfMaterialServerRpc(rawMaterial, newPrice);
         });
 
-        StartCoroutine(CheckIfMenuGotDestroyed(materialDeliveryMenu));
+        MakePanelInteractible(materialDeliveryMenu);
     }
 
 
     [Rpc(SendTo.Owner)]
     public void DisplayMaterialDeliveryPanelClientRpc(ulong unbuiltBuildingId)
     {
-        MakePanelInteractible();
-
         UnbuiltBuilding targetBuilding = NetworkManager.SpawnManager.SpawnedObjects[unbuiltBuildingId].GetComponent<UnbuiltBuilding>();
         GameObject materialDeliveryMenu = Instantiate(materialDeliveryToUnbuiltBuildingPanel, playerUI);
 
@@ -926,7 +927,7 @@ public class PlayerUI : NetworkBehaviour
         materialDropdown.ClearOptions();
         materialDropdown.AddOptions(options);
 
-        materialDropdown.onValueChanged.AddListener((int newValue) =>
+        materialDropdown.onValueChanged.AddListener(newValue =>
         {
             if (amountInputField.text == "")
                 return;
@@ -934,7 +935,7 @@ public class PlayerUI : NetworkBehaviour
             amountInputField.text = inputFieldValue.ToString();
         });
 
-        amountInputField.onValueChanged.AddListener((string newAmount) =>
+        amountInputField.onValueChanged.AddListener(newAmount =>
         {
             if (int.TryParse(newAmount, out int value))
             {
@@ -957,7 +958,7 @@ public class PlayerUI : NetworkBehaviour
             amountInputField.text = inputFieldText.ToString();
         });
 
-        StartCoroutine(CheckIfMenuGotDestroyed(materialDeliveryMenu));
+        MakePanelInteractible(materialDeliveryMenu);
     } 
     int ClampDeliverMaterialsPanelInputField(PlayerData.RawMaterial selectedMaterial, UnbuiltBuilding targetBuilding, int value)
     {
@@ -997,6 +998,26 @@ public class PlayerUI : NetworkBehaviour
                 inputField.MoveTextEnd(false);
             }
         }
+    }
+    /// <summary>
+    /// Display workshop menu that player uses when they want to create an item with workshop
+    /// </summary>
+    /// <param name="workshopId">NetworkObject.NetworkObjectId of workshop that player is interacting with</param>
+    [Rpc(SendTo.Owner)]
+    public void DisplayWorkshopWorkMenuOwnerRpc(ulong workshopId)
+    {
+        Workshop workshop = NetworkManager.SpawnManager.SpawnedObjects[workshopId].GetComponent<Workshop>();
+
+        GameObject workshopPanel = Instantiate(workshopWorkPanel, playerUI);
+        WorkshopWorkPanelReferences panelReferences = workshopPanel.GetComponent<WorkshopWorkPanelReferences>();
+
+        panelReferences.spawnItemButton.onClick.AddListener(() =>
+        {
+            workshop.CreateItemServerRpc();
+            Destroy(workshopPanel);
+        });
+
+        MakePanelInteractible(workshopPanel);
     }
 
     //If menu is destroyed, make player be able to play the game again (and also destroy menu on button press)

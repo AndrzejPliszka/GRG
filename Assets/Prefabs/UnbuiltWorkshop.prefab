@@ -6624,9 +6624,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   _neededMaterials:
-  - materialType: 1
-    amount: 0
-    maxAmount: 10
+  - BaseData:
+      MaterialType: 1
+      Amount: 0
+    MaxAmount: 10
   OwnerId:
     m_InternalValue: 0
   buildingToBuild: {fileID: 2044602622555780516, guid: 0665712ab6d9c9d40a2de11ce176ddfb, type: 3}
@@ -6701,10 +6702,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d7a00d374c8e8c4685f6a638b50bf86, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  itemType: 0
   itemTier: 0
+  itemTypeSprite: {fileID: 0}
+  itemTierSprite: {fileID: 0}
   itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}
   itemTierData: {fileID: 11400000, guid: e6c211ddcaf602045b55cbfd0c77ed64, type: 2}
+  _itemMaterialCost: []
 --- !u!1 &4320908844555059550
 GameObject:
   m_ObjectHideFlags: 0

@@ -250,6 +250,8 @@ public class ObjectInteraction : NetworkBehaviour
         if (targetObject.TryGetComponent<ObjectReference>(out ObjectReference objectReference))
             targetObject = objectReference.objectReference;
 
+        PlayerUI playerUI = GetComponent<PlayerUI>();
+
         switch (targetObjectTag)
         {
             case "Item":
@@ -310,13 +312,13 @@ public class ObjectInteraction : NetworkBehaviour
                 //Check if PlayerUI exists before calling it
                 if(storage.OwnerId.Value == playerId)
                     if(isPrimaryInteraction)
-                        GetComponent<PlayerUI>().DisplayStorageManagementMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                        playerUI.DisplayStorageManagementMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     else
-                        GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                        playerUI.DisplayStorageTradeMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                 else
                 {
                     if (isPrimaryInteraction)
-                        GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                        playerUI.DisplayStorageTradeMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     else
                     {
                         foreach (PlayerData.ExtendedMaterialData materialData in storage.StoredMaterialData)
@@ -332,16 +334,16 @@ public class ObjectInteraction : NetworkBehaviour
                 if (unbuiltBuilding.OwnerId.Value == playerId)
                 {
                     if(isPrimaryInteraction)
-                        GetComponent<PlayerUI>().DisplayDeliveryPricesManagmentPanelOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                        playerUI.DisplayDeliveryPricesManagmentPanelOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     else
-                        GetComponent<PlayerUI>().DisplayMaterialDeliveryPanelClientRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                        playerUI.DisplayMaterialDeliveryPanelClientRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     return;
                 }
                 //This part of code is executed only when is no owner
 
                 if (isPrimaryInteraction)
                 {
-                    GetComponent<PlayerUI>().DisplayMaterialDeliveryPanelClientRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                    playerUI.DisplayMaterialDeliveryPanelClientRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     return;
                 }
                 Dictionary<PlayerData.RawMaterial, int> amountOfPlayerMaterials = new();
@@ -374,7 +376,6 @@ public class ObjectInteraction : NetworkBehaviour
                 }
                 else
                 {
-                    PlayerUI playerUI = GetComponent<PlayerUI>();
                     if (playerUI)
                         playerUI.DisplayErrorOwnerRpc("There are no berries on this bush!");
                 }
@@ -395,7 +396,14 @@ public class ObjectInteraction : NetworkBehaviour
                 Workshop workshop = targetObject.GetComponent<Workshop>();
                 if (workshop == null)
                     throw new Exception("Object with workshop tag doesn't have Workshop script");
-                workshop.CreateItemServerRpc();
+
+                if (playerUI)
+                {
+                    if (workshop.CanCreateItem())
+                        playerUI.DisplayWorkshopWorkMenuOwnerRpc(workshop.GetComponent<NetworkObject>().NetworkObjectId);
+                    else
+                        playerUI.DisplayErrorOwnerRpc("There are no materials in Storage to create an item!");
+                }
                 break;
 
         }

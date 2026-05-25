@@ -7,7 +7,7 @@ public class GatherableMaterial : NetworkBehaviour
 
     [SerializeField] PlayerData.MaterialData _material;
 
-    public NetworkVariable<PlayerData.MaterialData> Material { get; private set; } = new();
+    [HideInInspector] public NetworkVariable<PlayerData.MaterialData> Material { get; private set; } = new();
 
     public override void OnNetworkSpawn()
     {

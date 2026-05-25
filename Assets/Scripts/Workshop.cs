@@ -53,22 +53,39 @@ public class Workshop : MonoBehaviour
         itemTierSprite.transform.localScale = new Vector3(sizeX, sizeY, 1f);
     }
 
+    /// <summary>
+    /// Check if there are enough materials in storage script attached to workshop to create an item. 
+    /// </summary>
+    /// <returns>true if item can be created; false if there is not enough material in storage.</returns>
+    /// <exception cref="System.Exception">Workshop has no Storage script even though it requires materials to create item.</exception>
+    public bool CanCreateItem()
+    {
+        //Check if there are materials in storage to create item
+        bool canCreateItem = true;
+        if (TryGetComponent<Storage>(out Storage storage) || ItemMaterialCost.Count == 0)
+        {
+            foreach (PlayerData.MaterialData neededMaterial in ItemMaterialCost)
+                if (neededMaterial.Amount > storage.GetMaterialDataOfRawMaterial(neededMaterial.MaterialType).Amount)
+                    canCreateItem = false;
+        }
+        else
+            throw new System.Exception("There is no storage script attached to Workshop, even though items cost materials to be made");
+
+        return canCreateItem;
+    }
+
+    /// <summary>
+    /// Creates item specific to workshop (itemType, itemTier) on it, with cost of materials from storage as specified by ItemMaterialCost;
+    /// If there is no enough materials in storage, it does nothing.
+    /// </summary>
+    /// <param name="rpcParams">Don't override! Used to get player that called this function.</param>
     [Rpc(SendTo.Server)]
     public void CreateItemServerRpc(RpcParams rpcParams = default)
     {
         ulong playerId = rpcParams.Receive.SenderClientId;
         NetworkManager.Singleton.ConnectedClients.TryGetValue(playerId, out var player);
 
-        //Check if there are materials in storage to create item
-        bool areMaterialsAvailable = true;
-        if (TryGetComponent<Storage>(out Storage storage) || ItemMaterialCost.Count == 0)
-        {
-            foreach (PlayerData.MaterialData neededMaterial in ItemMaterialCost)
-                if (neededMaterial.Amount > storage.GetMaterialDataOfRawMaterial(neededMaterial.MaterialType).Amount)
-                    areMaterialsAvailable = false;
-        }
-        else
-            throw new System.Exception("There is no storage script attached to Workshop, even though items cost materials to be made");
+        bool areMaterialsAvailable = CanCreateItem();
 
         if (!areMaterialsAvailable) {
             if (player?.PlayerObject.TryGetComponent<PlayerUI>(out PlayerUI playerUI) ?? false)
@@ -77,7 +94,7 @@ public class Workshop : MonoBehaviour
         }
 
         //Subtract items
-        if (storage || ItemMaterialCost.Count == 0)
+        if (TryGetComponent<Storage>(out Storage storage) || ItemMaterialCost.Count == 0)
         {
             foreach (PlayerData.MaterialData neededMaterial in ItemMaterialCost)
                 storage.ChangeAmountOfMaterialInStorage(neededMaterial.MaterialType, -neededMaterial.Amount);

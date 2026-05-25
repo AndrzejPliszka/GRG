@@ -127,7 +127,6 @@ public class Storage : NetworkBehaviour
             }
         }
     }
-
     void ChangeLevelOfMaterial(int currentSupply, int maxSupply)
     {
         storedMaterialObject.transform.position = new Vector3(

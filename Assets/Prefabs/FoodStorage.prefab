@@ -122,18 +122,15 @@ MonoBehaviour:
   storedMaterialObject: {fileID: 485285212792236075}
   maximumMaterialLevel: 1.4
   yOffset: 0
+  materialDisplayData: []
   OwnerId:
     m_InternalValue: 0
-  isStandalone: 0
   materialDisplayMethod: 0
   _storedMaterialData:
-  - materialType: 0
-    amount: 0
-    maxAmount: 30
-  <StoredMaterial_>k__BackingField:
-    m_InternalValue: 0
-  <MaxSupply_>k__BackingField:
-    m_InternalValue: 0
+  - BaseData:
+      MaterialType: 0
+      Amount: 0
+    MaxAmount: 30
 --- !u!114 &6541428939285296418
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -113,8 +113,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  _material: 1
-  _amount: 1
+  _material:
+    MaterialType: 1
+    Amount: 1
 --- !u!65 &-7794388429055867805
 BoxCollider:
   m_ObjectHideFlags: 0

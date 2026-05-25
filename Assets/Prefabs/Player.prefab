@@ -704,6 +704,7 @@ MonoBehaviour:
   storageManagmentPanel: {fileID: 5019946015599092760, guid: a1ce43178c8ae3a42b2bad09f5e65c0a, type: 3}
   materialDeliveryToUnbuiltBuildingPanel: {fileID: 5019946015599092760, guid: 273e446d722f9164f8c2f06094446c22, type: 3}
   materialDeliveryPaymentManagmentPanel: {fileID: 5019946015599092760, guid: 2ec69cc8e1d0c4f4bbc276e80499e1ec, type: 3}
+  workshopWorkPanel: {fileID: 4845570847851934181, guid: 7540b2cec6e29254180d3634de466924, type: 3}
 --- !u!114 &4720389694948923985
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -761,6 +762,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   appearanceData: {fileID: 11400000, guid: 6df11b824dcebd248a696cc22df72688, type: 2}
+  hatId:
+    m_InternalValue: -999
+  faceId:
+    m_InternalValue: -999
+  skinId:
+    m_InternalValue: -999
+  inprintId:
+    m_InternalValue: -999
 --- !u!114 &-2521976140714348443
 MonoBehaviour:
   m_ObjectHideFlags: 0

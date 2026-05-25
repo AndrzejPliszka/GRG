@@ -531,9 +531,8 @@ MonoBehaviour:
   itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}
   itemTierData: {fileID: 11400000, guid: e6c211ddcaf602045b55cbfd0c77ed64, type: 2}
   _itemMaterialCost:
-  - materialType: 1
-    amount: 10
-    maxAmount: 0
+  - MaterialType: 1
+    Amount: 5
 --- !u!114 &142933472821520690
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -583,6 +582,7 @@ MonoBehaviour:
     m_InternalValue: 0
   materialDisplayMethod: 1
   _storedMaterialData:
-  - materialType: 1
-    amount: 0
-    maxAmount: 30
+  - BaseData:
+      MaterialType: 1
+      Amount: 0
+    MaxAmount: 30
