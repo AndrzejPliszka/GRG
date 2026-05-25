@@ -525,14 +525,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d7a00d374c8e8c4685f6a638b50bf86, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   itemTier: 0
   itemTypeSprite: {fileID: 3893767449528019414}
   itemTierSprite: {fileID: 6402603022764779756}
   itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}
   itemTierData: {fileID: 11400000, guid: e6c211ddcaf602045b55cbfd0c77ed64, type: 2}
-  _itemMaterialCost:
-  - MaterialType: 1
-    Amount: 5
+  activated: 1
 --- !u!114 &142933472821520690
 MonoBehaviour:
   m_ObjectHideFlags: 0

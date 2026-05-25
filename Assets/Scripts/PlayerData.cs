@@ -29,11 +29,11 @@ public class PlayerData : NetworkBehaviour
     /// Binds materialType and some int value together. Use when you need to store material and amount of it. Networkable.
     /// </summary>
     [Serializable]
-    public struct MaterialData : INetworkSerializable, IEquatable<ExtendedMaterialData>
+    public struct MaterialData : INetworkSerializable, IEquatable<MaterialData>
     {
         public RawMaterial MaterialType;
         public int Amount;
-        public readonly bool Equals(ExtendedMaterialData other) //this function is required for marking function IEquatable
+        public readonly bool Equals(MaterialData other) //this function is required for marking function IEquatable
         {
             return MaterialType == other.MaterialType && Amount == other.Amount;
         }

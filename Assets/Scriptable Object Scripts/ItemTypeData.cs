@@ -13,6 +13,7 @@ public class ItemEntry
     public GameObject holdedItemPrefab;
     public Sprite staticItemSprite;
     public Sprite coloredItemSprite;
+    public List<PlayerData.MaterialData> basicItemCost;
 }
 
 [CreateAssetMenu(fileName = "ItemTypeData", menuName = "ScriptableObjects/ItemTypeData", order = 1)]

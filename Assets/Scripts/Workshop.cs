@@ -3,7 +3,7 @@ using Unity.Netcode;
 using UnityEngine;
 using static ItemData;
 
-public class Workshop : MonoBehaviour
+public class Workshop : NetworkBehaviour
 {
     private ItemData.ItemType itemType;
     public ItemData.ItemType ItemType
@@ -12,6 +12,7 @@ public class Workshop : MonoBehaviour
         set {
             itemType = value;
             UpdateWorkshopSpriteClientRpc();
+            UpdateItemCostAndStorage();
         }
     }
     public ItemData.ItemTier itemTier;
@@ -22,15 +23,41 @@ public class Workshop : MonoBehaviour
 
     [SerializeField] ItemTypeData itemTypeData;
     [SerializeField] ItemTierData itemTierData;
+    [SerializeField] bool activated; //used to determine whether this script is used only to store data (such as during unbuilt state) or to manage working workshop
 
-    [SerializeField] List<PlayerData.MaterialData> _itemMaterialCost;
-    [HideInInspector] public List<PlayerData.MaterialData> ItemMaterialCost { get; private set; } = new();
+    [HideInInspector] public NetworkList<PlayerData.MaterialData> ItemMaterialCost { get; private set; } = new();
 
-
-    private void Awake()
+    /// <summary>
+    /// Updates ItemMaterialCost of workshop and StoredMaterialData in corresponding storage according to itemTypeData and itemTierData
+    /// </summary>
+    /// <exception cref="System.Exception">Function was run on client.</exception>
+    public void UpdateItemCostAndStorage()
     {
-        foreach (PlayerData.MaterialData material in _itemMaterialCost)
-            ItemMaterialCost.Add(material);
+        if (!activated) { return; }
+        if (!IsServer) { throw new System.Exception("Only server can update item cost or modify storage data!"); }
+        ItemEntry itemTypeInfo = itemTypeData.GetDataOfItemType(ItemType);
+        MaterialEntry itemTierInfo = itemTierData.GetDataOfItemTier(itemTier);
+
+        if (TryGetComponent<Storage>(out Storage storage))
+            storage.StoredMaterialData.Clear();
+
+        foreach (PlayerData.MaterialData material in itemTypeInfo.basicItemCost)
+        {
+            ItemMaterialCost.Add(new PlayerData.MaterialData()
+            {
+                MaterialType = material.MaterialType,
+                Amount = Mathf.RoundToInt(material.Amount * itemTierInfo.multiplier)
+            });
+
+            if (storage)
+                storage.StoredMaterialData.Add(new PlayerData.ExtendedMaterialData()
+                {
+                    MaterialType = material.MaterialType,
+                    Amount = 0,
+                    //For now I want storage to hold materials needed for creation of 3 items + bonus if workshop is better
+                    MaxAmount = Mathf.RoundToInt(material.Amount * itemTierInfo.multiplier * 3 * itemTierInfo.multiplier)
+                });
+        }
     }
 
     [Rpc(SendTo.Everyone)]
