@@ -114,7 +114,7 @@ public class BuildModeController : NetworkBehaviour
             {
                 Workshop workshopScript = spawnedObject.GetComponent<Workshop>();
                 workshopScript.ItemType = (ItemData.ItemType)Enum.Parse(typeof(ItemData.ItemType), buildingToSpawn.subtypeNames[currentBuildingSubtype]);
-                workshopScript.itemTier = ItemData.ItemTier.Wood;
+                workshopScript.ItemTier = ItemData.ItemTier.Wood;
             }
         }
 

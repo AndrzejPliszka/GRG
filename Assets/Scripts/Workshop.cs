@@ -1,21 +1,40 @@
+using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
-using static ItemData;
 
 public class Workshop : NetworkBehaviour
 {
-    private ItemData.ItemType itemType;
+    readonly NetworkVariable<ItemData.ItemType> _itemType = new();
     public ItemData.ItemType ItemType
     {
-        get { return itemType; }
+        get { return _itemType.Value; }
         set {
-            itemType = value;
-            UpdateWorkshopSpriteClientRpc();
+            if (!IsServer)
+                throw new Exception("Client cannot change ItemTier sold in workshop!");
+            _itemType.Value = value;
+            UpdateWorkshopSpriteClientRpc(ItemType, ItemTier);
             UpdateItemCostAndStorage();
         }
     }
-    public ItemData.ItemTier itemTier;
+    readonly NetworkVariable<ItemData.ItemTier> _itemTier = new();
+    public ItemData.ItemTier ItemTier
+    {
+        get { return _itemTier.Value; }
+        set
+        {
+            if (!IsServer)
+                throw new Exception("Client cannot change ItemTier sold in workshop!");
+            _itemTier.Value = value;
+            if (ItemType != ItemData.ItemType.Null)
+            {
+                UpdateWorkshopSpriteClientRpc(ItemType, ItemTier);
+                UpdateItemCostAndStorage();
+            }
+        }
+    }
+
+    public NetworkVariable<ulong> OwnerId = new(0); //Netcode player id, not object id
 
     [SerializeField] SpriteRenderer itemTypeSprite;
     [SerializeField] SpriteRenderer itemTierSprite;
@@ -27,6 +46,23 @@ public class Workshop : NetworkBehaviour
 
     [HideInInspector] public NetworkList<PlayerData.MaterialData> ItemMaterialCost { get; private set; } = new();
 
+    public override void OnNetworkSpawn()
+    {
+        UpdateWorkshopSpriteClientRpc(ItemType, ItemTier);
+
+        base.OnNetworkSpawn();
+    }
+
+    public void UpgradeWorkshop()
+    {
+        if (!IsServer) { throw new System.Exception("Only server can upgrade workshop!"); }
+
+        var values = Enum.GetValues(typeof(ItemData.ItemTier));
+        int index = Array.IndexOf(values, ItemTier);
+        if (index < values.Length - 1)
+            ItemTier = (ItemData.ItemTier)values.GetValue(index + 1);
+    }
+
     /// <summary>
     /// Updates ItemMaterialCost of workshop and StoredMaterialData in corresponding storage according to itemTypeData and itemTierData
     /// </summary>
@@ -36,10 +72,16 @@ public class Workshop : NetworkBehaviour
         if (!activated) { return; }
         if (!IsServer) { throw new System.Exception("Only server can update item cost or modify storage data!"); }
         ItemEntry itemTypeInfo = itemTypeData.GetDataOfItemType(ItemType);
-        MaterialEntry itemTierInfo = itemTierData.GetDataOfItemTier(itemTier);
+        MaterialEntry itemTierInfo = itemTierData.GetDataOfItemTier(ItemTier);
 
-        if (TryGetComponent<Storage>(out Storage storage))
-            storage.StoredMaterialData.Clear();
+        ItemMaterialCost.Clear();
+
+        Storage storage = GetComponent<Storage>();
+        List<PlayerData.ExtendedMaterialData> storageMaterialData = new();
+        foreach (PlayerData.ExtendedMaterialData material in storage.StoredMaterialData)
+            storageMaterialData.Add(material);
+
+        storage.StoredMaterialData.Clear();
 
         foreach (PlayerData.MaterialData material in itemTypeInfo.basicItemCost)
         {
@@ -49,25 +91,34 @@ public class Workshop : NetworkBehaviour
                 Amount = Mathf.RoundToInt(material.Amount * itemTierInfo.multiplier)
             });
 
+            int amountStored = 0;
+            foreach (PlayerData.ExtendedMaterialData storageMaterial in storageMaterialData)
+                if (storageMaterial.MaterialType == material.MaterialType)
+                    amountStored = storageMaterial.Amount;
+
             if (storage)
                 storage.StoredMaterialData.Add(new PlayerData.ExtendedMaterialData()
                 {
                     MaterialType = material.MaterialType,
-                    Amount = 0,
+                    Amount = amountStored,
                     //For now I want storage to hold materials needed for creation of 3 items + bonus if workshop is better
                     MaxAmount = Mathf.RoundToInt(material.Amount * itemTierInfo.multiplier * 3 * itemTierInfo.multiplier)
                 });
         }
     }
-
+    /// <summary>
+    /// Update sprite that is on workshop to match given itemType and itemTier. Sended to all clients, so they have synced state.
+    /// </summary>
+    /// <param name="itemType">ItemType of item that should be displayed on sprite</param>
+    /// <param name="itemTier">ItemTier of item that should be displayed on sprite</param>
     [Rpc(SendTo.Everyone)]
-    public void UpdateWorkshopSpriteClientRpc()
+    public void UpdateWorkshopSpriteClientRpc(ItemData.ItemType itemType, ItemData.ItemTier itemTier)
     {
-        if (itemTypeSprite == null || itemTierSprite == null)
+        if (itemTypeSprite == null || itemTierSprite == null || itemType == ItemData.ItemType.Null)
             return;
 
         MaterialEntry itemTierInfo = itemTierData.GetDataOfItemTier(itemTier);
-        ItemEntry itemTypeInfo = itemTypeData.GetDataOfItemType(ItemType);
+        ItemEntry itemTypeInfo = itemTypeData.GetDataOfItemType(itemType);
         itemTierSprite.sprite = itemTypeInfo.coloredItemSprite;
         itemTierSprite.color = itemTierInfo.UIColor;
         itemTypeSprite.sprite = itemTypeInfo.staticItemSprite;
@@ -129,11 +180,11 @@ public class Workshop : NetworkBehaviour
         }
 
         //Spawn item
-        ItemProperties itemProperties = new()
+        ItemData.ItemProperties itemProperties = new()
         {
             itemType = ItemType,
-            itemTier = itemTier,
-            durablity = itemTierData.GetDataOfItemTier(itemTier).maximumDurability
+            itemTier = ItemTier,
+            durablity = itemTierData.GetDataOfItemTier(ItemTier).maximumDurability
         };
 
         GameObject itemPrefab = itemTypeData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;

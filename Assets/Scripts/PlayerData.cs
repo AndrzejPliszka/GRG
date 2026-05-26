@@ -517,7 +517,8 @@ public class PlayerData : NetworkBehaviour
         }
         else
         {
-            return null;
+            Debug.LogWarning($"Player with sych player Id {playerId} doesn't exists! Consider making code that assignes ownership to city. ");
+            return "";
         }
     }
 }

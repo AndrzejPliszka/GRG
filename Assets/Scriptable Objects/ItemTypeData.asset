@@ -18,38 +18,70 @@ MonoBehaviour:
     holdedItemPrefab: {fileID: 1621911239377777344, guid: bef8d226d42b7a549b13569857fa9e7f, type: 3}
     staticItemSprite: {fileID: 21300000, guid: cf3affc2478ae2146a001fb1ee2a26e5, type: 3}
     coloredItemSprite: {fileID: 21300000, guid: 5a93e5fc8f4328a49aed6d9f5c9326ce, type: 3}
+    basicItemCost:
+    - MaterialType: 1
+      Amount: 10
+    - MaterialType: 2
+      Amount: 5
   - itemType: 2
     droppedItemPrefab: {fileID: 6379032543920588007, guid: 77dd004a4c4b4b84fa2547a673645d19, type: 3}
     holdedItemPrefab: {fileID: 6379032543920588007, guid: 9ac0422a80b62f84cbde74b21e6e06c6, type: 3}
     staticItemSprite: {fileID: 21300000, guid: edcb1b2d0d49fe84eb70a685290e3872, type: 3}
     coloredItemSprite: {fileID: 21300000, guid: 826f3925035971e42b375b7e27c4b89b, type: 3}
+    basicItemCost:
+    - MaterialType: 2
+      Amount: 10
+    - MaterialType: 1
+      Amount: 5
   - itemType: 3
     droppedItemPrefab: {fileID: 3476134845051206931, guid: 48b021a454c4bad4abafcdea782df940, type: 3}
     holdedItemPrefab: {fileID: 3476134845051206931, guid: bb122ca79dc1d9c4384c3836a8ae97ef, type: 3}
     staticItemSprite: {fileID: 21300000, guid: 3dc8765526d7ef248a8fdb42d40d4180, type: 3}
     coloredItemSprite: {fileID: 21300000, guid: 95bb6d6b1d1de4144b55446ead214fb6, type: 3}
+    basicItemCost:
+    - MaterialType: 0
+      Amount: 20
   - itemType: 4
     droppedItemPrefab: {fileID: 8106892086165317472, guid: 5a8f640d70cf19742babee50c9456405, type: 3}
     holdedItemPrefab: {fileID: 8106892086165317472, guid: 102d0ca13fa29ee4084a0bc9010abbe2, type: 3}
     staticItemSprite: {fileID: 21300000, guid: 2a53ecd482090624a8ed64315e5d32b0, type: 3}
     coloredItemSprite: {fileID: 21300000, guid: 42ff01f613409dc43819c3734385d4de, type: 3}
+    basicItemCost:
+    - MaterialType: 0
+      Amount: 10
   - itemType: 5
     droppedItemPrefab: {fileID: 4827842618004739756, guid: 1a0a12fd83ef51440995074fffb5c932, type: 3}
     holdedItemPrefab: {fileID: 4827842618004739756, guid: e6a06c60255825f43978d8d5bd1a0e67, type: 3}
     staticItemSprite: {fileID: 21300000, guid: aef5c5a12f6cfe144a098ed0efe3f7b4, type: 3}
     coloredItemSprite: {fileID: 21300000, guid: 8fe9cc73c16d66740808a50a4654e0e0, type: 3}
+    basicItemCost:
+    - MaterialType: 1
+      Amount: 5
   - itemType: 6
     droppedItemPrefab: {fileID: 4100631407276537516, guid: 02351ceb1f06c454f8c54eb81ed55b84, type: 3}
     holdedItemPrefab: {fileID: 4100631407276537516, guid: 8f28359734aa8c340a0cb982f35888ba, type: 3}
     staticItemSprite: {fileID: 21300000, guid: 95b96ade105eeb74c85d5c8603dbd0a5, type: 3}
     coloredItemSprite: {fileID: 21300000, guid: 583587b12e03a7f49b568a9477c1ddfc, type: 3}
+    basicItemCost:
+    - MaterialType: 1
+      Amount: 5
+    - MaterialType: 2
+      Amount: 5
   - itemType: 7
     droppedItemPrefab: {fileID: 4100631407276537516, guid: 5384b09e7e47aed4ba37f38b352de953, type: 3}
     holdedItemPrefab: {fileID: 4100631407276537516, guid: e9276c9c08140a24a82d4204c7d99e2a, type: 3}
     staticItemSprite: {fileID: 21300000, guid: ce474ebb59d3975429ff79de01df25f4, type: 3}
     coloredItemSprite: {fileID: 21300000, guid: fbfded06f78b5704d88e9159c79c3bd2, type: 3}
+    basicItemCost:
+    - MaterialType: 1
+      Amount: 5
   - itemType: 8
     droppedItemPrefab: {fileID: 8358294695650961612, guid: f909095928c6c404f9139fc97e938225, type: 3}
     holdedItemPrefab: {fileID: 8358294695650961612, guid: 765c57e900557104b81505955c048169, type: 3}
     staticItemSprite: {fileID: 21300000, guid: a0809e83a0e6c584c97e81e3b36d21bc, type: 3}
     coloredItemSprite: {fileID: 21300000, guid: c8d6cc4c26ec58a4e90fad8de6f364e4, type: 3}
+    basicItemCost:
+    - MaterialType: 2
+      Amount: 10
+    - MaterialType: 1
+      Amount: 5

@@ -397,12 +397,17 @@ public class ObjectInteraction : NetworkBehaviour
                 if (workshop == null)
                     throw new Exception("Object with workshop tag doesn't have Workshop script");
 
-                if (playerUI)
+                if (!isPrimaryInteraction)
+                    workshop.UpgradeWorkshop();
+                else
                 {
-                    if (workshop.CanCreateItem())
-                        playerUI.DisplayWorkshopWorkMenuOwnerRpc(workshop.GetComponent<NetworkObject>().NetworkObjectId);
-                    else
-                        playerUI.DisplayErrorOwnerRpc("There are no materials in Storage to create an item!");
+                    if (playerUI)
+                    {
+                        if (workshop.CanCreateItem())
+                            playerUI.DisplayWorkshopWorkMenuOwnerRpc(workshop.GetComponent<NetworkObject>().NetworkObjectId);
+                        else
+                            playerUI.DisplayErrorOwnerRpc("There are no materials in Storage to create an item!");
+                    }
                 }
                 break;
 

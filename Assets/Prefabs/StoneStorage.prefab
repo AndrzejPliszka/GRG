@@ -127,7 +127,7 @@ MonoBehaviour:
   materialDisplayMethod: 0
   _storedMaterialData:
   - BaseData:
-      MaterialType: 0
+      MaterialType: 2
       Amount: 0
     MaxAmount: 30
 --- !u!114 &2476513330300764786

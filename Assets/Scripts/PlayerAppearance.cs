@@ -87,8 +87,6 @@ public class PlayerAppearance : NetworkBehaviour
     
     public void ChangePlayerHat(int hatId)
     {
-        Debug.Log("Changing hat into " + hatId);
-
         if (currentHat)
             Destroy(currentHat);
         GameObject hatToSpawn = appearanceData.GetHat(hatId);

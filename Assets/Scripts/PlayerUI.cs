@@ -308,11 +308,11 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "Workshop":
                 workshop = targetObject.GetComponent<Workshop>();
-                centerText.text = $"{workshop.itemTier} {workshop.ItemType} Workshop";
+                centerText.text = $"{workshop.ItemTier} {workshop.ItemType} Workshop";
                 if (workshop.ItemMaterialCost.Count != 0)
                     centerText.text += $"\nCost:";
                 foreach (PlayerData.MaterialData material in workshop.ItemMaterialCost)
-                    centerText.text += $" {material.Amount} of {material.MaterialType}";
+                    centerText.text += $"\n{material.Amount} of {material.MaterialType}";
                 if (targetObject.TryGetComponent<BreakableStructure>(out breakableStructure) && breakableStructure.enabled)
                     centerText.text += $"\nHP: {breakableStructure.Health.Value}/{breakableStructure.MaximumHealth.Value}";
                 break;

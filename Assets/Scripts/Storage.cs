@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using Unity.Netcode;
-using UnityEditor.PackageManager;
 using UnityEngine;
 using static PlayerData;
 using static UnityEngine.Rendering.DebugUI;
@@ -66,8 +65,17 @@ public class Storage : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        foreach (PlayerData.ExtendedMaterialData materialData in _storedMaterialData)
-            StoredMaterialData.Add(materialData);
+        if (IsServer)
+        {
+            foreach (PlayerData.ExtendedMaterialData materialData in _storedMaterialData)
+                StoredMaterialData.Add(materialData);
+
+
+            StoredMaterialData.OnListChanged += networkListEvent =>
+            {
+                AdjustDroppedItems(networkListEvent.PreviousValue.Amount, networkListEvent.Value.Amount);
+            };
+        }
 
 
         if(materialDisplayMethod == DisplayMethod.SingularHeap)
@@ -84,18 +92,19 @@ public class Storage : NetworkBehaviour
         } 
         else if (materialDisplayMethod == DisplayMethod.SmallBatches)
         {
+            //Make that storage displayes correctly when player joins
+            foreach (ExtendedMaterialData material in StoredMaterialData)
+            {
+                foreach (StorageMaterialData materialData in materialDisplayData)
+                    if (materialData.materialType == material.MaterialType)
+                        ChangeBatchOfMaterial(materialData, material.Amount);
+            }
+
             StoredMaterialData.OnListChanged += ChangeBatchesOfMaterial;
         }
 
         if (OwnerId.Value == 0 && IsServer && !IsHost)
             OwnerId.Value = NetworkManager.Singleton.LocalClientId; //Set owner to local client if it is server and owner is not set yet
-        if (IsServer)
-        {
-            StoredMaterialData.OnListChanged += networkListEvent =>
-            {
-                AdjustDroppedItems(networkListEvent.PreviousValue.Amount, networkListEvent.Value.Amount);
-            };
-        }
     }
 
     /// <summary>
@@ -106,27 +115,33 @@ public class Storage : NetworkBehaviour
     {
         if (materialDisplayMethod != DisplayMethod.SmallBatches)
             throw new Exception("This method should be used ONLY when displayMethod is SmallBatches!");
-        foreach (var material in materialDisplayData) {
+        foreach (StorageMaterialData material in materialDisplayData) {
             if (material.materialType == materialListEvent.Value.MaterialType)
             {
-                MaterialDisplayObjectData finalMaterialObject = material.displayedMaterialObjects[0];
-                int currentValue = materialListEvent.Value.Amount;
-                foreach(var materialObject in material.displayedMaterialObjects)
-                {
-                    if (finalMaterialObject.amountOfMinimumMaterial < materialObject.amountOfMinimumMaterial &&
-                        materialObject.amountOfMinimumMaterial <= currentValue)
-                        finalMaterialObject = materialObject;
-                }
-
-
-                foreach (Transform child in material.displayParent)
-                    Destroy(child.gameObject);
-
-                if (currentValue >= finalMaterialObject.amountOfMinimumMaterial)
-                    Instantiate(finalMaterialObject.displayGameObject, material.displayParent);
+                ChangeBatchOfMaterial(material, materialListEvent.Value.Amount);
             }
         }
     }
+
+    void ChangeBatchOfMaterial(StorageMaterialData materialData, int amountOfMaterial)
+    {
+        MaterialDisplayObjectData finalMaterialObject = materialData.displayedMaterialObjects[0];
+        int currentValue = amountOfMaterial;
+        foreach (var materialObject in materialData.displayedMaterialObjects)
+        {
+            if (finalMaterialObject.amountOfMinimumMaterial < materialObject.amountOfMinimumMaterial &&
+                materialObject.amountOfMinimumMaterial <= currentValue)
+                finalMaterialObject = materialObject;
+        }
+
+
+        foreach (Transform child in materialData.displayParent)
+            Destroy(child.gameObject);
+
+        if (currentValue >= finalMaterialObject.amountOfMinimumMaterial)
+            Instantiate(finalMaterialObject.displayGameObject, materialData.displayParent);
+    }
+
     void ChangeLevelOfMaterial(int currentSupply, int maxSupply)
     {
         storedMaterialObject.transform.position = new Vector3(
