@@ -339,8 +339,8 @@ public class ObjectInteraction : NetworkBehaviour
                         playerUI.DisplayMaterialDeliveryPanelClientRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     return;
                 }
-                //This part of code is executed only when is no owner
 
+                //This part of code is executed only when player is not an owner
                 if (isPrimaryInteraction)
                 {
                     playerUI.DisplayMaterialDeliveryPanelClientRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
@@ -397,9 +397,9 @@ public class ObjectInteraction : NetworkBehaviour
                 if (workshop == null)
                     throw new Exception("Object with workshop tag doesn't have Workshop script");
 
-                if (!isPrimaryInteraction)
+                if (!isPrimaryInteraction && workshop.OwnerId.Value == playerId)
                     workshop.UpgradeWorkshop();
-                else
+                else if (isPrimaryInteraction)
                 {
                     if (playerUI)
                     {
@@ -492,6 +492,7 @@ public class ObjectInteraction : NetworkBehaviour
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;
+            case "Workshop":
             case "Storage":
                 breakableStructure = targetObject.GetComponent<BreakableStructure>();
                 if (breakableStructure == null)

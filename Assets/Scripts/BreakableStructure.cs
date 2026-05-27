@@ -12,7 +12,7 @@ public class BreakableStructure : NetworkBehaviour
     public NetworkVariable<int> Health { get; private set; } = new();
     public DynamicObjectSpawning spawner; //this is used to communicate with spawner. it may be empty if object was put manually itp.
     public LandScript land; //also used to communicate with spawner, but in case of land plot in town
-    [field: SerializeField] public List<PlayerData.MaterialData> droppedMaterials = new();
+    public List<PlayerData.MaterialData> droppedMaterials = new();
     [SerializeField] float dropMaterialPositionSpawnVariance = 0.2f;
     [SerializeField] float dropMaterialYOffset = 0.5f;
 

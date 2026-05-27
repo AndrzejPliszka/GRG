@@ -60,6 +60,8 @@ public class Storage : NetworkBehaviour
     [SerializeField] List<PlayerData.ExtendedMaterialData> _storedMaterialData;
     [HideInInspector] public NetworkList<PlayerData.ExtendedMaterialData> StoredMaterialData = new();
 
+    Dictionary<RawMaterial, int> initialDroppedMaterials = new();
+
     public NetworkVariable<float> SellingPrice { get; private set; } = new(1);
     public NetworkVariable<float> BuyingPrice { get; private set; } = new(1);
 
@@ -70,11 +72,12 @@ public class Storage : NetworkBehaviour
             foreach (PlayerData.ExtendedMaterialData materialData in _storedMaterialData)
                 StoredMaterialData.Add(materialData);
 
+            StoredMaterialData.OnListChanged += AdjustDroppedItems;
 
-            StoredMaterialData.OnListChanged += networkListEvent =>
-            {
-                AdjustDroppedItems(networkListEvent.PreviousValue.Amount, networkListEvent.Value.Amount);
-            };
+            if (TryGetComponent<BreakableStructure>(out BreakableStructure breakable) && breakable.droppedMaterials.Count != 0) {
+                foreach (MaterialData material in breakable.droppedMaterials)
+                    initialDroppedMaterials.Add(material.MaterialType, material.Amount);
+            }
         }
 
 
@@ -221,7 +224,7 @@ public class Storage : NetworkBehaviour
         return true;
     }
 
-    void AdjustDroppedItems(int oldSupply, int newSupply)
+    void AdjustDroppedItems(NetworkListEvent<PlayerData.ExtendedMaterialData> materialListEvent)
     {
         if (!IsServer)
             throw new System.Exception("Only server can change drop of items");
@@ -233,10 +236,14 @@ public class Storage : NetworkBehaviour
             bool wasMaterialUpdated = false;
             for (int i = 0; i < breakableStructure.droppedMaterials.Count; i++)
             {
-                if (breakableStructure.droppedMaterials[i].MaterialType == storageMaterialData.MaterialType)
+                if (breakableStructure.droppedMaterials[i].MaterialType == materialListEvent.Value.MaterialType)
                 {
+                    int addedAmountToDrop = 0;
+                    if (initialDroppedMaterials.ContainsKey(materialListEvent.Value.MaterialType))
+                        addedAmountToDrop = initialDroppedMaterials[materialListEvent.Value.MaterialType];
+
                     PlayerData.MaterialData newDroppedMaterial = breakableStructure.droppedMaterials[i];
-                    newDroppedMaterial.Amount += (newSupply - oldSupply);
+                    newDroppedMaterial.Amount = materialListEvent.Value.Amount + addedAmountToDrop;
                     breakableStructure.droppedMaterials[i] = newDroppedMaterial;
                     wasMaterialUpdated = true;
                     break;
