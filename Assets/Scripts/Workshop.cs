@@ -55,6 +55,9 @@ public class Workshop : NetworkBehaviour
     }
 
     //TO DO: CHECK IF PERSON WHO UPGRADES IS OWNER!!!!
+    /// <summary>
+    /// Destroy this object and spawn unbuilt workshop that has tier one larger than current one (when converting enum to int). If there is no such tier this function does nothing.
+    /// </summary>
     [Rpc(SendTo.Server)]
     public void UpgradeWorkshopServerRpc()
     {
