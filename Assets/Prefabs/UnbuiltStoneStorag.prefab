@@ -7426,12 +7426,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   _neededMaterials:
-  - materialType: 1
-    amount: 0
-    maxAmount: 20
-  - materialType: 2
-    amount: 0
-    maxAmount: 5
+  - BaseData:
+      MaterialType: 1
+      Amount: 0
+    MaxAmount: 10
+  - BaseData:
+      MaterialType: 2
+      Amount: 0
+    MaxAmount: 10
   OwnerId:
     m_InternalValue: 0
   buildingToBuild: {fileID: 1531001309548608335, guid: 102652328f15b8a4fb1081aa3cadfa3d, type: 3}

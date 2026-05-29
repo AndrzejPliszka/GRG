@@ -22,6 +22,7 @@ TagManager:
   - BerryBush
   - MaterialObject
   - Unbuilt
+  - Workshop
   layers:
   - Default
   - TransparentFX

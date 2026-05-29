@@ -12,11 +12,9 @@ public class BreakableStructure : NetworkBehaviour
     public NetworkVariable<int> Health { get; private set; } = new();
     public DynamicObjectSpawning spawner; //this is used to communicate with spawner. it may be empty if object was put manually itp.
     public LandScript land; //also used to communicate with spawner, but in case of land plot in town
-    [field: SerializeField] public List<PlayerData.MaterialData> droppedMaterials = new(); //maxAmount in this structure should be unused, if in future you want to modify this in runtime, use NetworkList<>
+    public List<PlayerData.MaterialData> droppedMaterials = new();
     [SerializeField] float dropMaterialPositionSpawnVariance = 0.2f;
     [SerializeField] float dropMaterialYOffset = 0.5f;
-
-    PlayerData.RawMaterial repairMaterial;
 
     public override void OnNetworkSpawn()
     {
@@ -62,9 +60,9 @@ public class BreakableStructure : NetworkBehaviour
     {
         foreach (PlayerData.MaterialData material in droppedMaterials)
         {
-            for (int i = 0; i < material.amount; i++)
+            for (int i = 0; i < material.Amount; i++)
             {
-                GameObject spawnedObject = Instantiate(materialObjectData.GetMaterialObject(material.materialType).droppedMaterialObject,
+                GameObject spawnedObject = Instantiate(materialObjectData.GetMaterialObject(material.MaterialType).droppedMaterialObject,
                     transform.position + new Vector3(Random.Range(-dropMaterialPositionSpawnVariance, dropMaterialPositionSpawnVariance), i * dropMaterialYOffset, Random.Range(-dropMaterialPositionSpawnVariance, dropMaterialPositionSpawnVariance)),
                     Quaternion.identity
                 );

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using TMPro;
 using Unity.Collections;
 using Unity.Netcode;
@@ -53,13 +54,13 @@ public class ObjectInteraction : NetworkBehaviour
             return;
 
         if (Input.GetKeyDown(KeyCode.E)) //E is interaction key
-            InteractWithObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId, true);
+            InteractWithObjectServerRpc(cameraXRotation, true);
 
         if (Input.GetKeyDown(KeyCode.X)) //X is disabling/destroying key
             DisableObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId);
 
         if (Input.GetKeyDown(KeyCode.F)) //F is secondary interaction key
-            InteractWithObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId, false);
+            InteractWithObjectServerRpc(cameraXRotation, false);
 
         if (Input.GetKeyDown(KeyCode.T)) //T is dropping items key
             DropItemServerRpc();
@@ -211,8 +212,9 @@ public class ObjectInteraction : NetworkBehaviour
 
     //This function will detect what object is in front of you and interact with this object (it takes cameraXRotation which is in euler angles form) 
     [Rpc(SendTo.Server)]
-    void InteractWithObjectServerRpc(float cameraXRotation, ulong playerId, bool isPrimaryInteraction) //some objects can be interacted in two ways, bool isPrimaryInteraction regulates which one is it
+    void InteractWithObjectServerRpc(float cameraXRotation, bool isPrimaryInteraction, RpcParams rpcParams = default) //some objects can be interacted in two ways, bool isPrimaryInteraction regulates which one is it
     {
+        ulong playerId = rpcParams.Receive.SenderClientId;
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
         if (targetObject == null) { return; }
         string targetObjectTag = targetObject.tag;
@@ -221,7 +223,6 @@ public class ObjectInteraction : NetworkBehaviour
         House houseScript;
         Storage storage;
         UnbuiltBuilding unbuiltBuilding;
-        //first see if is looking at interactive object
         if (isPrimaryInteraction)
         {
             //if is not looking at interactive object, check if has interactible item in hand
@@ -244,6 +245,13 @@ public class ObjectInteraction : NetworkBehaviour
                     return;
             }
         }
+
+        //If object with tag has reference to another object we want to get data from referenced object instead
+        if (targetObject.TryGetComponent<ObjectReference>(out ObjectReference objectReference))
+            targetObject = objectReference.objectReference;
+
+        PlayerUI playerUI = GetComponent<PlayerUI>();
+
         switch (targetObjectTag)
         {
             case "Item":
@@ -304,17 +312,20 @@ public class ObjectInteraction : NetworkBehaviour
                 //Check if PlayerUI exists before calling it
                 if(storage.OwnerId.Value == playerId)
                     if(isPrimaryInteraction)
-                        GetComponent<PlayerUI>().DisplayStorageManagementMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                        playerUI.DisplayStorageManagementMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     else
-                        GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                        playerUI.DisplayStorageTradeMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                 else
                 {
                     if (isPrimaryInteraction)
-                        GetComponent<PlayerUI>().DisplayStorageTradeMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                        playerUI.DisplayStorageTradeMenuOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     else
                     {
-                        int amountToSell = Mathf.Min(storage.MaxSupply.Value - storage.CurrentSupply.Value, playerData.OwnedMaterials[(int)storage.StoredMaterial.Value].amount); //We cannot sell more than storage can hold
-                        storage.SellMaterialsServerRpc(playerId, amountToSell);
+                        foreach (PlayerData.ExtendedMaterialData materialData in storage.StoredMaterialData)
+                        {
+                            int amountToSell = Mathf.Min(materialData.MaxAmount - materialData.Amount, playerData.GetMaterialDataOfOwnedRawMaterial(materialData.MaterialType).Amount); //We cannot sell more than storage can hold
+                            storage.SellMaterialsServerRpc(playerId, amountToSell, materialData.MaterialType);
+                        }
                     }
                 }
                 break;
@@ -323,25 +334,25 @@ public class ObjectInteraction : NetworkBehaviour
                 if (unbuiltBuilding.OwnerId.Value == playerId)
                 {
                     if(isPrimaryInteraction)
-                        GetComponent<PlayerUI>().DisplayDeliveryPricesManagmentPanelOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                        playerUI.DisplayDeliveryPricesManagmentPanelOwnerRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     else
-                        GetComponent<PlayerUI>().DisplayMaterialDeliveryPanelClientRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                        playerUI.DisplayMaterialDeliveryPanelClientRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     return;
                 }
-                //This part of code is executed only when is no owner
 
+                //This part of code is executed only when player is not an owner
                 if (isPrimaryInteraction)
                 {
-                    GetComponent<PlayerUI>().DisplayMaterialDeliveryPanelClientRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
+                    playerUI.DisplayMaterialDeliveryPanelClientRpc(targetObject.GetComponent<NetworkObject>().NetworkObjectId);
                     return;
                 }
                 Dictionary<PlayerData.RawMaterial, int> amountOfPlayerMaterials = new();
                 Dictionary<PlayerData.RawMaterial, int> amountOfNeededMaterials = new();
 
-                foreach (PlayerData.MaterialData ownedMaterial in playerData.OwnedMaterials)
-                    amountOfPlayerMaterials.Add(ownedMaterial.materialType, ownedMaterial.amount);
-                foreach (PlayerData.MaterialData neededMaterial in unbuiltBuilding.NeededMaterials)
-                    amountOfNeededMaterials.Add(neededMaterial.materialType, neededMaterial.maxAmount - neededMaterial.amount);
+                foreach (PlayerData.ExtendedMaterialData ownedMaterial in playerData.OwnedMaterials)
+                    amountOfPlayerMaterials.Add(ownedMaterial.MaterialType, ownedMaterial.Amount);
+                foreach (PlayerData.ExtendedMaterialData neededMaterial in unbuiltBuilding.NeededMaterials)
+                    amountOfNeededMaterials.Add(neededMaterial.MaterialType, neededMaterial.MaxAmount - neededMaterial.Amount);
 
                 foreach (PlayerData.RawMaterial rawMaterial in Enum.GetValues(typeof(PlayerData.RawMaterial)))
                 {
@@ -350,7 +361,7 @@ public class ObjectInteraction : NetworkBehaviour
                     int amountToDeliver = Mathf.Min(amountOfNeededMaterials[rawMaterial], amountOfPlayerMaterials[rawMaterial]);
                     if (amountToDeliver == 0)
                         continue;
-                    unbuiltBuilding.DeliverMaterialsServerRpc(rawMaterial, amountToDeliver, playerId);
+                    unbuiltBuilding.DeliverMaterialsServerRpc(rawMaterial, amountToDeliver);
                 }
                 break;
             case "BerryBush":
@@ -365,7 +376,6 @@ public class ObjectInteraction : NetworkBehaviour
                 }
                 else
                 {
-                    PlayerUI playerUI = GetComponent<PlayerUI>();
                     if (playerUI)
                         playerUI.DisplayErrorOwnerRpc("There are no berries on this bush!");
                 }
@@ -375,11 +385,32 @@ public class ObjectInteraction : NetworkBehaviour
                 if (!isPrimaryInteraction)
                     return;
                 GatherableMaterial materialItem = targetObject.GetComponent<GatherableMaterial>();
-                int didSucced = playerData.ChangeAmountOfMaterial(materialItem.Material.Value, materialItem.Amount.Value);
+                int didSucced = playerData.ChangeAmountOfMaterial(materialItem.Material.Value.MaterialType, materialItem.Material.Value.Amount);
                 if (didSucced == 0) //doesn't handle material.Material.Value > 1)
                 {
                     materialItem.GetComponent<NetworkObject>().Despawn();
                     Destroy(targetObject.transform.gameObject);
+                }
+                break;
+            case "Workshop":
+                Workshop workshop = targetObject.GetComponent<Workshop>();
+                if (workshop == null)
+                    throw new Exception("Object with workshop tag doesn't have Workshop script");
+
+                if (!isPrimaryInteraction && workshop.OwnerId.Value == playerId)
+                {
+                    if (playerUI)
+                        playerUI.DisplayWorkshopUpgradeMenuOwnerRpc(workshop.GetComponent<NetworkObject>().NetworkObjectId);
+                }
+                else if (isPrimaryInteraction)
+                {
+                    if (playerUI)
+                    {
+                        if (workshop.CanCreateItem())
+                            playerUI.DisplayWorkshopWorkMenuOwnerRpc(workshop.GetComponent<NetworkObject>().NetworkObjectId);
+                        else
+                            playerUI.DisplayErrorOwnerRpc("There are no materials in Storage to create an item!");
+                    }
                 }
                 break;
 
@@ -464,6 +495,7 @@ public class ObjectInteraction : NetworkBehaviour
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;
+            case "Workshop":
             case "Storage":
                 breakableStructure = targetObject.GetComponent<BreakableStructure>();
                 if (breakableStructure == null)
@@ -602,7 +634,7 @@ public class ObjectInteraction : NetworkBehaviour
         if (collision.transform.CompareTag("MaterialObject") && collision.transform.GetComponent<NetworkObject>().IsSpawned)
         {
             GatherableMaterial material = collision.transform.GetComponent<GatherableMaterial>();
-            int didSucced = playerData.ChangeAmountOfMaterial(material.Material.Value, material.Amount.Value);
+            int didSucced = playerData.ChangeAmountOfMaterial(material.Material.Value.MaterialType, material.Material.Value.Amount);
             if(didSucced == 0) //DOESNT HANDLE NUMBERS GREATER THAN 1 (can happen if material.Material.Value > 1)
             {
                 material.GetComponent<NetworkObject>().Despawn();

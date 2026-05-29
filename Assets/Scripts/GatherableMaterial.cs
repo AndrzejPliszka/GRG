@@ -5,16 +5,13 @@ using UnityEngine;
 public class GatherableMaterial : NetworkBehaviour
 {
 
-    [SerializeField] PlayerData.RawMaterial _material;
-    [SerializeField] int _amount;
+    [SerializeField] PlayerData.MaterialData _material;
 
-    public NetworkVariable<PlayerData.RawMaterial> Material { get; private set; } = new();
-    public NetworkVariable<int> Amount { get; private set; } = new();
+    [HideInInspector] public NetworkVariable<PlayerData.MaterialData> Material { get; private set; } = new();
 
     public override void OnNetworkSpawn()
     {
         if (!IsServer) { return; }
         Material.Value = _material;
-        Amount.Value = _amount;
     }
 }

@@ -128,9 +128,8 @@ MonoBehaviour:
   spawner: {fileID: 0}
   land: {fileID: 0}
   droppedMaterials:
-  - materialType: 1
-    amount: 5
-    maxAmount: 0
+  - MaterialType: 1
+    Amount: 5
   dropMaterialPositionSpawnVariance: 0.2
   dropMaterialYOffset: 0.5
 --- !u!136 &7541418176937442623
