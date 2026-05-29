@@ -361,7 +361,7 @@ public class ObjectInteraction : NetworkBehaviour
                     int amountToDeliver = Mathf.Min(amountOfNeededMaterials[rawMaterial], amountOfPlayerMaterials[rawMaterial]);
                     if (amountToDeliver == 0)
                         continue;
-                    unbuiltBuilding.DeliverMaterialsServerRpc(rawMaterial, amountToDeliver, playerId);
+                    unbuiltBuilding.DeliverMaterialsServerRpc(rawMaterial, amountToDeliver);
                 }
                 break;
             case "BerryBush":
@@ -398,7 +398,10 @@ public class ObjectInteraction : NetworkBehaviour
                     throw new Exception("Object with workshop tag doesn't have Workshop script");
 
                 if (!isPrimaryInteraction && workshop.OwnerId.Value == playerId)
-                    workshop.UpgradeWorkshop();
+                {
+                    if (playerUI)
+                        playerUI.DisplayWorkshopUpgradeMenuOwnerRpc(workshop.GetComponent<NetworkObject>().NetworkObjectId);
+                }
                 else if (isPrimaryInteraction)
                 {
                     if (playerUI)

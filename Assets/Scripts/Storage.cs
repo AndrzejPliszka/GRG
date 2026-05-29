@@ -62,6 +62,7 @@ public class Storage : NetworkBehaviour
 
     Dictionary<RawMaterial, int> initialDroppedMaterials = new();
 
+    //MAJOR TO DO: make prices different for different materials!!!
     public NetworkVariable<float> SellingPrice { get; private set; } = new(1);
     public NetworkVariable<float> BuyingPrice { get; private set; } = new(1);
 
@@ -155,7 +156,7 @@ public class Storage : NetworkBehaviour
     /// Retrieves the material data object associated with the specified raw material.
     /// </summary>
     /// <param name="rawMaterial">The raw material for which to retrieve the associated material data.</param>
-    /// <returns>The material data object corresponding to the specified raw material.</returns>
+    /// <returns>The material data object corresponding to the specified raw material stored in storage.</returns>
     /// <exception cref="Exception">Thrown when the specified raw material cannot be stored in storage.</exception>
 
     public PlayerData.ExtendedMaterialData GetMaterialDataOfRawMaterial(PlayerData.RawMaterial rawMaterial)

@@ -32,6 +32,7 @@ public class PlayerUI : NetworkBehaviour
     [SerializeField] GameObject materialDeliveryPaymentManagmentPanel;
 
     [SerializeField] GameObject workshopWorkPanel;
+    [SerializeField] GameObject workshopUpgradePanel;
 
     TMP_Text centerText;
     TMP_Text errorText;
@@ -246,7 +247,11 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "Storage":
                 storage = targetObject.GetComponent<Storage>();
-                centerText.text = $"{PlayerData.GetNicknameOfPlayer(storage.OwnerId.Value)}'s Storage:";
+                if (storage.gameObject.TryGetComponent<Workshop>(out Workshop attachedToWorkshop))
+                    centerText.text = $"{attachedToWorkshop.ItemType} Workshop Storage:";
+                else
+                    centerText.text = $"{PlayerData.GetNicknameOfPlayer(storage.OwnerId.Value)}'s Storage:";
+
                 foreach (PlayerData.ExtendedMaterialData materialData in storage.StoredMaterialData)
                     centerText.text += $"\n {materialData.Amount}/{materialData.MaxAmount} of {materialData.MaterialType}";
                 if (targetObject.TryGetComponent<BreakableStructure>(out breakableStructure))
@@ -308,9 +313,9 @@ public class PlayerUI : NetworkBehaviour
                 break;
             case "Workshop":
                 workshop = targetObject.GetComponent<Workshop>();
-                centerText.text = $"{workshop.ItemTier} {workshop.ItemType} Workshop";
+                centerText.text = $"{PlayerData.GetNicknameOfPlayer(workshop.OwnerId.Value)}'s {workshop.ItemTier} {workshop.ItemType} Workshop";
                 if (workshop.ItemMaterialCost.Count != 0)
-                    centerText.text += $"\nCost:";
+                    centerText.text += $"\n{workshop.ItemType} Cost:";
                 foreach (PlayerData.MaterialData material in workshop.ItemMaterialCost)
                     centerText.text += $"\n{material.Amount} of {material.MaterialType}";
                 if (targetObject.TryGetComponent<BreakableStructure>(out breakableStructure) && breakableStructure.enabled)
@@ -344,83 +349,89 @@ public class PlayerUI : NetworkBehaviour
             if (lookedAtObject)
             {
                 
-            string objectTag = lookedAtObject.tag;
+                string objectTag = lookedAtObject.tag;
 
-            //If object with tag has reference to another object we want to get data from referenced object instead
-            if (lookedAtObject.TryGetComponent<ObjectReference>(out ObjectReference objectReference))
-                lookedAtObject = objectReference.objectReference;
+                //If object with tag has reference to another object we want to get data from referenced object instead
+                if (lookedAtObject.TryGetComponent<ObjectReference>(out ObjectReference objectReference))
+                    lookedAtObject = objectReference.objectReference;
 
 
-            switch (objectTag)
-            {
-                case "Player":
-                    ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Punch");
-                    break;
-                case "Item":
-                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
-                    break;
-                case "Tree":
-                    if (heldItem == ItemType.Axe)
-                        ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Cut tree");
-                    break;
-                case "Crop":
-                    if (heldItem == ItemType.Sickle)
-                        ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Cut crop");
-                    break;
-                case "Buy":
-                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - buy");
-                    break;
-                case "Work":
-                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - sell");
-                    break;
-                case "Storage":
-                    if(heldItem == ItemType.Sword)
-                        ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Destroy Building");
-                    if (lookedAtObject.GetComponent<Storage>().OwnerId.Value == NetworkManager.Singleton.LocalClientId) //If player is owner of storage
-                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Manage storage");
-                    else
-                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Open selling menu");
-                    ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Sell all");
-                    break;
-                case "Money":
-                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
-                    break;
-                case "Rock":
-                    if (heldItem == ItemType.Pickaxe)
-                        ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Break rock");
-                    break;
-                case "GatherableMaterial":
-                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
-                    break;
-                case "BerryBush":
-                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Eat");
-                    ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Pick up");
-                    break;
-                case "MaterialObject":
-                    ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
-                    break;
-                case "Unbuilt":
-                    UnbuiltBuilding building = lookedAtObject.GetComponent<UnbuiltBuilding>();
-                    if(building.OwnerId.Value == NetworkManager.Singleton.LocalClientId)
-                    {
-                        if(building.IsCompletelyUnbuilt())
-                            ReplaceTextWithLineStartingWith(tooltipText, "X", "X - Delete building");
-                        else if(heldItem == ItemType.Sword)
+                switch (objectTag)
+                {
+                    case "Player":
+                        ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Punch");
+                        break;
+                    case "Item":
+                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                        break;
+                    case "Tree":
+                        if (heldItem == ItemType.Axe)
+                            ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Cut tree");
+                        break;
+                    case "Crop":
+                        if (heldItem == ItemType.Sickle)
+                            ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Cut crop");
+                        break;
+                    case "Buy":
+                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - buy");
+                        break;
+                    case "Work":
+                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - sell");
+                        break;
+                    case "Storage":
+                        if(heldItem == ItemType.Sword)
                             ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Destroy Building");
-                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Manage Construction");
-                        ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Open Delivery Menu");
-                    }
-                    else
-                    {
-                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Open Delivery Menu");
-                        ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Deliver All Materials");
-                    }
-                    break;
-                default:
-                    break;
+                        if (lookedAtObject.GetComponent<Storage>().OwnerId.Value == NetworkManager.Singleton.LocalClientId) //If player is owner of storage
+                            ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Manage storage");
+                        else
+                            ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Open selling menu");
+                        ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Sell all");
+                        break;
+                    case "Money":
+                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                        break;
+                    case "Rock":
+                        if (heldItem == ItemType.Pickaxe)
+                            ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Break rock");
+                        break;
+                    case "GatherableMaterial":
+                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                        break;
+                    case "BerryBush":
+                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Eat");
+                        ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Pick up");
+                        break;
+                    case "MaterialObject":
+                        ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Pick up");
+                        break;
+                    case "Unbuilt":
+                        UnbuiltBuilding building = lookedAtObject.GetComponent<UnbuiltBuilding>();
+                        if(building.OwnerId.Value == NetworkManager.Singleton.LocalClientId)
+                        {
+                            if(building.IsCompletelyUnbuilt())
+                                ReplaceTextWithLineStartingWith(tooltipText, "X", "X - Delete building");
+                            else if(heldItem == ItemType.Sword)
+                                ReplaceTextWithLineStartingWith(tooltipText, "Click", "Click - Destroy Building");
+                            ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Manage Construction");
+                            ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Open Delivery Menu");
+                        }
+                        else
+                        {
+                            ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Open Delivery Menu");
+                            ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Deliver All Materials");
+                        }
+                        break;
+                    case "Workshop":
+                        Workshop workshop = lookedAtObject.GetComponent<Workshop>();
+                        ReplaceTextWithLineStartingWith(tooltipText, "E", $"E - Create {workshop.ItemTier} {workshop.ItemType}");
+                        if (workshop.OwnerId.Value == NetworkManager.Singleton.LocalClientId)
+                            ReplaceTextWithLineStartingWith(tooltipText, "F", "F - Upgrade workshop");
+                        break;
+                    default:
+                        break;
 
                 }
-            };
+            }
 
             if (heldItem == ItemType.Medkit)
                 ReplaceTextWithLineStartingWith(tooltipText, "E", "E - Use medkit");
@@ -953,7 +964,7 @@ public class PlayerUI : NetworkBehaviour
                 return;
             PlayerData.RawMaterial rawMaterial = (PlayerData.RawMaterial)Enum.Parse(typeof(PlayerData.RawMaterial), materialDropdown.options[materialDropdown.value].text);
             int amountToDeliver = Int16.Parse(amountInputField.text);
-            targetBuilding.DeliverMaterialsServerRpc(rawMaterial, amountToDeliver, NetworkManager.Singleton.LocalClientId);
+            targetBuilding.DeliverMaterialsServerRpc(rawMaterial, amountToDeliver);
             int inputFieldText = ClampDeliverMaterialsPanelInputField(rawMaterial, targetBuilding, int.Parse(amountInputField.text));
             amountInputField.text = inputFieldText.ToString();
         });
@@ -1016,6 +1027,40 @@ public class PlayerUI : NetworkBehaviour
             workshop.CreateItemServerRpc();
             Destroy(workshopPanel);
         });
+
+        MakePanelInteractible(workshopPanel);
+    }
+
+    [Rpc(SendTo.Owner)]
+    public void DisplayWorkshopUpgradeMenuOwnerRpc(ulong workshopId)
+    {
+        Workshop workshop = NetworkManager.SpawnManager.SpawnedObjects[workshopId].GetComponent<Workshop>();
+
+        GameObject workshopPanel = Instantiate(workshopUpgradePanel, playerUI);
+        WorkshopUpgradePanelReferences panelReferences = workshopPanel.GetComponent<WorkshopUpgradePanelReferences>();
+
+        panelReferences.upgradeButton.onClick.AddListener(() =>
+        {
+            workshop.UpgradeWorkshopServerRpc();
+            Destroy(workshopPanel);
+        });
+        ItemData.ItemTier newItemTier = workshop.ItemTier;
+        var values = Enum.GetValues(typeof(ItemData.ItemTier));
+        int tierNumber = Array.IndexOf(values, workshop.ItemTier);
+        if (tierNumber < values.Length - 1)
+            newItemTier = (ItemData.ItemTier)values.GetValue(tierNumber + 1);
+
+        List<PlayerData.MaterialData> neededMaterials = workshop.GetNeededMaterialsForAnItem(workshop.ItemType, newItemTier);
+
+        panelReferences.upgradeInfoText.text = $"Update this workshop to produce {newItemTier} {workshop.ItemType}. \n Cost: \n";
+        foreach (PlayerData.MaterialData materialData in neededMaterials)
+            panelReferences.upgradeInfoText.text += $"{materialData.Amount} of {materialData.MaterialType}\n";
+        
+        if (newItemTier == workshop.ItemTier)
+        {
+            panelReferences.upgradeInfoText.text = $"This workshop is maximally upgraded already!\n You cannot upgrade it any longer.";
+            Destroy(panelReferences.upgradeButton.gameObject);
+        }
 
         MakePanelInteractible(workshopPanel);
     }

@@ -4,6 +4,6 @@ using UnityEngine.UI;
 
 public class WorkshopUpgradePanelReferences : MonoBehaviour
 {
-    public TMP_Text UpgradeInfoText;
-    public Button UpgradeButton;
+    public TMP_Text upgradeInfoText;
+    public Button upgradeButton;
 }

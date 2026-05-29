@@ -35,6 +35,7 @@ public class Workshop : NetworkBehaviour
     }
 
     public NetworkVariable<ulong> OwnerId = new(0); //Netcode player id, not object id
+    [SerializeField] GameObject unbuiltWorkshop; //Used when upgrading workshop
 
     [SerializeField] SpriteRenderer itemTypeSprite;
     [SerializeField] SpriteRenderer itemTierSprite;
@@ -53,14 +54,69 @@ public class Workshop : NetworkBehaviour
         base.OnNetworkSpawn();
     }
 
-    public void UpgradeWorkshop()
+    //TO DO: CHECK IF PERSON WHO UPGRADES IS OWNER!!!!
+    [Rpc(SendTo.Server)]
+    public void UpgradeWorkshopServerRpc()
     {
-        if (!IsServer) { throw new System.Exception("Only server can upgrade workshop!"); }
-
+        ItemData.ItemTier newItemTier = ItemTier;
         var values = Enum.GetValues(typeof(ItemData.ItemTier));
-        int index = Array.IndexOf(values, ItemTier);
-        if (index < values.Length - 1)
-            ItemTier = (ItemData.ItemTier)values.GetValue(index + 1);
+        int tierNumber = Array.IndexOf(values, ItemTier);
+        if (tierNumber < values.Length - 1)
+            newItemTier = (ItemData.ItemTier)values.GetValue(tierNumber + 1);
+
+        if (newItemTier == ItemTier)
+            return;
+
+        Storage oldStorage = GetComponent<Storage>();
+
+        GameObject newWorkshop = Instantiate(unbuiltWorkshop, transform.position, transform.rotation);
+        newWorkshop.GetComponent<NetworkObject>().Spawn();
+
+        Workshop workshop = newWorkshop.GetComponent<Workshop>();
+        workshop.ItemType = ItemType;
+        workshop.ItemTier = newItemTier;
+        workshop.OwnerId.Value = OwnerId.Value;
+
+        UnbuiltBuilding building = newWorkshop.GetComponent<UnbuiltBuilding>();
+        building.OwnerId.Value = OwnerId.Value;
+        building.ObjectStringDescription.Value = "Workshop";
+        //For now cost of building upgrade will be cost of item produced by it but this is temp
+        List<PlayerData.MaterialData> neededMaterials = GetNeededMaterialsForAnItem(workshop.ItemType, workshop.ItemTier);
+
+        building.NeededMaterials.Clear();
+        building.MaterialPrices.Clear();
+        foreach (PlayerData.MaterialData material in neededMaterials)
+        {
+            building.NeededMaterials.Add(new PlayerData.ExtendedMaterialData()
+            {
+                MaterialType = material.MaterialType,
+                MaxAmount = material.Amount,
+                Amount = Math.Clamp(oldStorage.GetMaterialDataOfRawMaterial(material.MaterialType).Amount, 0, material.Amount)
+            });
+
+            //Reset material prices on upgrade, temp measure until MaterialPrices is not merged with neededMaterials
+            building.MaterialPrices.Add(0);
+        }
+
+        building.TryBuildBuilding();
+
+        Destroy(gameObject);
+    }
+
+    public List<PlayerData.MaterialData> GetNeededMaterialsForAnItem(ItemData.ItemType itemType, ItemData.ItemTier itemTier)
+    {
+        List<PlayerData.MaterialData> neededMaterials = new();
+        ItemEntry itemTypeInfo = itemTypeData.GetDataOfItemType(itemType);
+        MaterialEntry itemTierInfo = itemTierData.GetDataOfItemTier(itemTier);
+        foreach (PlayerData.MaterialData material in itemTypeInfo.basicItemCost)
+        {
+            neededMaterials.Add(new PlayerData.MaterialData()
+            {
+                MaterialType = material.MaterialType,
+                Amount = Mathf.RoundToInt(material.Amount * itemTierInfo.multiplier)
+            });
+        }
+        return neededMaterials;
     }
 
     /// <summary>
@@ -75,6 +131,9 @@ public class Workshop : NetworkBehaviour
         MaterialEntry itemTierInfo = itemTierData.GetDataOfItemTier(ItemTier);
 
         ItemMaterialCost.Clear();
+        List<PlayerData.MaterialData> materialCost = GetNeededMaterialsForAnItem(ItemType, ItemTier);
+        foreach(PlayerData.MaterialData material in materialCost)
+            ItemMaterialCost.Add(material);
 
         Storage storage = GetComponent<Storage>();
         List<PlayerData.ExtendedMaterialData> storageMaterialData = new();
@@ -85,12 +144,6 @@ public class Workshop : NetworkBehaviour
 
         foreach (PlayerData.MaterialData material in itemTypeInfo.basicItemCost)
         {
-            ItemMaterialCost.Add(new PlayerData.MaterialData()
-            {
-                MaterialType = material.MaterialType,
-                Amount = Mathf.RoundToInt(material.Amount * itemTierInfo.multiplier)
-            });
-
             int amountStored = 0;
             foreach (PlayerData.ExtendedMaterialData storageMaterial in storageMaterialData)
                 if (storageMaterial.MaterialType == material.MaterialType)

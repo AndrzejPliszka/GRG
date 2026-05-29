@@ -11,8 +11,9 @@ using UnityEngine.Rendering;
 public class UnbuiltBuilding : NetworkBehaviour
 {
     [SerializeField] List<PlayerData.ExtendedMaterialData> _neededMaterials = new(); //maxAmount is materials needed, amount is materials already delivered
-    public NetworkList<PlayerData.ExtendedMaterialData> NeededMaterials { get;  private set; } = new(); //maxAmount is materials needed, amount is materials already delivered
+    [HideInInspector] public NetworkList<PlayerData.ExtendedMaterialData> NeededMaterials = new(); //maxAmount is materials needed, amount is materials already delivered
     public NetworkVariable<ulong> OwnerId;
+    //MAJOR TO DO: MERGE THIS WITH NeededMaterials, having two lists that use same index is RETARDED!
     public NetworkList<float> MaterialPrices { get; private set; } = new(); //Materials in this list have same index as in NeededMaterials, so if you need a price, first find index of material in NeededMaterials and then use that index with this list
     [SerializeField] GameObject buildingToBuild;
     [SerializeField] GameObject singularMaterialDataInfo;
@@ -37,11 +38,14 @@ public class UnbuiltBuilding : NetworkBehaviour
             buildingParts.Add(buildPartsParent.GetChild(i).gameObject);
         }
 
-        DisplayFinishedParts(new NetworkListEvent<PlayerData.ExtendedMaterialData>());
-        NeededMaterials.OnListChanged += DisplayFinishedParts;
+        DisplayFinishedParts();
+        NeededMaterials.OnListChanged += (networkEvent) =>
+        {
+            DisplayFinishedParts();
+            ModifyNeededMaterialAmountUI();
+        };
 
         SetupNedeedMaterialUI();
-        NeededMaterials.OnListChanged += ModifyNeededMaterialAmountUI;
     }
 
     protected override void OnNetworkPostSpawn()
@@ -90,9 +94,10 @@ public class UnbuiltBuilding : NetworkBehaviour
         }
     }
 
-    //Funtion has this argument, so it can be executed every time NeededMaterial changes
-    void ModifyNeededMaterialAmountUI(NetworkListEvent<PlayerData.ExtendedMaterialData> _)
+    void ModifyNeededMaterialAmountUI()
     {
+        ResetMaterialUI();
+
         Transform materialsNeededPanel = transform.Find("MaterialsNeededPanel");
         for (int i = 0; i < NeededMaterials.Count; i++)
         {
@@ -126,18 +131,18 @@ public class UnbuiltBuilding : NetworkBehaviour
         }
     }
 
-    //false if it method fails, but recommended to check manually if this method will fail
     [Rpc(SendTo.Server)]
-    public void DeliverMaterialsServerRpc(PlayerData.RawMaterial materialType, int amount, ulong deliveringPlayerId)
+    public void DeliverMaterialsServerRpc(PlayerData.RawMaterial materialType, int amount, RpcParams rpcParams = default)
     {
+        ulong deliveringPlayerId = rpcParams.Receive.SenderClientId;
         if (amount == 0)
             return;
 
         if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(OwnerId.Value, out var buildingOwner))
-            return;
+            throw new Exception("Player who has this building was not found. Who is supposed to pay the workers!!!???");
 
         if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(deliveringPlayerId, out var deliveringPlayer))
-            return;
+            throw new Exception("There is no player delivering the materials (huh?)");
 
         if ((GetPriceOfMaterial(materialType) * amount <= buildingOwner.PlayerObject.GetComponent<PlayerData>().Money.Value || deliveringPlayerId == OwnerId.Value)
             && deliveringPlayer.PlayerObject.GetComponent<PlayerData>().OwnedMaterials[(int)materialType].Amount >= amount)
@@ -211,8 +216,7 @@ public class UnbuiltBuilding : NetworkBehaviour
         return (float)amountOfDeliveredMaterials / amountOfNeededMaterials;
     }
 
-    //Funtion has this argument, so it can be executed every time NeededMaterial changes
-    void DisplayFinishedParts(NetworkListEvent<PlayerData.ExtendedMaterialData> _)
+    void DisplayFinishedParts()
     {
         float deliveredRatio = GetDeliveredMaterialsRatio();
         int numberOfDisplayedChildrenParts = Mathf.FloorToInt(deliveredRatio * buildingParts.Count);
@@ -270,7 +274,7 @@ public class UnbuiltBuilding : NetworkBehaviour
         return isCompletelyUnbuilt;
     }
 
-    bool TryBuildBuilding()
+    public bool TryBuildBuilding()
     {
         //Check if there is correct number of materials
         foreach (var material in NeededMaterials) {

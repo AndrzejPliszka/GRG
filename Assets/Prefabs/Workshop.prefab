@@ -531,6 +531,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   OwnerId:
     m_InternalValue: 0
+  unbuiltWorkshop: {fileID: 4224487992910878155, guid: 532949cf8325b7e4c8da5e3f62b39d1c, type: 3}
   itemTypeSprite: {fileID: 3893767449528019414}
   itemTierSprite: {fileID: 6402603022764779756}
   itemTypeData: {fileID: 11400000, guid: 363b1000ef10cf14e84d48515cf892ec, type: 2}
