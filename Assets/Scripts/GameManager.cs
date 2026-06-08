@@ -74,14 +74,17 @@ public class GameManager : NetworkBehaviour
 
     public List<TownProperties> TownData { get; private set; } = new();
     public List<GameObject> PlayersWithoutTown { get; private set; } = new();
+    [SerializeField] GameObject landObject;
+
 
     //Making this script singleton
     public static GameManager Instance { get; private set; }
 
-    [SerializeField] ItemTypeData itemTypeData; //used for spawning items
-    [SerializeField] ItemTierData itemTierData; //used for durability
-    [SerializeField] GameObject landObject;
-
+    //Scriptable objects referenceble in all the code working during a game
+    [field: SerializeField] public ItemTypeData ItemTypeData { get; private set; }
+    [field: SerializeField] public ItemTierData ItemTierData { get; private set; }
+    [field: SerializeField] public BuildingData BuildingData { get; private set; }
+    [field: SerializeField] public RawMaterialData RawMaterialData { get; private set; }
     private void Awake()
     {
         if (Instance == null)
@@ -123,9 +126,9 @@ public class GameManager : NetworkBehaviour
 
             foreach (ItemTier itemTier in Enum.GetValues(typeof(ItemTier)))
             {
-                GameObject item = Instantiate(itemTypeData.GetDataOfItemType(itemType).droppedItemPrefab, new Vector3(10, 5, itemSpawnZPos), new Quaternion());
+                GameObject item = Instantiate(ItemTypeData.GetDataOfItemType(itemType).droppedItemPrefab, new Vector3(10, 5, itemSpawnZPos), new Quaternion());
                 item.GetComponent<NetworkObject>().Spawn();
-                item.GetComponent<ItemData>().itemProperties.Value = new ItemProperties(itemType, itemTier, itemTierData.GetDataOfItemTier(itemTier).maximumDurability);
+                item.GetComponent<ItemData>().itemProperties.Value = new ItemProperties(itemType, itemTier, ItemTierData.GetDataOfItemTier(itemTier).maximumDurability);
                 itemSpawnZPos += 2;
             }
         }

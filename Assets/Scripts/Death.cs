@@ -13,7 +13,6 @@ public class Death : NetworkBehaviour
     Movement playerMovement;
     Menu menuScript;
     [SerializeField] GameObject ragdoll;
-    [SerializeField] ItemTypeData itemTypeData;
     [SerializeField] GameObject moneyObject;
 
     void Start()
@@ -36,8 +35,9 @@ public class Death : NetworkBehaviour
     void Die()
     {
         if (!IsServer) { throw new Exception("Client cannot decide to kill himself, only server can do that!"); };
-
-        if(playerData.Role.Value == PlayerData.PlayerRole.Leader)
+        ItemTypeData itemData = GameManager.Instance.ItemTypeData;
+        //DestroyLocalPlayerModelOwnerRpc(); TODO: Make this work!
+        if (playerData.Role.Value == PlayerData.PlayerRole.Leader)
         {
             int townId = playerData.TownId.Value;
             GameManager.Instance.RemovePlayerFromRegistry(gameObject);
@@ -46,7 +46,6 @@ public class Death : NetworkBehaviour
         else
             GameManager.Instance.RemovePlayerFromRegistry(gameObject);
 
-        DestroyLocalPlayerModelOwnerRpc();
         playerMovement.sittingCourutineCancellationToken?.Cancel(); //If player is killed during sitting in shop, stop using it before dying
         //drop items from inventory
         for (int i = 0; i < playerData.Inventory.Count; i++)
@@ -56,7 +55,7 @@ public class Death : NetworkBehaviour
             if (itemProperties.itemType == ItemData.ItemType.Null) { continue; } //if null do not spawn object, because there was no item in the first place
 
             //maybe encapsulate into function, currently same code is used in objectInteraction
-            GameObject itemPrefab = itemTypeData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
+            GameObject itemPrefab = itemData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
             GameObject newItem = Instantiate(itemPrefab, transform.position + transform.forward, new Quaternion());
             newItem.GetComponent<NetworkObject>().Spawn();
             newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;
@@ -84,7 +83,7 @@ public class Death : NetworkBehaviour
     [Rpc(SendTo.Owner)]
     void DestroyLocalPlayerModelOwnerRpc()
     {
-        if (this == null) { Debug.LogWarning("DestroyLocalPlayerModelOwnerRpc called on destroyed object."); return; }
+        //if (this == null) { Debug.LogWarning("DestroyLocalPlayerModelOwnerRpc called on destroyed object."); return; }
         //when you die you want to display menu that lets you respawn/exit the server
         if (menuScript != null)
             menuScript.PauseGame();

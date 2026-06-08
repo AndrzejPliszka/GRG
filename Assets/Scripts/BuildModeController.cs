@@ -8,7 +8,7 @@ using static UnityEngine.Rendering.DebugUI;
 public class BuildModeController : NetworkBehaviour
 {
     ObjectInteraction objectInteraction;
-    [SerializeField] BuildingData buildingData;
+    BuildingData buildingData;
     [SerializeField] Material correctGhostObjectMaterial;
     [SerializeField] Material wrongPlacementGhostObjectMaterial;
     GameObject ghostObject;
@@ -45,6 +45,7 @@ public class BuildModeController : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
+        buildingData = GameManager.Instance.BuildingData;
         subtypeStructureLength = buildingData.GetDataOfBuildingType(CurrentBuildingType).baseObjects.Count();
         CurrentBuildingSubtype = Mathf.Clamp(CurrentBuildingSubtype, 0, subtypeStructureLength - 1);
     }

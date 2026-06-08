@@ -21,10 +21,6 @@ public class PlayerUI : NetworkBehaviour
     [SerializeField] Sprite unusedInventorySlot;
     [SerializeField] Sprite usedInventorySlot;
 
-    [SerializeField] ItemTypeData itemTypeData;
-    [SerializeField] ItemTierData itemTierData;
-    [SerializeField] BuildingData buildingData;
-
     [SerializeField] GameObject storageTradePanel;
     [SerializeField] GameObject storageManagmentPanel;
 
@@ -462,6 +458,7 @@ public class PlayerUI : NetworkBehaviour
     }
     void UpdateSelectedBuilding(BuildingData.BuildingType buildingType, string subtype)
     {
+        BuildingData buildingData = GameManager.Instance.BuildingData;
         mainBuildingSlot.sprite = buildingData.GetDataOfBuildingType(buildingType).buildingSprite;
         BuildingData.BuildingType previousBuilding = BuildModeController.GetAdjacentBuildingType(false, buildingType);
         previousBuildingSlot.sprite = buildingData.GetDataOfBuildingType(previousBuilding).buildingSprite;
@@ -584,6 +581,8 @@ public class PlayerUI : NetworkBehaviour
     public void DisplayInventory(NetworkListEvent<ItemData.ItemProperties> e)
     {
         if (!IsOwner) return;
+        ItemTypeData itemTypeData = GameManager.Instance.ItemTypeData;
+        ItemTierData itemTierData = GameManager.Instance.ItemTierData;
         //Inventory slots are numbered 1, 2, 3, but Inventory is 0-indexed, e.Value is changed element, e.Index is it's index
         GameObject inventorySlot = inventorySlots[e.Index];
         if (inventorySlot == null) { return; }

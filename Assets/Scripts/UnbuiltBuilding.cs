@@ -17,7 +17,6 @@ public class UnbuiltBuilding : NetworkBehaviour
     public NetworkList<float> MaterialPrices { get; private set; } = new(); //Materials in this list have same index as in NeededMaterials, so if you need a price, first find index of material in NeededMaterials and then use that index with this list
     [SerializeField] GameObject buildingToBuild;
     [SerializeField] GameObject singularMaterialDataInfo;
-    [SerializeField] RawMaterialData rawMaterialData;
     public NetworkVariable<FixedString32Bytes> ObjectStringDescription = new("");
     float maxHealth; //Used to modify building Health values
     readonly float panelWidth = 1.0f;
@@ -89,7 +88,7 @@ public class UnbuiltBuilding : NetworkBehaviour
             SpriteRenderer materialSprite = materialInfo.transform.Find("MaterialTexture").GetComponent<SpriteRenderer>();
             PlayerData.ExtendedMaterialData material = materialsToDisplay[i];
             materialAmount.text = (material.MaxAmount - material.Amount).ToString();
-            materialSprite.sprite = rawMaterialData.GetMaterialObject(material.MaterialType).materialSprite;
+            materialSprite.sprite = GameManager.Instance.RawMaterialData.GetMaterialObject(material.MaterialType).materialSprite;
             materialInfo.name = material.MaterialType.ToString();
         }
     }

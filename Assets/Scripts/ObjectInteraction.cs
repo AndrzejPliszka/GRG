@@ -23,12 +23,6 @@ public class ObjectInteraction : NetworkBehaviour
     [SerializeField]
     string localRightHandPath = "hand.R";
 
-    //References to scriptable objects
-    [SerializeField]
-    ItemTypeData itemTypeData;
-    [SerializeField]
-    ItemTierData itemTierData;
-
     //Network variable, because it is changed on server but client also needs to know this to display cooldown accordingly
     public float AttackingCooldown { get; private set; }
 
@@ -187,8 +181,8 @@ public class ObjectInteraction : NetworkBehaviour
         if (itemToHold.itemType == ItemData.ItemType.Null)
             return;
         //Spawn object in hand
-        GameObject heldItem = Instantiate(itemTypeData.GetDataOfItemType(itemToHold.itemType).holdedItemPrefab, parentObject);
-        ItemData.RetextureItem(heldItem, itemToHold.itemTier, itemTierData);
+        GameObject heldItem = Instantiate(GameManager.Instance.ItemTypeData.GetDataOfItemType(itemToHold.itemType).holdedItemPrefab, parentObject);
+        ItemData.RetextureItem(heldItem, itemToHold.itemTier);
         heldItem.name = "HeldItem"; 
     }
 
@@ -226,7 +220,7 @@ public class ObjectInteraction : NetworkBehaviour
         if (isPrimaryInteraction)
         {
             //if is not looking at interactive object, check if has interactible item in hand
-            float itemTierValueMultiplier = itemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
+            float itemTierValueMultiplier = GameManager.Instance.ItemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
             switch (playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType)
             {
                 case ItemData.ItemType.Medkit:
@@ -435,7 +429,7 @@ public class ObjectInteraction : NetworkBehaviour
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation, timeOfAttack);
         if (targetObject == null) { return; }
 
-        float itemTierValueMultiplier = itemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
+        float itemTierValueMultiplier = GameManager.Instance.ItemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
         string targetObjectTag = targetObject.tag;
         int baseAttack = -20;
         BreakableStructure breakableStructure;
@@ -597,7 +591,7 @@ public class ObjectInteraction : NetworkBehaviour
         //Remove held item
         ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
 
-        GameObject itemPrefab = itemTypeData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
+        GameObject itemPrefab = GameManager.Instance.ItemTypeData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
         GameObject newItem = Instantiate(itemPrefab, transform.position + transform.forward, transform.rotation);
         newItem.GetComponent<NetworkObject>().Spawn();
         newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;

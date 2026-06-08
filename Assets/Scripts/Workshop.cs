@@ -41,14 +41,16 @@ public class Workshop : NetworkBehaviour
     [SerializeField] SpriteRenderer itemTierSprite;
     Vector2 spriteSize = new(0.8f, 0.8f);
 
-    [SerializeField] ItemTypeData itemTypeData;
-    [SerializeField] ItemTierData itemTierData;
+    ItemTypeData itemTypeData;
+    ItemTierData itemTierData;
     [SerializeField] bool activated; //used to determine whether this script is used only to store data (such as during unbuilt state) or to manage working workshop
 
     [HideInInspector] public NetworkList<PlayerData.MaterialData> ItemMaterialCost { get; private set; } = new();
 
     public override void OnNetworkSpawn()
     {
+        itemTypeData = GameManager.Instance.ItemTypeData;
+        itemTierData = GameManager.Instance.ItemTierData;
         UpdateWorkshopSpriteClientRpc(ItemType, ItemTier);
 
         base.OnNetworkSpawn();

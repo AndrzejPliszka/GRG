@@ -8,7 +8,6 @@ using UnityEngine.UIElements;
 
 public class ItemData : NetworkBehaviour
 {
-    [SerializeField] ItemTierData itemTierData;
     public enum ItemType
     {
         Null, //this type is used to denote no item in inventory (I use this instead of list with varying size, because with this I can store items dynamically in different item slots)
@@ -59,22 +58,22 @@ public class ItemData : NetworkBehaviour
     }
 
     //Static function that changes texture of given item to appropariate material (it is here, because I have no script to handle behaviour and putting it in player scripts would be odd, but it is *technically* changing data)
-    public static void RetextureItem(GameObject item, ItemTier itemTier, ItemTierData itemMaterials)
+    public static void RetextureItem(GameObject item, ItemTier itemTier)
     {
         foreach (Renderer itemPartRenderer in item.GetComponentsInChildren<Renderer>())
         {
             if (itemPartRenderer.transform.CompareTag("Material"))
             {
-                itemPartRenderer.material = itemMaterials.GetDataOfItemTier(itemTier).itemMaterial;
+                itemPartRenderer.material = GameManager.Instance.ItemTierData.GetDataOfItemTier(itemTier).itemMaterial;
             }
         }
     }
     public override void OnNetworkSpawn()
     {
         if (itemProperties.Value.itemType != ItemType.Null)
-            RetextureItem(transform.gameObject, itemProperties.Value.itemTier, itemTierData);
+            RetextureItem(transform.gameObject, itemProperties.Value.itemTier);
         else
-            itemProperties.OnValueChanged += (oldItemProperties, itemProperties) => RetextureItem(transform.gameObject, itemProperties.itemTier, itemTierData);
+            itemProperties.OnValueChanged += (oldItemProperties, itemProperties) => RetextureItem(transform.gameObject, itemProperties.itemTier);
     }
 
 }

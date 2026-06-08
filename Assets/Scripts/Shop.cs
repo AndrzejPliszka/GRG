@@ -8,8 +8,6 @@ using UnityEngine.UIElements;
 
 public class Shop : NetworkBehaviour
 {
-    [SerializeField] ItemTierData itemTierData;
-
     [field: SerializeField] public int TownId { private set; get; }
 
     [SerializeField] TMP_Text shopText;
@@ -62,7 +60,7 @@ public class Shop : NetworkBehaviour
         }
 
         if (soldItemType != ItemData.ItemType.Null )
-            SoldItem = new ItemData.ItemProperties(soldItemType, soldItemTier, itemTierData.GetDataOfItemTier(soldItemTier).maximumDurability);
+            SoldItem = new ItemData.ItemProperties(soldItemType, soldItemTier, GameManager.Instance.ItemTierData.GetDataOfItemTier(soldItemTier).maximumDurability);
 
         if ((SoldItem.itemType != ItemData.ItemType.Null || Price != 0) || isBuyingRole)
         {
