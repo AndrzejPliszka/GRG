@@ -47,7 +47,7 @@ public class ItemData : NetworkBehaviour
 
         public readonly bool Equals(ItemProperties other) //this function is required for marking function IEquatable
         {
-            return itemType == other.itemType && itemTier == other.itemTier;
+            return itemType == other.itemType && itemTier == other.itemTier && durablity == other.durablity;
         }
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {

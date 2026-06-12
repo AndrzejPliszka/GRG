@@ -17,13 +17,6 @@ public class ObjectInteraction : NetworkBehaviour
     Vector3 cameraOffset;
     PlayerData playerData;
 
-    //Held items will be moved according to movement of this object
-    [SerializeField]
-    Transform rightHand;
-    //How is right hand in localPlayerModel named
-    [SerializeField]
-    string localRightHandPath = "hand.R";
-
     //Network variable, because it is changed on server but client also needs to know this to display cooldown accordingly
     public float AttackingCooldown { get; private set; }
 
@@ -82,17 +75,14 @@ public class ObjectInteraction : NetworkBehaviour
 
         if (slot1Input.WasPressedThisFrame()) {
             playerData.ChangeSelectedInventorySlotServerRpc(0);
-            ChangeHeldItemClientRpc(playerData.Inventory[0]);
         }
         if (slot2Input.WasPressedThisFrame())
         {
             playerData.ChangeSelectedInventorySlotServerRpc(1);
-            ChangeHeldItemClientRpc(playerData.Inventory[1]);
         }
         if (slot3Input.WasPressedThisFrame())
         {
             playerData.ChangeSelectedInventorySlotServerRpc(2);
-            ChangeHeldItemClientRpc(playerData.Inventory[2]);
         }
 
         if (attackInput.WasPressedThisFrame())
@@ -180,33 +170,6 @@ public class ObjectInteraction : NetworkBehaviour
         return closestHit;
     }
 
-    //This function changes model that is held in hand
-    [Rpc(SendTo.ClientsAndHost)]
-    public void ChangeHeldItemClientRpc(ItemData.ItemProperties itemToHold)
-    {
-        Transform parentObject;
-        //If it is owner, we want to modify localPlayerModel, instead of Player (because localPlayerModel is what owner sees)
-        if (IsOwner)
-            parentObject = transform.GetComponent<Movement>().LocalPlayerModel.transform.Find(localRightHandPath);
-        else
-            parentObject = rightHand;
-            
-        //Remove held item if it existed
-        for(int i = 0; i < parentObject.childCount; i++) //this is because for whatever reason sometimes 2 weapons spawned and when using .Find only first was deleted
-        {
-            if(parentObject.GetChild(i).name == "HeldItem")
-                Destroy(parentObject.GetChild(i).gameObject);
-        }
-            
-        //Do not spawn anything when there is no item
-        if (itemToHold.itemType == ItemData.ItemType.Null)
-            return;
-        //Spawn object in hand
-        GameObject heldItem = Instantiate(GameManager.Instance.ItemTypeData.GetDataOfItemType(itemToHold.itemType).holdedItemPrefab, parentObject);
-        ItemData.RetextureItem(heldItem, itemToHold.itemTier);
-        heldItem.name = "HeldItem"; 
-    }
-
     //Function in which there is functionality that works when you press X on object, consistantly it should be disabling or destroying something
     [Rpc(SendTo.Server)]
     void DisableObjectServerRpc(float cameraXRotation, ulong playerId)
@@ -249,14 +212,12 @@ public class ObjectInteraction : NetworkBehaviour
                     int medkitHealhValue = Convert.ToInt16(baseMedkitHealhValue * itemTierValueMultiplier);
                     playerData.ChangeHealth(medkitHealhValue);
                     playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
-                    ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
                     return;
                 case ItemData.ItemType.Food:
                     int baseFoodHungerValue = 30;
                     int foodHungerValue = Convert.ToInt16(baseFoodHungerValue * itemTierValueMultiplier);
                     playerData.ChangeHunger(foodHungerValue);
                     playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
-                    ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
                     return;
             }
         }
@@ -274,11 +235,9 @@ public class ObjectInteraction : NetworkBehaviour
                     return;
                 //Add object to inventory (and if it wasn't added do not despawn item)
                 ItemData itemData = targetObject.GetComponent<ItemData>();
-                bool didAddToInventory = transform.GetComponent<PlayerData>().AddItemToInventory(itemData.itemProperties.Value);
+                bool didAddToInventory = playerData.AddItemToInventory(itemData.itemProperties.Value);
                 if (didAddToInventory)
                 {
-                    //Instantiate item model which will be held in hand (it is needed for cases when player doesn't hold anything and picks up item)
-                    ChangeHeldItemClientRpc(playerData.Inventory[playerData.SelectedInventorySlot.Value]);
                     //And destroy original object
                     targetObject.GetComponent<NetworkObject>().Despawn();
                     Destroy(targetObject);
@@ -291,7 +250,6 @@ public class ObjectInteraction : NetworkBehaviour
                 if (shopScript == null)
                     throw new Exception("Parent of object with BuyingPlace, does not have Shop script, modify hierarchy or this script accordingly!");
                 shopScript.BuyFromShop(gameObject);
-                ChangeHeldItemClientRpc(playerData.Inventory[playerData.SelectedInventorySlot.Value]);
                 return;
             case "Work":
                 if (!isPrimaryInteraction)
@@ -464,7 +422,7 @@ public class ObjectInteraction : NetworkBehaviour
                 else
                     break;
 
-                ChangeDurabilityOfHeldItem(-10);
+                playerData.ChangeDurabilityOfHeldItem(-10);
                 targetObject.GetComponent<PlayerData>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;
@@ -477,7 +435,7 @@ public class ObjectInteraction : NetworkBehaviour
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
 
-                ChangeDurabilityOfHeldItem(-10);
+                playerData.ChangeDurabilityOfHeldItem(-10);
                 break;
             case "Shop":
                 if (heldItem.itemType == ItemData.ItemType.Sword)
@@ -496,7 +454,7 @@ public class ObjectInteraction : NetworkBehaviour
                 else
                     break;
 
-                ChangeDurabilityOfHeldItem(-10);
+                playerData.ChangeDurabilityOfHeldItem(-10);
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;
@@ -506,7 +464,7 @@ public class ObjectInteraction : NetworkBehaviour
                 else
                     break;
 
-                ChangeDurabilityOfHeldItem(-10);
+                playerData.ChangeDurabilityOfHeldItem(-10);
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;
@@ -585,22 +543,6 @@ public class ObjectInteraction : NetworkBehaviour
         }
     }
 
-    void ChangeDurabilityOfHeldItem(int addedDurability)
-    {
-        ItemData.ItemProperties heldItem = playerData.Inventory[playerData.SelectedInventorySlot.Value];
-        heldItem.durablity += addedDurability;
-        if (heldItem.durablity <= 0)
-        {
-            playerData.Inventory[playerData.SelectedInventorySlot.Value] =
-                new ItemData.ItemProperties { itemType = ItemData.ItemType.Null };
-            ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
-        }
-        else
-        {
-            playerData.Inventory[playerData.SelectedInventorySlot.Value] = heldItem;
-        }
-    }
-
     //tries to remove currently holded item in Inventory and spawn Item with same properties as those dropped
     [Rpc(SendTo.Server)]
     public void DropItemServerRpc()
@@ -608,9 +550,6 @@ public class ObjectInteraction : NetworkBehaviour
         ItemData.ItemProperties itemProperties = playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
 
         if(itemProperties.itemType == ItemData.ItemType.Null) { return; } //if it is null return, because there is no item there to spawn
-
-        //Remove held item
-        ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
 
         GameObject itemPrefab = GameManager.Instance.ItemTypeData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
         GameObject newItem = Instantiate(itemPrefab, transform.position + transform.forward, transform.rotation);

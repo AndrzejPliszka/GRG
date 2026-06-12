@@ -660,6 +660,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
+  rightHand: {fileID: 7048602296565878664}
+  localRightHandPath: hand.R
 --- !u!114 &-2660711547813083457
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -673,8 +675,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  rightHand: {fileID: 7048602296565878664}
-  localRightHandPath: rig/ORG-spine/ORG-spine.001/ORG-spine.002/ORG-spine.003/ORG-shoulder.R/ORG-upper_arm.R/ORG-forearm.R/ORG-hand.R
   canInteract: 1
 --- !u!114 &5915379211597070345
 MonoBehaviour:
