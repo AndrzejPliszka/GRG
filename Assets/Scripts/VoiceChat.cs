@@ -5,15 +5,19 @@ using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Vivox;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class VoiceChat : NetworkBehaviour
 {
     bool isInChannel = false;
     public bool IsMuted { get; private set; } = true;
 
+    InputAction voiceChatInput;
+
     private async void Start()
     {
         if(!IsOwner) return;
+        voiceChatInput = InputSystem.actions.FindAction("VoiceChat", true);
         await StartVivox();
     }
     public async override void OnNetworkDespawn()
@@ -24,10 +28,10 @@ public class VoiceChat : NetworkBehaviour
     private void Update()
     {
         if(!IsOwner || !isInChannel) return;
-        if (Input.GetKeyUp(KeyCode.Q))
-            MutePlayer();
-        else if(Input.GetKeyDown(KeyCode.Q))
+        if (voiceChatInput.IsPressed())
             UnmutePlayer();
+        else
+            MutePlayer();
     }
     async Task InitializeAsync()
     {

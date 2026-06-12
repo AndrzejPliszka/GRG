@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.UI;
 
 public class CouncilorMenu : NetworkBehaviour
@@ -21,6 +23,8 @@ public class CouncilorMenu : NetworkBehaviour
     TMP_Text noVotesText;
     float topOffset = -100; //used in displaying law queue
     bool menuJustOpened = false; //used as closing and opening menu is under the same button
+
+    InputAction interactInput;
     public override void OnNetworkSpawn()
     {
         playerData = GetComponent<PlayerData>();
@@ -43,6 +47,8 @@ public class CouncilorMenu : NetworkBehaviour
         SetUpChooseLawDropdown();
         playerData.TownId.OnValueChanged += SetUpButtons;
         councilorMenu.SetActive(false);
+
+        InputAction interactInput = InputSystem.actions.FindAction("Interact", true);;
     }
     private void Update()
     {
@@ -50,13 +56,13 @@ public class CouncilorMenu : NetworkBehaviour
         //Used to ignore initial E press when menu is opened
         if (menuJustOpened)
         {
-            if (!Input.GetKey(KeyCode.E))
+            if (!interactInput.IsPressed())
                 menuJustOpened = false;
             return;
         }
 
 
-        if (councilorMenu.activeSelf && Input.GetKeyDown(KeyCode.E))
+        if (councilorMenu.activeSelf && interactInput.IsPressed())
         {
             councilorMenu.SetActive(false);
             GetComponent<Movement>().blockRotation = false;

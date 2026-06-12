@@ -6,6 +6,7 @@ using Unity.Netcode;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 public class Movement : NetworkBehaviour
 {
@@ -42,13 +43,23 @@ public class Movement : NetworkBehaviour
     bool shouldReconciliate = true;
     public bool blockRotation = false;
 
+    InputAction moveInput;
+    InputAction lookInput;
+    InputAction jumpInput;
+    InputAction runInput;
+
     //set up references
     private void Awake()
     {
+        moveInput = InputSystem.actions.FindAction("Move", true);
+        lookInput = InputSystem.actions.FindAction("Look", true);
+        jumpInput = InputSystem.actions.FindAction("Jump", true);
+        runInput = InputSystem.actions.FindAction("Sprint", true);
+
         playerCamera = GameObject.Find("Camera");
         voiceChat = gameObject.GetComponent<VoiceChat>();
         characterController = gameObject.GetComponent<CharacterController>();
-        menuManager = GameObject.Find("Canvas").GetComponent<Menu>();
+        menuManager = GameManager.Instance.MenuManager;
     }
 
 
@@ -103,6 +114,7 @@ public class Movement : NetworkBehaviour
     {
         if (!IsOwner) return;
         HandleMovement();
+        HandleRotation();
         HandleGravityAndJumping(false);
         if(voiceChat) voiceChat.UpdateVivoxPosition();
         if (shouldReconciliate || IsHost)
@@ -110,58 +122,55 @@ public class Movement : NetworkBehaviour
             ReconciliateServerRpc(LocalPlayerModel.transform.position);
             shouldReconciliate = false;
         }
-    }
 
-    //things that are done on player input (fixed update doesn't always register them)
-    private void Update()
-    {
-        if (!IsOwner) return;
-        HandleRotation();
-
-        //pausing the game (move to other component?)
-        if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.V)) //v to test pause menu in unity editor
-        {
-            if (menuManager.isGamePaused)
-                menuManager.ResumeGame(true);
-            else
-                menuManager.PauseGame();
-        }
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (jumpInput.WasPressedThisFrame())
         {
             HandleGravityAndJumping(true); //may cause errors cos theoretically player mashing space can invoke more physics updates
         }
 
-        if (Input.GetKeyDown(KeyCode.LeftShift))
+        if (runInput.IsPressed())
         {
             IsRunning = true;
             SetIsRunningServerRpc(true);
         }
-        else if (Input.GetKeyUp(KeyCode.LeftShift))
+        else
         {
             IsRunning = false;
             SetIsRunningServerRpc(false);
         }
     }
 
-    //Function moving local player and sending keyboard inputs to server
+    //things that are done on player input (fixed update doesn't always register them)
+    private void Update()
+    {
+        if (!IsOwner) return;
+
+        
+    }
+
+    /// <summary>
+    /// Calls MovePlayerServerRpc and moves local player in WSAD directions based on current inputs
+    /// </summary>
     private void HandleMovement()
     {
         if(menuManager.isGamePaused || IsSitting.Value || BlockMovement.Value) { return; }
         // get input
-        float moveX = Input.GetAxis("Vertical");
-        float moveZ = Input.GetAxis("Horizontal");
-        MovePlayerServerRpc(new Vector3(moveX, 0, moveZ)); //and send it to the server
+        Vector2 moveVector = moveInput.ReadValue<Vector2>();
+        MovePlayerServerRpc(moveVector); //and send it to the server
 
         // Client side movement
-        Vector3 moveDirection = CalculateMovement(new Vector3(moveX, 0, moveZ), LocalPlayerModel.transform);
+        Vector3 moveDirection = CalculateMovement(moveVector, LocalPlayerModel.transform);
+
         localCharacterController.Move(moveDirection);
     }
 
-    //Function dealing with camera, rotation of both player and camera and sending mouse input to server
+    /// <summary>
+    /// Handles player and camera rotation based on mouse input, updating orientation and synchronizing rotation of player with the server.
+    /// </summary>
     private void HandleRotation() {
         if (menuManager.isGamePaused || blockRotation) { return; }
-        float mouseY = Input.GetAxis("Mouse Y");
-        float mouseX = Input.GetAxis("Mouse X");
+        float mouseY = lookInput.ReadValue<Vector2>().y;
+        float mouseX = lookInput.ReadValue<Vector2>().x;
 
         LocalPlayerModel.transform.Rotate(0, mouseX * sensitivity, 0);
         currentCameraXRotation += -mouseY * sensitivity;
@@ -186,11 +195,15 @@ public class Movement : NetworkBehaviour
     }
 
 
-    //function outputs vector which specifies where should object be moved based on inputVector
-    //transform.forward and transform.right need to be based on some frame of refrence, and rotationTransform is precisly this reference
-    private Vector3 CalculateMovement(Vector3 inputVector, Transform rotationTransform)
+    /// <summary>
+    /// Calculates a WSAD movement vector based on the input direction and a reference transform's orientation.
+    /// </summary>
+    /// <param name="inputVector">Vector where to move (x is right-left; y is forward-backward), will be clamped to -1/1 and normalized.</param>
+    /// <param name="rotationTransform">Transform providing the forward and right directions for movement calculation.</param>
+    /// <returns>A Vector3 representing the movement direction and magnitude in 3D space</returns>
+    private Vector3 CalculateMovement(Vector2 inputVector, Transform rotationTransform)
     {
-        Vector3 clampedInput = new(Mathf.Clamp(inputVector.x, -1, 1), 0, Mathf.Clamp(inputVector.z, -1, 1)); //clamp because we don't trust client
+        Vector3 clampedInput = new(Mathf.Clamp(inputVector.y, -1, 1), 0, Mathf.Clamp(inputVector.x, -1, 1)); //clamp because we don't trust client
         if (clampedInput.magnitude > 1) clampedInput = clampedInput.normalized;   //make walking diagonally not faster than walking normally
         Vector3 moveVector = speed* Time.fixedDeltaTime * (clampedInput.x * rotationTransform.forward + clampedInput.z * rotationTransform.right);
         if (IsRunning)
@@ -245,9 +258,12 @@ public class Movement : NetworkBehaviour
             return false;
         }
     }
-    //Moves player on the server
+    /// <summary>
+    /// Handles player WSAD movement on server
+    /// </summary>
+    /// <param name="inputVector">Vector2 that specifies player inputs (x is right-left movement; y is forward-backward), will be clamped at 1</param>
     [Rpc(SendTo.Server)]
-    private void MovePlayerServerRpc(Vector3 inputVector)
+    private void MovePlayerServerRpc(Vector2 inputVector)
     {
         // Server-side authoritative movement
         Vector3 finalMove = CalculateMovement(inputVector, transform);

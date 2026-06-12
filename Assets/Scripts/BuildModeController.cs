@@ -2,7 +2,8 @@ using System;
 using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.UIElements;
+using UnityEngine.Animations;
+using UnityEngine.InputSystem;
 using static UnityEngine.Rendering.DebugUI;
 
 public class BuildModeController : NetworkBehaviour
@@ -38,9 +39,21 @@ public class BuildModeController : NetworkBehaviour
     public NetworkVariable<bool> IsBuildModeActive { get; private set; } = new(false);
 
     public event Action<BuildingData.BuildingType, string> OnSelectedBuildingChanged;
+
+    InputAction buildModeToggleInput;
+    InputAction rotateInput;
+    InputAction changeTypeInput;
+    InputAction changeSubtypeInput;
+    InputAction buildInput;
     void Start()
     {
         objectInteraction = GetComponent<ObjectInteraction>();
+
+        buildModeToggleInput = InputSystem.actions.FindAction("BuildModeToggle", true);
+        rotateInput = InputSystem.actions.FindAction("Rotate", true);
+        changeTypeInput = InputSystem.actions.FindAction("ChangeType", true);
+        changeSubtypeInput = InputSystem.actions.FindAction("ChangeSubtype", true);
+        buildInput = InputSystem.actions.FindAction("Build", true);
     }
 
     public override void OnNetworkSpawn()
@@ -50,40 +63,43 @@ public class BuildModeController : NetworkBehaviour
         CurrentBuildingSubtype = Mathf.Clamp(CurrentBuildingSubtype, 0, subtypeStructureLength - 1);
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
-        if(!IsOwner) return;
+        if (!IsOwner) return;
 
-        if (Input.GetKeyDown(KeyCode.B))
+        if (buildModeToggleInput.WasPressedThisFrame())
         {
-            ToggleBuildModeServerRpc(); 
+            ToggleBuildModeServerRpc();
             //Used so text will get updated when I press B first time
             OnSelectedBuildingChanged?.Invoke(CurrentBuildingType, buildingData.GetDataOfBuildingType(CurrentBuildingType).subtypeNames[CurrentBuildingSubtype]);
         }
 
-        if(IsBuildModeActive.Value && Input.GetKey(KeyCode.R))
+        if (IsBuildModeActive.Value && rotateInput.IsPressed())
             RotateGhostObject(true);
 
-
-        if (IsBuildModeActive.Value && Input.GetAxis("Mouse ScrollWheel") > 0)
+        if (IsBuildModeActive.Value && changeTypeInput.ReadValue<float>() > 0)
         {
             ChangeBuildingType(true);
             SpawnGhostObject();
         }
-        else if (IsBuildModeActive.Value && Input.GetAxis("Mouse ScrollWheel") < 0)
+        else if (IsBuildModeActive.Value && changeTypeInput.ReadValue<float>() < 0)
         {
             ChangeBuildingType(false);
             SpawnGhostObject();
         }
 
-        else if (IsBuildModeActive.Value && Input.GetKeyUp(KeyCode.E))
+        else if (IsBuildModeActive.Value && changeSubtypeInput.WasPressedThisFrame())
         {
             ChangeBuildingSubtype(true);
             SpawnGhostObject();
         }
 
-        if (IsBuildModeActive.Value && Input.GetMouseButtonDown(0) && isPlacedCorrectly)
+        if (IsBuildModeActive.Value && buildInput.WasPressedThisFrame() && isPlacedCorrectly)
             PlaceObjectServerRpc(NetworkManager.Singleton.LocalClientId, objectPosition, objectRotation, CurrentBuildingType, CurrentBuildingSubtype);
+    }
+    private void Update() 
+    {
+        if (!IsOwner) return;
 
         if (IsBuildModeActive.Value)
         {
@@ -180,7 +196,7 @@ public class BuildModeController : NetworkBehaviour
         if (ghostObject == null)
             SpawnGhostObject();
 
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
         if (Physics.Raycast(ray, out RaycastHit hit, buildingDistance, ~LayerMask.GetMask("Ignore Raycast")))
         {
             GameObject hitObject = hit.collider.gameObject;

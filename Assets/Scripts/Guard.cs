@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 
 [RequireComponent(typeof(ObjectInteraction))]
@@ -14,18 +15,21 @@ public class Guard : NetworkBehaviour
     PlayerData playerData;
     ObjectInteraction objectInteraction;
 
+    InputAction secondaryInteraction;
+
     private void Awake()
     {
         playerData = GetComponent<PlayerData>();
         objectInteraction = GetComponent<ObjectInteraction>();
+        secondaryInteraction = InputSystem.actions.FindAction("SecondaryInteract", true);
     }
 
-    void Update()
+    void FixedUpdate()
     {
         if (playerData.Role.Value != PlayerData.PlayerRole.Guard)
             return;
 
-        if (Input.GetKeyDown(KeyCode.F))
+        if (secondaryInteraction.WasPressedThisFrame())
         {
             float cameraXRotation = GameObject.Find("Camera").transform.rotation.eulerAngles.x;
             if (IsHost)

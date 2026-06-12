@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
-using static UnityEngine.UI.Image;
+using UnityEngine.InputSystem;
 
 public class SkinSelector : MonoBehaviour
 {
@@ -17,8 +17,12 @@ public class SkinSelector : MonoBehaviour
     int selectedSkinId = 0;
     int selectedInprintId = 0;
 
+    InputAction skinSelectorInput;
+
     private void Start()
     {
+        skinSelectorInput = InputSystem.actions.FindAction("SkinSelector", true);
+
         //Set up skin
         selectedHatId = PlayerPrefs.GetInt("Hat", -1);
         selectedFaceId = PlayerPrefs.GetInt("Face", 0);
@@ -49,11 +53,13 @@ public class SkinSelector : MonoBehaviour
             return;
         }
 
-        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
+        Vector2 currentInput = skinSelectorInput.ReadValue<Vector2>();
+
+        if (currentInput.x < 0)
         {
             mockModel.transform.Rotate(Vector3.up * rotatingSpeed);
         }
-        else if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
+        else if (currentInput.x > 0)
         {
             mockModel.transform.Rotate(Vector3.down * rotatingSpeed);
         }
@@ -61,12 +67,12 @@ public class SkinSelector : MonoBehaviour
         float maxAngle = 85f;
         float minAngle = 340f;
 
-        if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
+        if (currentInput.y > 0)
         {
             if(mainCamera.transform.rotation.eulerAngles.x >= minAngle - 10 || mainCamera.transform.rotation.eulerAngles.x <= maxAngle) //-10, because otherwise when we would be on a minimal point the camera would not move (same below)
                 mainCamera.transform.Rotate(Vector3.right * rotatingSpeed);
         }
-        else if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
+        else if (currentInput.y < 0)
         {
             if (mainCamera.transform.rotation.eulerAngles.x >= minAngle || mainCamera.transform.rotation.eulerAngles.x <= maxAngle + 10)
                 mainCamera.transform.Rotate(Vector3.left * rotatingSpeed);

@@ -9,6 +9,7 @@ using Unity.Netcode;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.InputSystem;
 [RequireComponent(typeof(Movement))]
 [RequireComponent(typeof(PlayerData))]
 public class ObjectInteraction : NetworkBehaviour
@@ -31,6 +32,16 @@ public class ObjectInteraction : NetworkBehaviour
 
     public bool canInteract = true;
 
+    InputAction interactInput;
+    InputAction secondaryInteractInput;
+    InputAction attackInput;
+    InputAction dropInput;
+    InputAction disableInput;
+
+    InputAction slot1Input;
+    InputAction slot2Input;
+    InputAction slot3Input;
+
     private void Awake()
     {
         playerData = GetComponent<PlayerData>();
@@ -38,43 +49,53 @@ public class ObjectInteraction : NetworkBehaviour
     void Start()
     {
         cameraOffset = gameObject.GetComponent<Movement>().CameraOffset;
+
+        interactInput = InputSystem.actions.FindAction("Interact", true);
+        secondaryInteractInput = InputSystem.actions.FindAction("SecondaryInteract", true);
+        attackInput = InputSystem.actions.FindAction("Attack", true);
+        dropInput = InputSystem.actions.FindAction("Throw", true);
+        disableInput = InputSystem.actions.FindAction("Disable", true);
+
+        slot1Input = InputSystem.actions.FindAction("InventorySlot1", true);
+        slot2Input = InputSystem.actions.FindAction("InventorySlot2", true);
+        slot3Input = InputSystem.actions.FindAction("InventorySlot3", true);
     }
 
-    void Update()
+    void FixedUpdate()
     {
         if (!IsOwner) {  return; }
         float cameraXRotation = GameObject.Find("Camera").transform.rotation.eulerAngles.x;
         if (!canInteract)
             return;
 
-        if (Input.GetKeyDown(KeyCode.E)) //E is interaction key
+        if (interactInput.WasPressedThisFrame()) //E is interaction key
             InteractWithObjectServerRpc(cameraXRotation, true);
 
-        if (Input.GetKeyDown(KeyCode.X)) //X is disabling/destroying key
+        if (disableInput.WasPressedThisFrame()) //X is disabling/destroying key
             DisableObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId);
 
-        if (Input.GetKeyDown(KeyCode.F)) //F is secondary interaction key
+        if (secondaryInteractInput.WasPressedThisFrame()) //F is secondary interaction key
             InteractWithObjectServerRpc(cameraXRotation, false);
 
-        if (Input.GetKeyDown(KeyCode.T)) //T is dropping items key
+        if (dropInput.WasPressedThisFrame()) //T is dropping items key
             DropItemServerRpc();
 
-        if (Input.GetKeyDown(KeyCode.Alpha1)) {
+        if (slot1Input.WasPressedThisFrame()) {
             playerData.ChangeSelectedInventorySlotServerRpc(0);
             ChangeHeldItemClientRpc(playerData.Inventory[0]);
         }
-        if (Input.GetKeyDown(KeyCode.Alpha2))
+        if (slot2Input.WasPressedThisFrame())
         {
             playerData.ChangeSelectedInventorySlotServerRpc(1);
             ChangeHeldItemClientRpc(playerData.Inventory[1]);
         }
-        if (Input.GetKeyDown(KeyCode.Alpha3))
+        if (slot3Input.WasPressedThisFrame())
         {
             playerData.ChangeSelectedInventorySlotServerRpc(2);
             ChangeHeldItemClientRpc(playerData.Inventory[2]);
         }
 
-        if (Input.GetMouseButtonDown(0))
+        if (attackInput.WasPressedThisFrame())
         {
 
             if (IsHost)

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Animator))]
 [RequireComponent(typeof(Movement))]
@@ -14,8 +15,11 @@ public class Animations : NetworkBehaviour
     ObjectInteraction objectInteraction;
     const float punchingAnimationDuration = 0.6f;
 
+    InputAction moveInput;
+
     void Start()
     {
+        moveInput = InputSystem.actions.FindAction("Move", true);
         playerAnimator = GetComponent<Animator>();
         playerMovement = GetComponent<Movement>();
         objectInteraction = GetComponent<ObjectInteraction>();
@@ -30,8 +34,8 @@ public class Animations : NetworkBehaviour
     private void Update()
     {
         if (!IsOwner) { return; }
-        float horizontalInput = Input.GetAxis("Horizontal");
-        float verticalInput = Input.GetAxis("Vertical");
+        float horizontalInput = moveInput.ReadValue<Vector2>().x;
+        float verticalInput = moveInput.ReadValue<Vector2>().y;
         bool isGrounded = playerMovement.IsGrounded;
         bool isRunning = playerMovement.IsRunning;
         bool isSitting = playerMovement.IsSitting.Value;

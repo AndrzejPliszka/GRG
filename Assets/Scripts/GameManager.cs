@@ -80,6 +80,8 @@ public class GameManager : NetworkBehaviour
     //Making this script singleton
     public static GameManager Instance { get; private set; }
 
+    [field: SerializeField] public Menu MenuManager { get; private set; }
+
     //Scriptable objects referenceble in all the code working during a game
     [field: SerializeField] public ItemTypeData ItemTypeData { get; private set; }
     [field: SerializeField] public ItemTierData ItemTierData { get; private set; }

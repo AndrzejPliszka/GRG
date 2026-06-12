@@ -8,6 +8,7 @@ using Unity.Collections;
 using Unity.Netcode;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using static ItemData;
 [RequireComponent(typeof(PlayerData))]
@@ -58,6 +59,8 @@ public class PlayerUI : NetworkBehaviour
     GameObject inventorySlotsContainer;
     PlayerData playerData;
     Transform playerUI;
+    Menu menuManager;
+    InputAction pauseInput;
     bool isPlayerSelling = true; //Used in storage trade menu, global so it saves between menus, change name when more menus are added
     public override void OnNetworkSpawn()
     {
@@ -135,6 +138,19 @@ public class PlayerUI : NetworkBehaviour
         
 
         voiceChat = gameObject.GetComponent<VoiceChat>();
+        menuManager = GameManager.Instance.MenuManager;
+        pauseInput = InputSystem.actions.FindAction("Pause", true);
+    }
+
+    private void FixedUpdate()
+    {
+        if (pauseInput.WasPressedThisFrame())
+        {
+            if (menuManager.isGamePaused)
+                menuManager.ResumeGame(true);
+            else
+                menuManager.PauseGame();
+        }
     }
 
     private void Update()
