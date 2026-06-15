@@ -127,7 +127,7 @@ public class PlayerData : NetworkBehaviour
         playerMovement = GetComponent<Movement>();
     }
 
-    private void Start()
+    public override void OnNetworkSpawn()
     {
         if (IsServer)
         {
@@ -173,7 +173,11 @@ public class PlayerData : NetworkBehaviour
         }
         //Reset inventory on server
         if (!IsOwner) { return; }
-        ChangeNicknameServerRpc(PlayerPrefs.GetString("Nickname") ?? "Guest");
+        ChangeNicknameServerRpc(PlayerPrefs.GetString("Nickname") ?? "Guest");   
+    }
+    protected override void OnNetworkPostSpawn()
+    {
+        UpdateHeldItemModelClientRpc(Inventory[SelectedInventorySlot.Value]);
     }
 
     private void Update()
@@ -209,7 +213,7 @@ public class PlayerData : NetworkBehaviour
         {
             Inventory[freeSlot] = itemData;
             if (freeSlot == SelectedInventorySlot.Value)
-                UpdateHeldItemModelClientRpc();
+                UpdateHeldItemModelClientRpc(Inventory[SelectedInventorySlot.Value]);
             return true;
         }
 
@@ -234,20 +238,21 @@ public class PlayerData : NetworkBehaviour
     }
 
     /// <summary>
-    /// Replaces item in Inventory[targetSlot] with item with itemType=Null and updates DisplayedItem accordingly
+    /// Replaces item in Inventory[targetSlot] with item with itemType=Null and updates displayed item accordingly
     /// </summary>
     /// <param name="targetSlot">Index of Inventory from which we delete item. Cannot be <0 or >Inventory.Count</param>
+    /// <param name="updateHeldItemModel">Should update item displayed in hand of player? (on true will call rpc, so set to false when player is being destroyed)</param>
     /// <returns>ItemProperties of item deleted from given slot</returns>
     /// <exception cref="Exception">Function was not executed on server</exception>
-    public ItemData.ItemProperties RemoveItemFromInventory(int targetSlot)
+    public ItemData.ItemProperties RemoveItemFromInventory(int targetSlot, bool updateHeldItemModel = true)
     {
         if (!IsServer) throw new Exception("Trying to remove item from inventory as a client");
 
         ItemData.ItemProperties item = Inventory[targetSlot];
         Inventory[targetSlot] = new ItemData.ItemProperties { itemType = ItemData.ItemType.Null }; //deleting item from inventory
 
-        if (targetSlot == SelectedInventorySlot.Value)
-            UpdateHeldItemModelClientRpc();
+        if (targetSlot == SelectedInventorySlot.Value && updateHeldItemModel)
+            UpdateHeldItemModelClientRpc(Inventory[SelectedInventorySlot.Value]);
 
         return item; //returnng item so it can be spawned on scene as gameObject
         
@@ -264,7 +269,7 @@ public class PlayerData : NetworkBehaviour
 
         SelectedInventorySlot.Value = targetSlot;
 
-        UpdateHeldItemModelClientRpc();
+        UpdateHeldItemModelClientRpc(Inventory[SelectedInventorySlot.Value]);
     }
     /// <summary>
     /// Changes durability of held (Inventory[SelectedItemSlot.Value]) item by given value
@@ -280,7 +285,7 @@ public class PlayerData : NetworkBehaviour
         {
             Inventory[SelectedInventorySlot.Value] =
                 new ItemData.ItemProperties { itemType = ItemData.ItemType.Null };
-            UpdateHeldItemModelClientRpc();
+            UpdateHeldItemModelClientRpc(Inventory[SelectedInventorySlot.Value]);
         }
         else
         {
@@ -289,12 +294,12 @@ public class PlayerData : NetworkBehaviour
     }
 
     /// <summary>
-    /// Changes item model that player visually holds to that corresponding to item in Inventory[SelectedItemSlot.Value]. Works both with local and nonlocal players.
+    /// Changes item model that player visually holds to that of parameter. Works both with local and nonlocal players.
     /// </summary>
+    ///  <param name="itemToHold">ItemProperties of item that will be visually held by a player</param>
     [Rpc(SendTo.ClientsAndHost)]
-    public void UpdateHeldItemModelClientRpc()
+    public void UpdateHeldItemModelClientRpc(ItemData.ItemProperties itemToHold) //We use this parameter, because when referencing Inventory, in function, clients may have old data, and display innaproperiate items
     {
-        ItemData.ItemProperties itemToHold = Inventory[SelectedInventorySlot.Value];
         Transform parentObject;
         //If it is owner, we want to modify localPlayerModel, instead of Player (because localPlayerModel is what owner sees)
         if (IsOwner)

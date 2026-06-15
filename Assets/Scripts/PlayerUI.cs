@@ -144,6 +144,8 @@ public class PlayerUI : NetworkBehaviour
 
     private void FixedUpdate()
     {
+        if (!IsOwner) { return; }
+
         if (pauseInput.WasPressedThisFrame())
         {
             if (menuManager.isGamePaused)
