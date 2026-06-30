@@ -191,7 +191,7 @@ public class BuildModeController : NetworkBehaviour
 
     void MoveGhostObjectToCursor()
     {
-        if (GameObject.Find("Canvas").GetComponent<Menu>() != null && GameObject.Find("Canvas").GetComponent<Menu>().amountOfDisplayedMenus != 0)
+        if (GameManager.Instance.MenuManager.amountOfDisplayedMenus != 0)
             return;
         if (ghostObject == null)
             SpawnGhostObject();

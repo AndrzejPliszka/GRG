@@ -37,7 +37,7 @@ public class Movement : NetworkBehaviour
 
     public CancellationTokenSource sittingCourutineCancellationToken; //public, because Shop script can force you to stop sitting down
     //Manager components (scripts)
-    Menu menuManager;
+    MenuManager menuManager;
     VoiceChat voiceChat;
 
     bool shouldReconciliate = true;

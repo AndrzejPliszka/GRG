@@ -11856,9 +11856,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 335cf74040cb01b4fb99d51eb41d96a3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
   isGamePaused: 0
-  amountOfDisplayedMenus: 0
+  serverButton: {fileID: 2103240459}
+  clientButton: {fileID: 783748268}
+  hostButton: {fileID: 105427486}
+  ipInputField: {fileID: 310391574}
+  nicknameField: {fileID: 922452077}
 --- !u!114 &1446595053
 MonoBehaviour:
   m_ObjectHideFlags: 0

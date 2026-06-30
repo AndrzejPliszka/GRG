@@ -67,7 +67,7 @@ public class CouncilorMenu : NetworkBehaviour
             councilorMenu.SetActive(false);
             GetComponent<Movement>().blockRotation = false;
             GetComponent<ObjectInteraction>().canInteract = true;
-            GameObject.Find("Canvas").GetComponent<Menu>().ResumeGame(false);
+            GameManager.Instance.MenuManager.ResumeGame(false);
         }
     }
     private void SetUpServerSideListeners(int oldTownId, int newTownId)
@@ -215,7 +215,7 @@ public class CouncilorMenu : NetworkBehaviour
         Cursor.lockState = CursorLockMode.None;
         GetComponent<Movement>().blockRotation = true;
         GetComponent<ObjectInteraction>().canInteract = false;
-        GameObject.Find("Canvas").GetComponent<Menu>().amountOfDisplayedMenus++;
+        GameManager.Instance.MenuManager.amountOfDisplayedMenus++;
         councilorMenu.SetActive(true);
         menuJustOpened = true;
     }

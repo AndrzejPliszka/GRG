@@ -11,7 +11,7 @@ public class Death : NetworkBehaviour
 {
     PlayerData playerData;
     Movement playerMovement;
-    Menu menuScript;
+    MenuManager menuScript;
     [SerializeField] GameObject ragdoll;
     [SerializeField] GameObject moneyObject;
 
@@ -19,12 +19,11 @@ public class Death : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        menuScript = GameObject.Find("Canvas").GetComponent<Menu>();
+        menuScript = GameManager.Instance.MenuManager;
         playerData = GetComponent<PlayerData>();
         playerMovement = GetComponent<Movement>();
 
         if(IsOwner) {
-            Debug.Log($"Subscribed {name} Owner={OwnerClientId}");
             NetworkManager.OnConnectionEvent += HandleDisconnectedPlayers; //Without this, game would froze when theres no connection with server
         }
         if (IsServer)
