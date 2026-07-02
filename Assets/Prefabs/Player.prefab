@@ -510,7 +510,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 4140914131
+  GlobalObjectIdHash: 646699907
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -784,6 +784,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   appearanceData: {fileID: 11400000, guid: 6df11b824dcebd248a696cc22df72688, type: 2}
+  playerHead: {fileID: 8174013268052888861}
   hatId:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
@@ -853,5 +854,10 @@ Animator:
 --- !u!4 &7048602296565878664 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -2293973760401034094, guid: 2c337f0ecaf963e4687ac9119dc6ece2, type: 3}
+  m_PrefabInstance: {fileID: 142850153893952282}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8174013268052888861 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: -1111143674124028409, guid: 2c337f0ecaf963e4687ac9119dc6ece2, type: 3}
   m_PrefabInstance: {fileID: 142850153893952282}
   m_PrefabAsset: {fileID: 0}

@@ -31,7 +31,7 @@ public class Guard : NetworkBehaviour
 
         if (secondaryInteraction.WasPressedThisFrame())
         {
-            float cameraXRotation = GameObject.Find("Camera").transform.rotation.eulerAngles.x;
+            float cameraXRotation = GameManager.Instance.Camera.transform.rotation.eulerAngles.x;
             if (IsHost)
                 TryToArrestPlayerServerRpc(cameraXRotation, NetworkManager.Singleton.ServerTime.Tick);
             else

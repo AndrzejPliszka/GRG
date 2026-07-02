@@ -56,7 +56,7 @@ public class Movement : NetworkBehaviour
         jumpInput = InputSystem.actions.FindAction("Jump", true);
         runInput = InputSystem.actions.FindAction("Sprint", true);
 
-        playerCamera = GameObject.Find("Camera");
+        playerCamera = GameManager.Instance.Camera;
         voiceChat = gameObject.GetComponent<VoiceChat>();
         characterController = gameObject.GetComponent<CharacterController>();
         menuManager = GameManager.Instance.MenuManager;

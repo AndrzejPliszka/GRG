@@ -12,7 +12,7 @@ public class PlayerAppearance : NetworkBehaviour
     Renderer playerRenderer;
 
     [SerializeField] PlayerAppearanceData appearanceData;
-    readonly string headPath = "rig/ORG-spine/ORG-spine.001/ORG-spine.002/ORG-spine.003/ORG-spine.004/ORG-spine.005/ORG-spine.006/ORG-face/ORG-face_end";
+    [SerializeField] GameObject playerHead;
     GameObject currentHat;
 
     PlayerData.PlayerRole playerRole = PlayerData.PlayerRole.Citizen;
@@ -105,7 +105,7 @@ public class PlayerAppearance : NetworkBehaviour
         GameObject hatToSpawn = appearanceData.GetHat(hatId);
         if (hatToSpawn == null)
             return;
-        GameObject hat = Instantiate(hatToSpawn, transform.Find(headPath));
+        GameObject hat = Instantiate(hatToSpawn, playerHead.transform);
         hat.transform.localPosition = new Vector3(0, 0.1f, -0.03f);
         hat.transform.localScale = hat.transform.localScale;
         currentHat = hat;

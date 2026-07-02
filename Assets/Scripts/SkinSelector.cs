@@ -10,6 +10,11 @@ public class SkinSelector : MonoBehaviour
     [SerializeField] GameObject mockModel;
     [SerializeField] GameObject mainCamera;
     [SerializeField] PlayerAppearanceData playerAppearanceData;
+
+    [SerializeField] TMP_Text hatSelectionDescriptionText;
+    [SerializeField] TMP_Text faceSelectionDescriptionText;
+    [SerializeField] TMP_Text skinSelectionDescriptionText;
+    [SerializeField] TMP_Text inprintSelectionDescriptionText;
     readonly float rotatingSpeed = 3f;
 
     int selectedHatId = -1; 
@@ -28,20 +33,16 @@ public class SkinSelector : MonoBehaviour
         selectedFaceId = PlayerPrefs.GetInt("Face", 0);
         selectedSkinId = PlayerPrefs.GetInt("Skin", 0);
         selectedInprintId = PlayerPrefs.GetInt("Inprint", 0);
-        GameObject.Find("Player").GetComponent<PlayerAppearance>().ChangePlayerHat(selectedHatId);
-        GameObject.Find("Player").GetComponent<PlayerAppearance>().ChangePlayerFace(selectedFaceId);
-        GameObject.Find("Player").GetComponent<PlayerAppearance>().ChangePlayerSkin(selectedSkinId);
-        GameObject.Find("Player").GetComponent<PlayerAppearance>().ChangePlayerInprint(selectedInprintId);
+        mockModel.GetComponent<PlayerAppearance>().ChangePlayerHat(selectedHatId);
+        mockModel.GetComponent<PlayerAppearance>().ChangePlayerFace(selectedFaceId);
+        mockModel.GetComponent<PlayerAppearance>().ChangePlayerSkin(selectedSkinId);
+        mockModel.GetComponent<PlayerAppearance>().ChangePlayerInprint(selectedInprintId);
 
         //Set up UI
-        GameObject.Find("HatSelection").transform.Find("Description").GetComponent<TMP_Text>().text =
-            playerAppearanceData.GetHat(selectedHatId) == null ? "No Hat" : Regex.Replace(playerAppearanceData.GetHat(selectedHatId).name, "([a-z])([A-Z])", "$1 $2");
-        GameObject.Find("FaceSelection").transform.Find("Description").GetComponent<TMP_Text>().text =
-            Regex.Replace(playerAppearanceData.GetFace(selectedFaceId).name, "([a-z])([A-Z])", "$1 $2");
-        GameObject.Find("SkinSelection").transform.Find("Description").GetComponent<TMP_Text>().text =
-            Regex.Replace(playerAppearanceData.GetSkin(selectedSkinId).name, "([a-z])([A-Z])", "$1 $2");
-        GameObject.Find("InprintSelection").transform.Find("Description").GetComponent<TMP_Text>().text =
-            Regex.Replace(playerAppearanceData.GetInprint(selectedInprintId).name, "([a-z])([A-Z])", "$1 $2");
+        hatSelectionDescriptionText.text = playerAppearanceData.GetHat(selectedHatId) == null ? "No Hat" : Regex.Replace(playerAppearanceData.GetHat(selectedHatId).name, "([a-z])([A-Z])", "$1 $2");
+        faceSelectionDescriptionText.text = Regex.Replace(playerAppearanceData.GetFace(selectedFaceId).name, "([a-z])([A-Z])", "$1 $2");
+        skinSelectionDescriptionText.text = Regex.Replace(playerAppearanceData.GetSkin(selectedSkinId).name, "([a-z])([A-Z])", "$1 $2");
+        inprintSelectionDescriptionText.text = Regex.Replace(playerAppearanceData.GetInprint(selectedInprintId).name, "([a-z])([A-Z])", "$1 $2");
     }
 
     private void FixedUpdate()
@@ -81,7 +82,6 @@ public class SkinSelector : MonoBehaviour
 
     public void ChangeHat(bool increment)
     {
-        TMP_Text hatText = GameObject.Find("HatSelection").transform.Find("Description").GetComponent<TMP_Text>();
         if (increment)
         {
             selectedHatId++;
@@ -94,15 +94,14 @@ public class SkinSelector : MonoBehaviour
             if (selectedHatId < -1)
                 selectedHatId = playerAppearanceData.HatCount - 1;
         }
-
-        hatText.text = playerAppearanceData.GetHat(selectedHatId) == null ? "No Hat" : Regex.Replace(playerAppearanceData.GetHat(selectedHatId).name, "([a-z])([A-Z])", "$1 $2"); //Make spaces between small and capital letters
+        //Make spaces between small and capital letters
+        hatSelectionDescriptionText.text = playerAppearanceData.GetHat(selectedHatId) == null ? "No Hat" : Regex.Replace(playerAppearanceData.GetHat(selectedHatId).name, "([a-z])([A-Z])", "$1 $2");
         PlayerPrefs.SetInt("Hat", selectedHatId);
-        GameObject.Find("Player").GetComponent<PlayerAppearance>().ChangePlayerHat(selectedHatId);
+        mockModel.GetComponent<PlayerAppearance>().ChangePlayerHat(selectedHatId);
     }
 
     public void ChangeFace(bool increment)
     {
-        TMP_Text faceText = GameObject.Find("FaceSelection").transform.Find("Description").GetComponent<TMP_Text>();
         if (increment)
         {
             selectedFaceId++;
@@ -115,14 +114,12 @@ public class SkinSelector : MonoBehaviour
             if (selectedFaceId < 0)
                 selectedFaceId = playerAppearanceData.FaceCount - 1;
         }
-        faceText.text = Regex.Replace(playerAppearanceData.GetFace(selectedFaceId).name, "([a-z])([A-Z])", "$1 $2");
+        faceSelectionDescriptionText.text = Regex.Replace(playerAppearanceData.GetFace(selectedFaceId).name, "([a-z])([A-Z])", "$1 $2");
         PlayerPrefs.SetInt("Face", selectedFaceId);
-        GameObject.Find("Player").GetComponent<PlayerAppearance>().ChangePlayerFace(selectedFaceId);
+        mockModel.GetComponent<PlayerAppearance>().ChangePlayerFace(selectedFaceId);
     }
     public void ChangeSkin(bool increment)
     {
-
-        TMP_Text skinText = GameObject.Find("SkinSelection").transform.Find("Description").GetComponent<TMP_Text>();
         if (increment)
         {
             selectedSkinId++;
@@ -135,14 +132,13 @@ public class SkinSelector : MonoBehaviour
             if (selectedSkinId < 0)
                 selectedSkinId = playerAppearanceData.SkinCount - 1;
         }
-        skinText.text = Regex.Replace(playerAppearanceData.GetSkin(selectedSkinId).name, "([a-z])([A-Z])", "$1 $2");
+        skinSelectionDescriptionText.text = Regex.Replace(playerAppearanceData.GetSkin(selectedSkinId).name, "([a-z])([A-Z])", "$1 $2");
         PlayerPrefs.SetInt("Skin", selectedSkinId);
-        GameObject.Find("Player").GetComponent<PlayerAppearance>().ChangePlayerSkin(selectedSkinId);
+        mockModel.GetComponent<PlayerAppearance>().ChangePlayerSkin(selectedSkinId);
     }
 
     public void ChangeInprint(bool increment)
     {
-        TMP_Text inprintText = GameObject.Find("InprintSelection").transform.Find("Description").GetComponent<TMP_Text>();
         if (increment)
         {
             selectedInprintId++;
@@ -155,8 +151,8 @@ public class SkinSelector : MonoBehaviour
             if (selectedInprintId < 0)
                 selectedInprintId = playerAppearanceData.InprintCount - 1;
         }
-        inprintText.text = Regex.Replace(playerAppearanceData.GetInprint(selectedInprintId).name, "([a-z])([A-Z])", "$1 $2");
+        inprintSelectionDescriptionText.text = Regex.Replace(playerAppearanceData.GetInprint(selectedInprintId).name, "([a-z])([A-Z])", "$1 $2");
         PlayerPrefs.SetInt("Inprint", selectedInprintId);
-        GameObject.Find("Player").GetComponent<PlayerAppearance>().ChangePlayerInprint(selectedInprintId);
+        mockModel.GetComponent<PlayerAppearance>().ChangePlayerInprint(selectedInprintId);
     }
 }

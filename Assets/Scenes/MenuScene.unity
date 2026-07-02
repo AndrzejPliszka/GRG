@@ -7604,6 +7604,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   appearanceData: {fileID: 11400000, guid: 6df11b824dcebd248a696cc22df72688, type: 2}
+  playerHead: {fileID: 2135430287}
   hatId:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
@@ -11987,6 +11988,10 @@ MonoBehaviour:
   mockModel: {fileID: 940621362}
   mainCamera: {fileID: 414859845}
   playerAppearanceData: {fileID: 11400000, guid: 6df11b824dcebd248a696cc22df72688, type: 2}
+  hatSelectionDescriptionText: {fileID: 812754350}
+  faceSelectionDescriptionText: {fileID: 234079376}
+  skinSelectionDescriptionText: {fileID: 1531406677}
+  inprintSelectionDescriptionText: {fileID: 1358100858}
 --- !u!4 &1469108182 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7302307042242534816, guid: 6f20edd7c41c8f04a82d6427115bfca4, type: 3}
@@ -18602,6 +18607,11 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 7302307042242534816, guid: 6f20edd7c41c8f04a82d6427115bfca4, type: 3}
   m_PrefabInstance: {fileID: 264573297}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &2135430287 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: -1111143674124028409, guid: 2c337f0ecaf963e4687ac9119dc6ece2, type: 3}
+  m_PrefabInstance: {fileID: 142850153641683371}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2137600612
 PrefabInstance:

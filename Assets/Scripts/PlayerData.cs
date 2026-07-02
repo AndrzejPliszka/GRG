@@ -303,7 +303,7 @@ public class PlayerData : NetworkBehaviour
         Transform parentObject;
         //If it is owner, we want to modify localPlayerModel, instead of Player (because localPlayerModel is what owner sees)
         if (IsOwner)
-            parentObject = transform.GetComponent<Movement>().LocalPlayerModel.GetComponent<ObjectReference>().objectReference.transform;
+            parentObject = transform.GetComponent<Movement>().LocalPlayerModel.GetComponent<LocalPlayerReferences>().handReference.transform;
         else
             parentObject = rightHand;
 

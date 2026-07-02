@@ -57,7 +57,7 @@ public class ObjectInteraction : NetworkBehaviour
     void FixedUpdate()
     {
         if (!IsOwner) {  return; }
-        float cameraXRotation = GameObject.Find("Camera").transform.rotation.eulerAngles.x;
+        float cameraXRotation = GameManager.Instance.Camera.transform.rotation.eulerAngles.x;
         if (!canInteract)
             return;
 
