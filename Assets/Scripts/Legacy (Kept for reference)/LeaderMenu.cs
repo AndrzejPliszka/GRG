@@ -6,6 +6,7 @@ using Unity.Collections;
 using Unity.Netcode;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using static LandScript;
 
@@ -18,7 +19,7 @@ public class LeaderMenu : NetworkBehaviour
     [SerializeField] GameObject upgradeShopMenuUI;
 
     PlayerData playerData;
-    Menu menuManager;
+    MenuManager menuManager;
 
     GameObject leaderMenu;
 
@@ -34,12 +35,17 @@ public class LeaderMenu : NetworkBehaviour
     Button taxRateApproveButton;
     TMP_InputField taxRateInputField;
 
+    InputAction leaderMenuAction;
+
     readonly NetworkVariable<ItemData.ItemProperties> selectedShopSoldItemProperties = new(default,
         NetworkVariableReadPermission.Owner, NetworkVariableWritePermission.Owner); //Defined to make BuildOnSingularPlotServerRpc not take this as argument and to (in future) make, so this settings saves between building menus (client side because it is used in menu and as arguments, so doesnt require validation)
     public override void OnNetworkSpawn()
     {
+        Debug.LogWarning($"This script (LeaderMenu.cs) on object {gameObject.name} should no longer be used, it is kept for compatibility etc. reasons, if you want to make it usable you need to update the code!");
+
+        leaderMenuAction = InputSystem.actions.FindAction("SpecialMenu", true);
         playerData = GetComponent<PlayerData>();
-        menuManager = GameObject.Find("Canvas").GetComponent<Menu>();
+        menuManager = GameManager.Instance.MenuManager;
         shopManagmentItemsContainer = GameObject.Find("ShopManagmentItemsContainer");
         landManagmentItemsContainer = GameObject.Find("LandManagmentItemsContainer");
         if (!IsOwner) { return; }
@@ -144,7 +150,7 @@ public class LeaderMenu : NetworkBehaviour
             Destroy(currentPopUpMenu);
 
         //get mouse pos
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(leaderMenu.transform as RectTransform, Input.mousePosition, null, out Vector2 mousePosition);
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(leaderMenu.transform as RectTransform, Mouse.current.position.ReadValue(), null, out Vector2 mousePosition);
 
         currentPopUpMenu = Instantiate(buildMenuUI, leaderMenu.transform);
         currentPopUpMenu.GetComponent<RectTransform>().anchoredPosition = mousePosition;
@@ -219,7 +225,7 @@ public class LeaderMenu : NetworkBehaviour
             Destroy(currentPopUpMenu);
 
         //get mouse pos
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(leaderMenu.transform as RectTransform, Input.mousePosition, null, out Vector2 mousePosition);
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(leaderMenu.transform as RectTransform, Mouse.current.position.ReadValue(), null, out Vector2 mousePosition);
 
         currentPopUpMenu = Instantiate(upgradeShopMenuUI, leaderMenu.transform);
         currentPopUpMenu.GetComponent<RectTransform>().anchoredPosition = mousePosition;
@@ -356,7 +362,7 @@ public class LeaderMenu : NetworkBehaviour
 
     public void Update()
     {
-        if (!isMenuSetUp && Input.GetKeyDown(KeyCode.R) && playerData.Role.Value == PlayerData.PlayerRole.Leader)
+        if (!isMenuSetUp && leaderMenuAction.WasPressedThisFrame() && playerData.Role.Value == PlayerData.PlayerRole.Leader)
         {
             SetUpShopManagmentPanelServerRpc();
             SetUpLandManagmentPanelServerRpc();
@@ -364,7 +370,7 @@ public class LeaderMenu : NetworkBehaviour
         }
         if (!IsOwner) { return; }
 
-        if (Input.GetKeyDown(KeyCode.R) && playerData.Role.Value == PlayerData.PlayerRole.Leader) {
+        if (leaderMenuAction.WasPressedThisFrame() && playerData.Role.Value == PlayerData.PlayerRole.Leader) {
             bool shouldDisplay = !leaderMenu.activeSelf;
 
             if (shouldDisplay)

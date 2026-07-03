@@ -66,7 +66,7 @@ public class PlayerData : NetworkBehaviour
 
         public readonly bool Equals(ExtendedMaterialData other) //this function is required for marking function IEquatable
         {
-            return MaterialType == other.MaterialType && Amount == other.Amount;
+            return MaterialType == other.MaterialType && Amount == other.Amount && MaxAmount == other.MaxAmount;
         }
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
@@ -112,6 +112,13 @@ public class PlayerData : NetworkBehaviour
 
     Movement playerMovement; //You can use this, but you need to check if it is null, because it is not needed to be attached to player
 
+    //Modifies how PlayerData is displayed
+
+    //Held items will be moved according to movement of this object
+    [SerializeField]
+    Transform rightHand;
+
+
     public void Awake()
     {
         //we need to do this before connection (so before Start()/OnNetworkSpawn()), but not on declaration, because there will be memory leak
@@ -120,7 +127,7 @@ public class PlayerData : NetworkBehaviour
         playerMovement = GetComponent<Movement>();
     }
 
-    private void Start()
+    public override void OnNetworkSpawn()
     {
         if (IsServer)
         {
@@ -166,7 +173,11 @@ public class PlayerData : NetworkBehaviour
         }
         //Reset inventory on server
         if (!IsOwner) { return; }
-        ChangeNicknameServerRpc(PlayerPrefs.GetString("Nickname") ?? "Guest");
+        ChangeNicknameServerRpc(PlayerPrefs.GetString("Nickname") ?? "Guest");   
+    }
+    protected override void OnNetworkPostSpawn()
+    {
+        UpdateHeldItemModelClientRpc(Inventory[SelectedInventorySlot.Value]);
     }
 
     private void Update()
@@ -201,6 +212,8 @@ public class PlayerData : NetworkBehaviour
         if (freeSlot != -1)
         {
             Inventory[freeSlot] = itemData;
+            if (freeSlot == SelectedInventorySlot.Value)
+                UpdateHeldItemModelClientRpc(Inventory[SelectedInventorySlot.Value]);
             return true;
         }
 
@@ -224,14 +237,23 @@ public class PlayerData : NetworkBehaviour
         return -1;
     }
 
-    //Removes item in current inventory slot and returnes it (so it can be spawned as an gameObject)
-    //[REFACTOR THIS FUNCTION TO HAVE PROPERTY FROM WHICH SLOT TO REMOVE ITEM!!!]
-    public ItemData.ItemProperties RemoveItemFromInventory(int targetSlot)
+    /// <summary>
+    /// Replaces item in Inventory[targetSlot] with item with itemType=Null and updates displayed item accordingly
+    /// </summary>
+    /// <param name="targetSlot">Index of Inventory from which we delete item. Cannot be <0 or >Inventory.Count</param>
+    /// <param name="updateHeldItemModel">Should update item displayed in hand of player? (on true will call rpc, so set to false when player is being destroyed)</param>
+    /// <returns>ItemProperties of item deleted from given slot</returns>
+    /// <exception cref="Exception">Function was not executed on server</exception>
+    public ItemData.ItemProperties RemoveItemFromInventory(int targetSlot, bool updateHeldItemModel = true)
     {
         if (!IsServer) throw new Exception("Trying to remove item from inventory as a client");
 
         ItemData.ItemProperties item = Inventory[targetSlot];
         Inventory[targetSlot] = new ItemData.ItemProperties { itemType = ItemData.ItemType.Null }; //deleting item from inventory
+
+        if (targetSlot == SelectedInventorySlot.Value && updateHeldItemModel)
+            UpdateHeldItemModelClientRpc(Inventory[SelectedInventorySlot.Value]);
+
         return item; //returnng item so it can be spawned on scene as gameObject
         
     }
@@ -246,6 +268,63 @@ public class PlayerData : NetworkBehaviour
         else if(targetSlot < 0) targetSlot = 0;
 
         SelectedInventorySlot.Value = targetSlot;
+
+        UpdateHeldItemModelClientRpc(Inventory[SelectedInventorySlot.Value]);
+    }
+    /// <summary>
+    /// Changes durability of held (Inventory[SelectedItemSlot.Value]) item by given value
+    /// </summary>
+    /// <param name="addedDurability">Amount that will be added to durability property of an item (can be negative, then it will be subtracted) </param>
+    /// <exception cref="Exception">This is only Server side method</exception>
+    public void ChangeDurabilityOfHeldItem(int addedDurability)
+    {
+        if (!IsServer) { throw new Exception("You can change durablity only on server!"); }
+        ItemData.ItemProperties heldItem = Inventory[SelectedInventorySlot.Value];
+
+        if (!GameManager.Instance.ItemTypeData.GetDataOfItemType(heldItem.itemType).hasDurability)
+            throw new Exception($"You are trying to change durability of ItemType {heldItem.itemType} which has no durability property (this is set up by ItemTypeData scriptible object)!");
+
+        heldItem.durablity += addedDurability;
+        if (heldItem.durablity <= 0)
+        {
+            Inventory[SelectedInventorySlot.Value] =
+                new ItemData.ItemProperties { itemType = ItemData.ItemType.Null };
+            UpdateHeldItemModelClientRpc(Inventory[SelectedInventorySlot.Value]);
+        }
+        else
+        {
+            Inventory[SelectedInventorySlot.Value] = heldItem;
+        }
+    }
+
+    /// <summary>
+    /// Changes item model that player visually holds to that of parameter. Works both with local and nonlocal players.
+    /// </summary>
+    ///  <param name="itemToHold">ItemProperties of item that will be visually held by a player</param>
+    [Rpc(SendTo.ClientsAndHost)]
+    public void UpdateHeldItemModelClientRpc(ItemData.ItemProperties itemToHold) //We use this parameter, because when referencing Inventory, in function, clients may have old data, and display innaproperiate items
+    {
+        Transform parentObject;
+        //If it is owner, we want to modify localPlayerModel, instead of Player (because localPlayerModel is what owner sees)
+        if (IsOwner)
+            parentObject = transform.GetComponent<Movement>().LocalPlayerModel.GetComponent<LocalPlayerReferences>().handReference.transform;
+        else
+            parentObject = rightHand;
+
+        //Remove held item if it existed
+        for (int i = 0; i < parentObject.childCount; i++) //this is because for whatever reason sometimes 2 weapons spawned and when using .Find only first was deleted
+        {
+            if (parentObject.GetChild(i).name == "HeldItem")
+                Destroy(parentObject.GetChild(i).gameObject);
+        }
+
+        //Do not spawn anything when there is no item
+        if (itemToHold.itemType == ItemData.ItemType.Null)
+            return;
+        //Spawn object in hand
+        GameObject heldItem = Instantiate(GameManager.Instance.ItemTypeData.GetDataOfItemType(itemToHold.itemType).holdedItemPrefab, parentObject);
+        ItemData.RetextureItem(heldItem, itemToHold.itemTier);
+        heldItem.name = "HeldItem";
     }
 
     //Because this code returns IEnuerator it is executed asynchronously, which makes sense, because hunger only decreases every couple seconds

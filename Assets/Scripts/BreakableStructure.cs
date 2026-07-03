@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 
 public class BreakableStructure : NetworkBehaviour
 {
-    [SerializeField] RawMaterialData materialObjectData;
+    RawMaterialData materialObjectData;
     public int startingMaximumHealth;
     [HideInInspector] public NetworkVariable<int> MaximumHealth = new();
     public NetworkVariable<int> Health { get; private set; } = new();
@@ -18,6 +18,7 @@ public class BreakableStructure : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
+        materialObjectData = GameManager.Instance.RawMaterialData;
         if (!IsServer) return;
         MaximumHealth.Value = startingMaximumHealth;
         Health.Value = MaximumHealth.Value;
@@ -30,9 +31,8 @@ public class BreakableStructure : NetworkBehaviour
 
         if (Health.Value <= 0)
         {
-            gameObject.GetComponent<NetworkObject>().Despawn();
+            gameObject.GetComponent<NetworkObject>().Despawn(true);
             SpawnDroppedItems();
-            Destroy(gameObject);
         }
             
 

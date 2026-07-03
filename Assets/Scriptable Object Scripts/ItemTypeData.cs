@@ -13,6 +13,7 @@ public class ItemEntry
     public GameObject holdedItemPrefab;
     public Sprite staticItemSprite;
     public Sprite coloredItemSprite;
+    public bool hasDurability;
     public List<PlayerData.MaterialData> basicItemCost;
 }
 

@@ -9,25 +9,13 @@ using Unity.Netcode;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.InputSystem;
 [RequireComponent(typeof(Movement))]
 [RequireComponent(typeof(PlayerData))]
 public class ObjectInteraction : NetworkBehaviour
 {
     Vector3 cameraOffset;
     PlayerData playerData;
-
-    //Held items will be moved according to movement of this object
-    [SerializeField]
-    Transform rightHand;
-    //How is right hand in localPlayerModel named
-    [SerializeField]
-    string localRightHandPath = "hand.R";
-
-    //References to scriptable objects
-    [SerializeField]
-    ItemTypeData itemTypeData;
-    [SerializeField]
-    ItemTierData itemTierData;
 
     //Network variable, because it is changed on server but client also needs to know this to display cooldown accordingly
     public float AttackingCooldown { get; private set; }
@@ -37,6 +25,16 @@ public class ObjectInteraction : NetworkBehaviour
 
     public bool canInteract = true;
 
+    InputAction interactInput;
+    InputAction secondaryInteractInput;
+    InputAction attackInput;
+    InputAction dropInput;
+    InputAction disableInput;
+
+    InputAction slot1Input;
+    InputAction slot2Input;
+    InputAction slot3Input;
+
     private void Awake()
     {
         playerData = GetComponent<PlayerData>();
@@ -44,43 +42,50 @@ public class ObjectInteraction : NetworkBehaviour
     void Start()
     {
         cameraOffset = gameObject.GetComponent<Movement>().CameraOffset;
+
+        interactInput = InputSystem.actions.FindAction("Interact", true);
+        secondaryInteractInput = InputSystem.actions.FindAction("SecondaryInteract", true);
+        attackInput = InputSystem.actions.FindAction("Attack", true);
+        dropInput = InputSystem.actions.FindAction("Throw", true);
+        disableInput = InputSystem.actions.FindAction("Disable", true);
+
+        slot1Input = InputSystem.actions.FindAction("InventorySlot1", true);
+        slot2Input = InputSystem.actions.FindAction("InventorySlot2", true);
+        slot3Input = InputSystem.actions.FindAction("InventorySlot3", true);
     }
 
-    void Update()
+    void FixedUpdate()
     {
         if (!IsOwner) {  return; }
-        float cameraXRotation = GameObject.Find("Camera").transform.rotation.eulerAngles.x;
+        float cameraXRotation = GameManager.Instance.Camera.transform.rotation.eulerAngles.x;
         if (!canInteract)
             return;
 
-        if (Input.GetKeyDown(KeyCode.E)) //E is interaction key
+        if (interactInput.WasPressedThisFrame()) //E is interaction key
             InteractWithObjectServerRpc(cameraXRotation, true);
 
-        if (Input.GetKeyDown(KeyCode.X)) //X is disabling/destroying key
-            DisableObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId);
+        if (disableInput.WasPressedThisFrame()) //X is disabling/destroying key
+            DisableObjectServerRpc(cameraXRotation);
 
-        if (Input.GetKeyDown(KeyCode.F)) //F is secondary interaction key
+        if (secondaryInteractInput.WasPressedThisFrame()) //F is secondary interaction key
             InteractWithObjectServerRpc(cameraXRotation, false);
 
-        if (Input.GetKeyDown(KeyCode.T)) //T is dropping items key
+        if (dropInput.WasPressedThisFrame()) //T is dropping items key
             DropItemServerRpc();
 
-        if (Input.GetKeyDown(KeyCode.Alpha1)) {
+        if (slot1Input.WasPressedThisFrame()) {
             playerData.ChangeSelectedInventorySlotServerRpc(0);
-            ChangeHeldItemClientRpc(playerData.Inventory[0]);
         }
-        if (Input.GetKeyDown(KeyCode.Alpha2))
+        if (slot2Input.WasPressedThisFrame())
         {
             playerData.ChangeSelectedInventorySlotServerRpc(1);
-            ChangeHeldItemClientRpc(playerData.Inventory[1]);
         }
-        if (Input.GetKeyDown(KeyCode.Alpha3))
+        if (slot3Input.WasPressedThisFrame())
         {
             playerData.ChangeSelectedInventorySlotServerRpc(2);
-            ChangeHeldItemClientRpc(playerData.Inventory[2]);
         }
 
-        if (Input.GetMouseButtonDown(0))
+        if (attackInput.WasPressedThisFrame())
         {
 
             if (IsHost)
@@ -165,37 +170,15 @@ public class ObjectInteraction : NetworkBehaviour
         return closestHit;
     }
 
-    //This function changes model that is held in hand
-    [Rpc(SendTo.ClientsAndHost)]
-    public void ChangeHeldItemClientRpc(ItemData.ItemProperties itemToHold)
-    {
-        Transform parentObject;
-        //If it is owner, we want to modify localPlayerModel, instead of Player (because localPlayerModel is what owner sees)
-        if (IsOwner)
-            parentObject = transform.GetComponent<Movement>().LocalPlayerModel.transform.Find(localRightHandPath);
-        else
-            parentObject = rightHand;
-            
-        //Remove held item if it existed
-        for(int i = 0; i < parentObject.childCount; i++) //this is because for whatever reason sometimes 2 weapons spawned and when using .Find only first was deleted
-        {
-            if(parentObject.GetChild(i).name == "HeldItem")
-                Destroy(parentObject.GetChild(i).gameObject);
-        }
-            
-        //Do not spawn anything when there is no item
-        if (itemToHold.itemType == ItemData.ItemType.Null)
-            return;
-        //Spawn object in hand
-        GameObject heldItem = Instantiate(itemTypeData.GetDataOfItemType(itemToHold.itemType).holdedItemPrefab, parentObject);
-        ItemData.RetextureItem(heldItem, itemToHold.itemTier, itemTierData);
-        heldItem.name = "HeldItem"; 
-    }
-
-    //Function in which there is functionality that works when you press X on object, consistantly it should be disabling or destroying something
+    /// <summary>
+    /// Function managing functionality of disabling/destroying objects (by default X on keyboard)
+    /// </summary>
+    /// <param name="cameraXRotation">X rotation of player calling the function (as it is client side)</param>
+    /// <param name="rpcParams">Leave empty, used to get access to data of player calling function</param>
     [Rpc(SendTo.Server)]
-    void DisableObjectServerRpc(float cameraXRotation, ulong playerId)
+    void DisableObjectServerRpc(float cameraXRotation, RpcParams rpcParams = default)
     {
+        ulong playerId = rpcParams.Receive.SenderClientId;
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
         switch (targetObject.tag)
         {
@@ -226,7 +209,7 @@ public class ObjectInteraction : NetworkBehaviour
         if (isPrimaryInteraction)
         {
             //if is not looking at interactive object, check if has interactible item in hand
-            float itemTierValueMultiplier = itemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
+            float itemTierValueMultiplier = GameManager.Instance.ItemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
             switch (playerData.Inventory[playerData.SelectedInventorySlot.Value].itemType)
             {
                 case ItemData.ItemType.Medkit:
@@ -234,14 +217,12 @@ public class ObjectInteraction : NetworkBehaviour
                     int medkitHealhValue = Convert.ToInt16(baseMedkitHealhValue * itemTierValueMultiplier);
                     playerData.ChangeHealth(medkitHealhValue);
                     playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
-                    ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
                     return;
                 case ItemData.ItemType.Food:
                     int baseFoodHungerValue = 30;
                     int foodHungerValue = Convert.ToInt16(baseFoodHungerValue * itemTierValueMultiplier);
                     playerData.ChangeHunger(foodHungerValue);
                     playerData.RemoveItemFromInventory(playerData.SelectedInventorySlot.Value);
-                    ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
                     return;
             }
         }
@@ -259,11 +240,9 @@ public class ObjectInteraction : NetworkBehaviour
                     return;
                 //Add object to inventory (and if it wasn't added do not despawn item)
                 ItemData itemData = targetObject.GetComponent<ItemData>();
-                bool didAddToInventory = transform.GetComponent<PlayerData>().AddItemToInventory(itemData.itemProperties.Value);
+                bool didAddToInventory = playerData.AddItemToInventory(itemData.itemProperties.Value);
                 if (didAddToInventory)
                 {
-                    //Instantiate item model which will be held in hand (it is needed for cases when player doesn't hold anything and picks up item)
-                    ChangeHeldItemClientRpc(playerData.Inventory[playerData.SelectedInventorySlot.Value]);
                     //And destroy original object
                     targetObject.GetComponent<NetworkObject>().Despawn();
                     Destroy(targetObject);
@@ -276,7 +255,6 @@ public class ObjectInteraction : NetworkBehaviour
                 if (shopScript == null)
                     throw new Exception("Parent of object with BuyingPlace, does not have Shop script, modify hierarchy or this script accordingly!");
                 shopScript.BuyFromShop(gameObject);
-                ChangeHeldItemClientRpc(playerData.Inventory[playerData.SelectedInventorySlot.Value]);
                 return;
             case "Work":
                 if (!isPrimaryInteraction)
@@ -324,7 +302,7 @@ public class ObjectInteraction : NetworkBehaviour
                         foreach (PlayerData.ExtendedMaterialData materialData in storage.StoredMaterialData)
                         {
                             int amountToSell = Mathf.Min(materialData.MaxAmount - materialData.Amount, playerData.GetMaterialDataOfOwnedRawMaterial(materialData.MaterialType).Amount); //We cannot sell more than storage can hold
-                            storage.SellMaterialsServerRpc(playerId, amountToSell, materialData.MaterialType);
+                            storage.SellMaterialsServerRpc(amountToSell, materialData.MaterialType, playerId);
                         }
                     }
                 }
@@ -351,7 +329,7 @@ public class ObjectInteraction : NetworkBehaviour
 
                 foreach (PlayerData.ExtendedMaterialData ownedMaterial in playerData.OwnedMaterials)
                     amountOfPlayerMaterials.Add(ownedMaterial.MaterialType, ownedMaterial.Amount);
-                foreach (PlayerData.ExtendedMaterialData neededMaterial in unbuiltBuilding.NeededMaterials)
+                foreach (PricedExtendedMaterialData neededMaterial in unbuiltBuilding.NeededMaterials)
                     amountOfNeededMaterials.Add(neededMaterial.MaterialType, neededMaterial.MaxAmount - neededMaterial.Amount);
 
                 foreach (PlayerData.RawMaterial rawMaterial in Enum.GetValues(typeof(PlayerData.RawMaterial)))
@@ -435,7 +413,7 @@ public class ObjectInteraction : NetworkBehaviour
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation, timeOfAttack);
         if (targetObject == null) { return; }
 
-        float itemTierValueMultiplier = itemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
+        float itemTierValueMultiplier = GameManager.Instance.ItemTierData.GetDataOfItemTier(playerData.Inventory[playerData.SelectedInventorySlot.Value].itemTier).multiplier;
         string targetObjectTag = targetObject.tag;
         int baseAttack = -20;
         BreakableStructure breakableStructure;
@@ -443,13 +421,15 @@ public class ObjectInteraction : NetworkBehaviour
         {
             case "Player":
                 if (heldItem.itemType == ItemData.ItemType.Sword)
+                {
                     baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
-                else if(heldItem.itemType == ItemData.ItemType.Null)
-                    baseAttack = Convert.ToInt16(baseAttack * (1f/2f)); //when punching someone with fist, deal half of damage of weakest sword 
+                    playerData.ChangeDurabilityOfHeldItem(-10);
+                }
+                else if (heldItem.itemType == ItemData.ItemType.Null)
+                    baseAttack = Convert.ToInt16(baseAttack * (1f / 2f)); //when punching someone with fist, deal half of damage of weakest sword 
                 else
                     break;
 
-                ChangeDurabilityOfHeldItem(-10);
                 targetObject.GetComponent<PlayerData>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;
@@ -462,7 +442,7 @@ public class ObjectInteraction : NetworkBehaviour
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
 
-                ChangeDurabilityOfHeldItem(-10);
+                playerData.ChangeDurabilityOfHeldItem(-10);
                 break;
             case "Shop":
                 if (heldItem.itemType == ItemData.ItemType.Sword)
@@ -481,7 +461,7 @@ public class ObjectInteraction : NetworkBehaviour
                 else
                     break;
 
-                ChangeDurabilityOfHeldItem(-10);
+                playerData.ChangeDurabilityOfHeldItem(-10);
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;
@@ -491,7 +471,7 @@ public class ObjectInteraction : NetworkBehaviour
                 else
                     break;
 
-                ChangeDurabilityOfHeldItem(-10);
+                playerData.ChangeDurabilityOfHeldItem(-10);
                 targetObject.GetComponent<BreakableStructure>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;
@@ -570,22 +550,6 @@ public class ObjectInteraction : NetworkBehaviour
         }
     }
 
-    void ChangeDurabilityOfHeldItem(int addedDurability)
-    {
-        ItemData.ItemProperties heldItem = playerData.Inventory[playerData.SelectedInventorySlot.Value];
-        heldItem.durablity += addedDurability;
-        if (heldItem.durablity <= 0)
-        {
-            playerData.Inventory[playerData.SelectedInventorySlot.Value] =
-                new ItemData.ItemProperties { itemType = ItemData.ItemType.Null };
-            ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
-        }
-        else
-        {
-            playerData.Inventory[playerData.SelectedInventorySlot.Value] = heldItem;
-        }
-    }
-
     //tries to remove currently holded item in Inventory and spawn Item with same properties as those dropped
     [Rpc(SendTo.Server)]
     public void DropItemServerRpc()
@@ -594,10 +558,7 @@ public class ObjectInteraction : NetworkBehaviour
 
         if(itemProperties.itemType == ItemData.ItemType.Null) { return; } //if it is null return, because there is no item there to spawn
 
-        //Remove held item
-        ChangeHeldItemClientRpc(new ItemData.ItemProperties { itemType = ItemData.ItemType.Null });
-
-        GameObject itemPrefab = itemTypeData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
+        GameObject itemPrefab = GameManager.Instance.ItemTypeData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
         GameObject newItem = Instantiate(itemPrefab, transform.position + transform.forward, transform.rotation);
         newItem.GetComponent<NetworkObject>().Spawn();
         newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;

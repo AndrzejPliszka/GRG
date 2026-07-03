@@ -2,13 +2,14 @@ using System;
 using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.UIElements;
+using UnityEngine.Animations;
+using UnityEngine.InputSystem;
 using static UnityEngine.Rendering.DebugUI;
 
 public class BuildModeController : NetworkBehaviour
 {
     ObjectInteraction objectInteraction;
-    [SerializeField] BuildingData buildingData;
+    BuildingData buildingData;
     [SerializeField] Material correctGhostObjectMaterial;
     [SerializeField] Material wrongPlacementGhostObjectMaterial;
     GameObject ghostObject;
@@ -38,51 +39,67 @@ public class BuildModeController : NetworkBehaviour
     public NetworkVariable<bool> IsBuildModeActive { get; private set; } = new(false);
 
     public event Action<BuildingData.BuildingType, string> OnSelectedBuildingChanged;
+
+    InputAction buildModeToggleInput;
+    InputAction rotateInput;
+    InputAction changeTypeInput;
+    InputAction changeSubtypeInput;
+    InputAction buildInput;
     void Start()
     {
         objectInteraction = GetComponent<ObjectInteraction>();
+
+        buildModeToggleInput = InputSystem.actions.FindAction("BuildModeToggle", true);
+        rotateInput = InputSystem.actions.FindAction("Rotate", true);
+        changeTypeInput = InputSystem.actions.FindAction("ChangeType", true);
+        changeSubtypeInput = InputSystem.actions.FindAction("ChangeSubtype", true);
+        buildInput = InputSystem.actions.FindAction("Build", true);
     }
 
     public override void OnNetworkSpawn()
     {
+        buildingData = GameManager.Instance.BuildingData;
         subtypeStructureLength = buildingData.GetDataOfBuildingType(CurrentBuildingType).baseObjects.Count();
         CurrentBuildingSubtype = Mathf.Clamp(CurrentBuildingSubtype, 0, subtypeStructureLength - 1);
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
-        if(!IsOwner) return;
+        if (!IsOwner) return;
 
-        if (Input.GetKeyDown(KeyCode.B))
+        if (buildModeToggleInput.WasPressedThisFrame())
         {
-            ToggleBuildModeServerRpc(); 
+            ToggleBuildModeServerRpc();
             //Used so text will get updated when I press B first time
             OnSelectedBuildingChanged?.Invoke(CurrentBuildingType, buildingData.GetDataOfBuildingType(CurrentBuildingType).subtypeNames[CurrentBuildingSubtype]);
         }
 
-        if(IsBuildModeActive.Value && Input.GetKey(KeyCode.R))
+        if (IsBuildModeActive.Value && rotateInput.IsPressed())
             RotateGhostObject(true);
 
-
-        if (IsBuildModeActive.Value && Input.GetAxis("Mouse ScrollWheel") > 0)
+        if (IsBuildModeActive.Value && changeTypeInput.ReadValue<float>() < 0)
         {
             ChangeBuildingType(true);
             SpawnGhostObject();
         }
-        else if (IsBuildModeActive.Value && Input.GetAxis("Mouse ScrollWheel") < 0)
+        else if (IsBuildModeActive.Value && changeTypeInput.ReadValue<float>() > 0)
         {
             ChangeBuildingType(false);
             SpawnGhostObject();
         }
 
-        else if (IsBuildModeActive.Value && Input.GetKeyUp(KeyCode.E))
+        else if (IsBuildModeActive.Value && changeSubtypeInput.WasPressedThisFrame())
         {
             ChangeBuildingSubtype(true);
             SpawnGhostObject();
         }
 
-        if (IsBuildModeActive.Value && Input.GetMouseButtonDown(0) && isPlacedCorrectly)
-            PlaceObjectServerRpc(NetworkManager.Singleton.LocalClientId, objectPosition, objectRotation, CurrentBuildingType, CurrentBuildingSubtype);
+        if (IsBuildModeActive.Value && buildInput.WasPressedThisFrame() && isPlacedCorrectly)
+            PlaceObjectServerRpc(objectPosition, objectRotation, CurrentBuildingType, CurrentBuildingSubtype);
+    }
+    private void Update() 
+    {
+        if (!IsOwner) return;
 
         if (IsBuildModeActive.Value)
         {
@@ -97,7 +114,7 @@ public class BuildModeController : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server)]
-    void PlaceObjectServerRpc(ulong playerId, Vector3 objectPosition, Quaternion objectRotation, BuildingData.BuildingType building, int currentBuildingSubtype)
+    void PlaceObjectServerRpc(Vector3 objectPosition, Quaternion objectRotation, BuildingData.BuildingType building, int currentBuildingSubtype, RpcParams rpcParams = default)
     {
         //TO DO: Make validation so player cannot cheat by building very far away
         //MAKE VALIDATION SO PLAYER CANNOT BUILD INSIDE OTHER Structures!
@@ -121,7 +138,7 @@ public class BuildModeController : NetworkBehaviour
 
         if (spawnedObject.GetComponent<UnbuiltBuilding>() == null)
             return;
-        spawnedObject.GetComponent<UnbuiltBuilding>().OwnerId.Value = playerId;
+        spawnedObject.GetComponent<UnbuiltBuilding>().OwnerId.Value = rpcParams.Receive.SenderClientId;
         spawnedObject.GetComponent<UnbuiltBuilding>().ObjectStringDescription.Value = $"{buildingData.GetDataOfBuildingType(building).subtypeNames[currentBuildingSubtype]} {building}";
     }
 
@@ -174,12 +191,12 @@ public class BuildModeController : NetworkBehaviour
 
     void MoveGhostObjectToCursor()
     {
-        if (GameObject.Find("Canvas").GetComponent<Menu>() != null && GameObject.Find("Canvas").GetComponent<Menu>().amountOfDisplayedMenus != 0)
+        if (GameManager.Instance.MenuManager.amountOfDisplayedMenus != 0)
             return;
         if (ghostObject == null)
             SpawnGhostObject();
 
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
         if (Physics.Raycast(ray, out RaycastHit hit, buildingDistance, ~LayerMask.GetMask("Ignore Raycast")))
         {
             GameObject hitObject = hit.collider.gameObject;

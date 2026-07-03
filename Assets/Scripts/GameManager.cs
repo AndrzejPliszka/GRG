@@ -74,14 +74,21 @@ public class GameManager : NetworkBehaviour
 
     public List<TownProperties> TownData { get; private set; } = new();
     public List<GameObject> PlayersWithoutTown { get; private set; } = new();
+    [SerializeField] GameObject landObject;
+
 
     //Making this script singleton
     public static GameManager Instance { get; private set; }
 
-    [SerializeField] ItemTypeData itemTypeData; //used for spawning items
-    [SerializeField] ItemTierData itemTierData; //used for durability
-    [SerializeField] GameObject landObject;
+    [field: SerializeField] public MenuManager MenuManager { get; private set; }
+    [field: SerializeField] public GameObject Canvas { get; private set; }
+    [field: SerializeField] public GameObject Camera { get; private set; }
 
+    //Scriptable objects referenceble in all the code working during a game
+    [field: SerializeField] public ItemTypeData ItemTypeData { get; private set; }
+    [field: SerializeField] public ItemTierData ItemTierData { get; private set; }
+    [field: SerializeField] public BuildingData BuildingData { get; private set; }
+    [field: SerializeField] public RawMaterialData RawMaterialData { get; private set; }
     private void Awake()
     {
         if (Instance == null)
@@ -123,9 +130,9 @@ public class GameManager : NetworkBehaviour
 
             foreach (ItemTier itemTier in Enum.GetValues(typeof(ItemTier)))
             {
-                GameObject item = Instantiate(itemTypeData.GetDataOfItemType(itemType).droppedItemPrefab, new Vector3(10, 5, itemSpawnZPos), new Quaternion());
+                GameObject item = Instantiate(ItemTypeData.GetDataOfItemType(itemType).droppedItemPrefab, new Vector3(10, 5, itemSpawnZPos), new Quaternion());
                 item.GetComponent<NetworkObject>().Spawn();
-                item.GetComponent<ItemData>().itemProperties.Value = new ItemProperties(itemType, itemTier, itemTierData.GetDataOfItemTier(itemTier).maximumDurability);
+                item.GetComponent<ItemData>().itemProperties.Value = new ItemProperties(itemType, itemTier, ItemTierData.GetDataOfItemTier(itemTier).maximumDurability);
                 itemSpawnZPos += 2;
             }
         }
@@ -287,9 +294,14 @@ public class GameManager : NetworkBehaviour
                 OnPlayerRoleChange.Invoke(playerGameObject, role);
         }
     }
-
+    /// <summary>
+    /// Spawns a new player object and assigns network ownership to the specified player. Used instead of Netcode spawning as it works weirdly with scenes etc.
+    /// </summary>
+    /// <param name="playerId">Unique identifier of the player to assign ownership.</param>
+    /// <exception cref="Exception">Thrown if called by a client instead of the server.</exception>
     public void SpawnNewPlayer(ulong playerId)
     {
+        if (!IsServer) throw new Exception("Client cannot spawn new players lololol");
         GameObject player = Instantiate(playerPrefab);
         player.GetComponent<NetworkObject>().SpawnAsPlayerObject(playerId);
     }

@@ -3,7 +3,10 @@ guid: ad2731079267d50409047713adb28df6
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - mockModel: {instanceID: 0}
+  - mainCamera: {instanceID: 0}
+  - playerAppearanceData: {fileID: 11400000, guid: 6df11b824dcebd248a696cc22df72688, type: 2}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

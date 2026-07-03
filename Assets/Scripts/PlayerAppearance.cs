@@ -8,11 +8,14 @@ using static ItemData;
 public class PlayerAppearance : NetworkBehaviour
 {
     PlayerData playerData;
+    RagdollData ragdollData;
     Renderer playerRenderer;
 
     [SerializeField] PlayerAppearanceData appearanceData;
-    readonly string headPath = "rig/ORG-spine/ORG-spine.001/ORG-spine.002/ORG-spine.003/ORG-spine.004/ORG-spine.005/ORG-spine.006/ORG-face/ORG-face_end";
+    [SerializeField] GameObject playerHead;
     GameObject currentHat;
+
+    PlayerData.PlayerRole playerRole = PlayerData.PlayerRole.Citizen;
     //this not in scriptable object, because it is used only in this script 
     [System.Serializable]
     public class RoleEntry
@@ -36,13 +39,23 @@ public class PlayerAppearance : NetworkBehaviour
 
         if ((IsClient || IsServer) && (!TryGetComponent<PlayerData>(out playerData)))
         {
-            Debug.LogError("PlayerData should be on this object when you are on the network");
-            return;
+            if (!playerData && TryGetComponent<RagdollData>(out ragdollData))
+            {
+                playerRole = ragdollData.Role.Value;
+            }
+            else
+            {
+                Debug.LogError("PlayerData or RagdollData should be on this object when you are on the network");
+                return;
+            }
         }
+
+        if (playerData)
+            playerRole = playerData.Role.Value;
 
         if (IsOwner && gameObject.CompareTag("Player")) //If is not player, it means that it is corpse, and as such these thing should not happen
         {
-            ChangePlayerRoleTextureRpc(playerData.Role.Value, playerData.Role.Value);
+            ChangePlayerRoleTextureRpc(playerRole);
             hatId.Value = PlayerPrefs.GetInt("Hat");
             faceId.Value = PlayerPrefs.GetInt("Face");
             skinId.Value = PlayerPrefs.GetInt("Skin");
@@ -55,32 +68,32 @@ public class PlayerAppearance : NetworkBehaviour
         }
         else
         {
-            if(playerData)
-                playerRenderer.material.SetTexture("_Outfit", appearanceData.GetOutfit(playerData.Role.Value));
+            playerRenderer.material.SetTexture("_Outfit", appearanceData.GetOutfit(playerRole));
 
             if (hatId.Value != -999)
                 ChangePlayerHat(hatId.Value);
             else
-                hatId.OnValueChanged += (int oldId, int newId) => { ChangePlayerHat(newId); }; //If hatId is unset, then wait until it is set
+                hatId.OnValueChanged += (_, newId) => { ChangePlayerHat(newId); }; //If hatId is unset, then wait until it is set
 
             if (faceId.Value != -999)
                 ChangePlayerFace(faceId.Value);
             else
-                faceId.OnValueChanged += (int oldId, int newId) => { ChangePlayerFace(newId); };
+                faceId.OnValueChanged += (_, newId) => { ChangePlayerFace(newId); };
 
             if (skinId.Value != -999)
                 ChangePlayerSkin(skinId.Value);
             else
-                skinId.OnValueChanged += (int oldId, int newId) => { ChangePlayerSkin(newId); };
+                skinId.OnValueChanged += (_, newId) => { ChangePlayerSkin(newId); };
 
             if (inprintId.Value != -999)
                 ChangePlayerInprint(inprintId.Value);
             else
-                inprintId.OnValueChanged += (int oldId, int newId) => { ChangePlayerInprint(newId); };
+                inprintId.OnValueChanged += (_, newId) => { ChangePlayerInprint(newId); };
         }
         if (IsServer)
         {
-            playerData.Role.OnValueChanged += ChangePlayerRoleTextureRpc;
+            if(playerData)
+                playerData.Role.OnValueChanged += (_, newRole) => ChangePlayerRoleTextureRpc(newRole);
         }
         
     }
@@ -92,7 +105,7 @@ public class PlayerAppearance : NetworkBehaviour
         GameObject hatToSpawn = appearanceData.GetHat(hatId);
         if (hatToSpawn == null)
             return;
-        GameObject hat = Instantiate(hatToSpawn, transform.Find(headPath));
+        GameObject hat = Instantiate(hatToSpawn, playerHead.transform);
         hat.transform.localPosition = new Vector3(0, 0.1f, -0.03f);
         hat.transform.localScale = hat.transform.localScale;
         currentHat = hat;
@@ -155,7 +168,7 @@ public class PlayerAppearance : NetworkBehaviour
     }
 
     [Rpc(SendTo.Everyone)]
-    void ChangePlayerRoleTextureRpc(PlayerData.PlayerRole previousRole, PlayerData.PlayerRole currentRole)
+    void ChangePlayerRoleTextureRpc(PlayerData.PlayerRole currentRole)
     {
         if (IsOwner && gameObject.CompareTag("Player"))
         {
