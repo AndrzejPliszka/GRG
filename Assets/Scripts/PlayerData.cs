@@ -66,7 +66,7 @@ public class PlayerData : NetworkBehaviour
 
         public readonly bool Equals(ExtendedMaterialData other) //this function is required for marking function IEquatable
         {
-            return MaterialType == other.MaterialType && Amount == other.Amount;
+            return MaterialType == other.MaterialType && Amount == other.Amount && MaxAmount == other.MaxAmount;
         }
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
@@ -280,6 +280,10 @@ public class PlayerData : NetworkBehaviour
     {
         if (!IsServer) { throw new Exception("You can change durablity only on server!"); }
         ItemData.ItemProperties heldItem = Inventory[SelectedInventorySlot.Value];
+
+        if (!GameManager.Instance.ItemTypeData.GetDataOfItemType(heldItem.itemType).hasDurability)
+            throw new Exception($"You are trying to change durability of ItemType {heldItem.itemType} which has no durability property (this is set up by ItemTypeData scriptible object)!");
+
         heldItem.durablity += addedDurability;
         if (heldItem.durablity <= 0)
         {

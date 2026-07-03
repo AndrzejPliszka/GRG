@@ -9,13 +9,49 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using static PlayerData;
 
+/// <summary>
+/// Binds materialType to two int values and float. One is current amount, one is needed amount and one is price. Networkable.
+/// </summary>
+[Serializable]
+public struct PricedExtendedMaterialData : INetworkSerializable, IEquatable<PricedExtendedMaterialData>
+{
+    public ExtendedMaterialData BaseData;
+    public float Price;
+
+    public RawMaterial MaterialType
+    {
+        readonly get => BaseData.MaterialType;
+        set => BaseData.MaterialType = value;
+    }
+
+    public int Amount
+    {
+        readonly get => BaseData.Amount;
+        set => BaseData.Amount = value;
+    }
+
+    public int MaxAmount
+    {
+        readonly get => BaseData.MaxAmount;
+        set => BaseData.MaxAmount = value;
+    }
+
+    public readonly bool Equals(PricedExtendedMaterialData other) //this function is required for marking function IEquatable
+    {
+        return MaterialType == other.MaterialType && Amount == other.Amount && MaxAmount == other.MaxAmount && Price == other.Price;
+    }
+    public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+    {
+        BaseData.NetworkSerialize(serializer);
+        serializer.SerializeValue(ref Price);
+    }
+}
+
 public class UnbuiltBuilding : NetworkBehaviour
 {
-    [SerializeField] List<PlayerData.ExtendedMaterialData> _neededMaterials = new(); //maxAmount is materials needed, amount is materials already delivered
-    [HideInInspector] public NetworkList<PlayerData.ExtendedMaterialData> NeededMaterials = new(); //maxAmount is materials needed, amount is materials already delivered
+    [SerializeField] List<PricedExtendedMaterialData> _neededMaterials = new(); //maxAmount is materials needed, amount is materials already delivered
+    [HideInInspector] public NetworkList<PricedExtendedMaterialData> NeededMaterials = new(); //maxAmount is materials needed, amount is materials already delivered
     public NetworkVariable<ulong> OwnerId;
-    //MAJOR TO DO: MERGE THIS WITH NeededMaterials, having two lists that use same index is RETARDED!
-    public NetworkList<float> MaterialPrices { get; private set; } = new(); //Materials in this list have same index as in NeededMaterials, so if you need a price, first find index of material in NeededMaterials and then use that index with this list
     [SerializeField] GameObject buildingToBuild;
     [SerializeField] GameObject singularMaterialDataInfo;
 
@@ -33,9 +69,8 @@ public class UnbuiltBuilding : NetworkBehaviour
     {
         if (IsServer)
         {
-            foreach (PlayerData.ExtendedMaterialData material in _neededMaterials) { 
+            foreach (PricedExtendedMaterialData material in _neededMaterials) { 
                 NeededMaterials.Add(material);
-                MaterialPrices.Add(0f);
             }
         }
         for(int i = 0; i < buildPartsParent.childCount; i++)
@@ -80,10 +115,10 @@ public class UnbuiltBuilding : NetworkBehaviour
     {
         List<PlayerData.ExtendedMaterialData> materialsToDisplay = new();
         //Making new list without materials that are already fully provided
-        foreach(PlayerData.ExtendedMaterialData materialData in NeededMaterials)
+        foreach(PricedExtendedMaterialData materialData in NeededMaterials)
         {
             if(materialData.MaxAmount - materialData.Amount > 0)
-                materialsToDisplay.Add(materialData);
+                materialsToDisplay.Add(materialData.BaseData);
         }
         for (int i = 0; i < materialsToDisplay.Count; i++)
         {
@@ -189,7 +224,7 @@ public class UnbuiltBuilding : NetworkBehaviour
         if (!TryGetComponent<BreakableStructure>(out BreakableStructure breakableStructure))
             return;
         breakableStructure.enabled = true;
-        foreach (PlayerData.ExtendedMaterialData material in NeededMaterials)
+        foreach (PricedExtendedMaterialData material in NeededMaterials)
         {
             bool didFindMaterial = false;
             for (int i = 0; i < breakableStructure.droppedMaterials.Count; i++)
@@ -248,7 +283,11 @@ public class UnbuiltBuilding : NetworkBehaviour
         for (int i = 0; i < NeededMaterials.Count; i++)
         {
             if (NeededMaterials[i].MaterialType == rawMaterial)
-                MaterialPrices[i] = (float)Mathf.Round(price * 100) / 100f;
+            {
+                PricedExtendedMaterialData materialNeeded = NeededMaterials[i];
+                materialNeeded.Price = (float)Mathf.Round(price * 100) / 100f;
+                NeededMaterials[i] = materialNeeded;
+            }
         }
     }
 
@@ -257,12 +296,12 @@ public class UnbuiltBuilding : NetworkBehaviour
         for (int i = 0; i < NeededMaterials.Count; i++)
         {
             if (NeededMaterials[i].MaterialType == rawMaterial)
-                return MaterialPrices[i];
+                return NeededMaterials[i].Price;
         }
         throw new System.Exception("Material of this type doesn't exist in this building");
     }
 
-    public PlayerData.ExtendedMaterialData GetMaterialDataOfMaterial(PlayerData.RawMaterial rawMaterial)
+    public PricedExtendedMaterialData GetMaterialDataOfMaterial(PlayerData.RawMaterial rawMaterial)
     {
         for (int i = 0; i < NeededMaterials.Count; i++)
         {
@@ -301,8 +340,7 @@ public class UnbuiltBuilding : NetworkBehaviour
             buildingWorkshop.ItemTier = GetComponent<Workshop>().ItemTier;
             buildingWorkshop.ItemType = GetComponent<Workshop>().ItemType;
         }
-        Destroy(gameObject);
-        GetComponent<NetworkObject>().Despawn();
+        GetComponent<NetworkObject>().Despawn(true);
         return true;
     }
 }

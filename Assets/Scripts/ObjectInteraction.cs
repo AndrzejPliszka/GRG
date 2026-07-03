@@ -65,7 +65,7 @@ public class ObjectInteraction : NetworkBehaviour
             InteractWithObjectServerRpc(cameraXRotation, true);
 
         if (disableInput.WasPressedThisFrame()) //X is disabling/destroying key
-            DisableObjectServerRpc(cameraXRotation, NetworkManager.Singleton.LocalClientId);
+            DisableObjectServerRpc(cameraXRotation);
 
         if (secondaryInteractInput.WasPressedThisFrame()) //F is secondary interaction key
             InteractWithObjectServerRpc(cameraXRotation, false);
@@ -170,10 +170,15 @@ public class ObjectInteraction : NetworkBehaviour
         return closestHit;
     }
 
-    //Function in which there is functionality that works when you press X on object, consistantly it should be disabling or destroying something
+    /// <summary>
+    /// Function managing functionality of disabling/destroying objects (by default X on keyboard)
+    /// </summary>
+    /// <param name="cameraXRotation">X rotation of player calling the function (as it is client side)</param>
+    /// <param name="rpcParams">Leave empty, used to get access to data of player calling function</param>
     [Rpc(SendTo.Server)]
-    void DisableObjectServerRpc(float cameraXRotation, ulong playerId)
+    void DisableObjectServerRpc(float cameraXRotation, RpcParams rpcParams = default)
     {
+        ulong playerId = rpcParams.Receive.SenderClientId;
         GameObject targetObject = GetObjectInFrontOfCamera(cameraXRotation);
         switch (targetObject.tag)
         {
@@ -297,7 +302,7 @@ public class ObjectInteraction : NetworkBehaviour
                         foreach (PlayerData.ExtendedMaterialData materialData in storage.StoredMaterialData)
                         {
                             int amountToSell = Mathf.Min(materialData.MaxAmount - materialData.Amount, playerData.GetMaterialDataOfOwnedRawMaterial(materialData.MaterialType).Amount); //We cannot sell more than storage can hold
-                            storage.SellMaterialsServerRpc(playerId, amountToSell, materialData.MaterialType);
+                            storage.SellMaterialsServerRpc(amountToSell, materialData.MaterialType, playerId);
                         }
                     }
                 }
@@ -324,7 +329,7 @@ public class ObjectInteraction : NetworkBehaviour
 
                 foreach (PlayerData.ExtendedMaterialData ownedMaterial in playerData.OwnedMaterials)
                     amountOfPlayerMaterials.Add(ownedMaterial.MaterialType, ownedMaterial.Amount);
-                foreach (PlayerData.ExtendedMaterialData neededMaterial in unbuiltBuilding.NeededMaterials)
+                foreach (PricedExtendedMaterialData neededMaterial in unbuiltBuilding.NeededMaterials)
                     amountOfNeededMaterials.Add(neededMaterial.MaterialType, neededMaterial.MaxAmount - neededMaterial.Amount);
 
                 foreach (PlayerData.RawMaterial rawMaterial in Enum.GetValues(typeof(PlayerData.RawMaterial)))

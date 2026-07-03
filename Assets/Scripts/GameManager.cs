@@ -294,9 +294,14 @@ public class GameManager : NetworkBehaviour
                 OnPlayerRoleChange.Invoke(playerGameObject, role);
         }
     }
-
+    /// <summary>
+    /// Spawns a new player object and assigns network ownership to the specified player. Used instead of Netcode spawning as it works weirdly with scenes etc.
+    /// </summary>
+    /// <param name="playerId">Unique identifier of the player to assign ownership.</param>
+    /// <exception cref="Exception">Thrown if called by a client instead of the server.</exception>
     public void SpawnNewPlayer(ulong playerId)
     {
+        if (!IsServer) throw new Exception("Client cannot spawn new players lololol");
         GameObject player = Instantiate(playerPrefab);
         player.GetComponent<NetworkObject>().SpawnAsPlayerObject(playerId);
     }

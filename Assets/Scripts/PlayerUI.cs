@@ -53,13 +53,11 @@ public class PlayerUI : NetworkBehaviour
         buildMode = GetComponent<BuildModeController>();
         playerData = GetComponent<PlayerData>();
         objectInteraction = GetComponent<ObjectInteraction>();
-
-        playerUIObject = Instantiate(playerUIObject, GameManager.Instance.Canvas.transform);
-        playerUI = playerUIObject.GetComponent<PlayerUIReferences>();
-
-
         if (IsOwner)
         {
+            playerUIObject = Instantiate(playerUIObject, GameManager.Instance.Canvas.transform);
+            playerUI = playerUIObject.GetComponent<PlayerUIReferences>();
+
             Slider progressBar = playerUI.activityProgressBar;
             Transform buildMenu = playerUI.buildMenu;
             TMP_Text selectedBuildingText = playerUI.selectedBuildingText;
@@ -72,6 +70,7 @@ public class PlayerUI : NetworkBehaviour
             playerData.Inventory.OnListChanged += DisplayInventory;
             playerData.Hunger.OnValueChanged += ModifyHungerBar;
             playerData.Health.OnValueChanged += ModifyHealthBar;
+            ModifyMoneyCount(playerData.Money.Value, playerData.Money.Value);
             playerData.Money.OnValueChanged += ModifyMoneyCount;
             playerData.CriminalCooldown.OnValueChanged += DisplayIsCriminalText;
             playerData.JailCooldown.OnValueChanged += DisplayInPrisonText;
@@ -589,10 +588,15 @@ public class PlayerUI : NetworkBehaviour
             coloredItemImage.sprite = itemTypeData.GetDataOfItemType(e.Value.itemType).coloredItemSprite;
             coloredItemImage.color = itemTierData.GetDataOfItemTier(e.Value.itemTier).UIColor;
 
-
-            durabilitySlider.gameObject.SetActive(true);
-            durabilitySlider.maxValue = itemTierData.GetDataOfItemTier(e.Value.itemTier).maximumDurability;
-            durabilitySlider.value = e.Value.durablity;
+            if (itemTypeData.GetDataOfItemType(e.Value.itemType).hasDurability)
+            {
+                durabilitySlider.gameObject.SetActive(true);
+                durabilitySlider.maxValue = itemTierData.GetDataOfItemTier(e.Value.itemTier).maximumDurability;
+                durabilitySlider.value = e.Value.durablity;
+            }
+            else
+                durabilitySlider.gameObject.SetActive(false);
+         
         }
         else
         {
@@ -700,6 +704,7 @@ public class PlayerUI : NetworkBehaviour
         }
         else
         {
+            //Multi material storage dropdown setup
             List<TMP_Dropdown.OptionData> options = new();
             selectedRawMaterial = targetStorage.StoredMaterialData[0].MaterialType;
             foreach (PlayerData.ExtendedMaterialData material in targetStorage.StoredMaterialData)
@@ -718,37 +723,22 @@ public class PlayerUI : NetworkBehaviour
 
         }
 
-        if (!isPlayerSelling) //listener is not run on initialization and I don't want to create function from this
-        {
-            explanatoryText.text = explanatoryText.text.Replace("sell", "buy");
-            modeChangeButton.GetComponentInChildren<TMP_Text>().text = modeChangeButton.GetComponentInChildren<TMP_Text>().text.Replace("buying", "selling");
-            paymentText.text = paymentText.text.Replace("have to pay", "receive");
-        }
-
+        ChangeStateOfStorageTradeMenu(isPlayerSelling, explanatoryText, modeChangeButton, paymentText);
+        
         modeChangeButton.onClick.AddListener(() =>
         {
             isPlayerSelling = !isPlayerSelling;
-            if (isPlayerSelling)
-            {
-                explanatoryText.text = explanatoryText.text.Replace("buy", "sell");
-                modeChangeButton.GetComponentInChildren<TMP_Text>().text = modeChangeButton.GetComponentInChildren<TMP_Text>().text.Replace("selling", "buying");
-                paymentText.text = paymentText.text.Replace("have to pay", "receive");
-            }
-            else
-            {
-                explanatoryText.text = explanatoryText.text.Replace("sell", "buy");
-                modeChangeButton.GetComponentInChildren<TMP_Text>().text = modeChangeButton.GetComponentInChildren<TMP_Text>().text.Replace("buying", "selling");
-                paymentText.text = paymentText.text.Replace("receive", "have to pay");
-            }
+            ChangeStateOfStorageTradeMenu(isPlayerSelling, explanatoryText, modeChangeButton, paymentText);
         });
 
         amountInputField.onValueChanged.AddListener(newAmount =>
         {
             if (int.TryParse(newAmount, out int value))
             {
-                amountInputField.text = ClampStorageTradeMenuInputField(selectedRawMaterial, targetStorage, int.Parse(amountInputField.text)).ToString();
+                value = ClampStorageTradeMenuInputField(selectedRawMaterial, targetStorage, int.Parse(amountInputField.text));
+                amountInputField.text = value.ToString();
 
-                if(isPlayerSelling)
+                if (isPlayerSelling)
                     paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", isStorageOwner ? "0" : Convert.ToString(value * targetStorage.SellingPrice.Value));
                 else
                     paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", isStorageOwner ? "0" : Convert.ToString(value * targetStorage.BuyingPrice.Value));
@@ -760,15 +750,37 @@ public class PlayerUI : NetworkBehaviour
             if (amountInputField.text == "")
                 return;
             if (isPlayerSelling)
-                targetStorage.SellMaterialsServerRpc(NetworkManager.Singleton.LocalClientId, Convert.ToInt16(amountInputField.text), selectedRawMaterial);
+                targetStorage.SellMaterialsServerRpc(Convert.ToInt16(amountInputField.text), selectedRawMaterial);
             else
-                targetStorage.BuyMaterialsServerRpc(NetworkManager.Singleton.LocalClientId, Convert.ToInt16(amountInputField.text), selectedRawMaterial);
+                targetStorage.BuyMaterialsServerRpc(Convert.ToInt16(amountInputField.text), selectedRawMaterial);
 
 
             paymentText.text = Regex.Replace(paymentText.text, @"-?\d+(\.\d+)?", "0");
             amountInputField.text = "";
         });
         MakePanelInteractible(storageMenu);
+    }
+    /// <summary>
+    /// Change displaying of different text objects in menu according to whether or not player is selling stuff or buying (isPlayerSelling)
+    /// </summary>
+    /// <param name="isPlayerSelling">true: player is selling materials to storage, false: player is buying materials from storage</param>
+    /// <param name="explanatoryText">Text which has info explaining to player what to type in InputField</param>
+    /// <param name="modeChangeButton">Button which is used to change to different mode (expected to have text within)</param>
+    /// <param name="paymentText">Text informing player how much money they will receive or will have to give from transaction</param>
+    void ChangeStateOfStorageTradeMenu(bool isPlayerSelling, TMP_Text explanatoryText, Button modeChangeButton, TMP_Text paymentText)
+    {
+        if (isPlayerSelling)
+        {
+            explanatoryText.text = explanatoryText.text.Replace("buy", "sell");
+            modeChangeButton.GetComponentInChildren<TMP_Text>().text = modeChangeButton.GetComponentInChildren<TMP_Text>().text.Replace("selling", "buying");
+            paymentText.text = paymentText.text.Replace("have to pay", "receive");
+        }
+        else
+        {
+            explanatoryText.text = explanatoryText.text.Replace("sell", "buy");
+            modeChangeButton.GetComponentInChildren<TMP_Text>().text = modeChangeButton.GetComponentInChildren<TMP_Text>().text.Replace("buying", "selling");
+            paymentText.text = paymentText.text.Replace("receive", "have to pay");
+        }
     }
 
     /// <summary>
@@ -874,7 +886,7 @@ public class PlayerUI : NetworkBehaviour
         Button confirmButton = panelRefs.confirmButton;
 
         List<string> options = new();
-        foreach (PlayerData.ExtendedMaterialData material in targetBuilding.NeededMaterials)
+        foreach (PricedExtendedMaterialData material in targetBuilding.NeededMaterials)
             if (material.Amount < material.MaxAmount)
                 options.Add(material.MaterialType.ToString());
 
@@ -887,7 +899,7 @@ public class PlayerUI : NetworkBehaviour
             for(int i = 0; i < targetBuilding.NeededMaterials.Count; i++)
             {
                 if (targetBuilding.NeededMaterials[i].MaterialType == material)
-                    amountInputField.placeholder.GetComponent<TMP_Text>().text = targetBuilding.MaterialPrices[i].ToString();
+                    amountInputField.placeholder.GetComponent<TMP_Text>().text = targetBuilding.NeededMaterials[i].Price.ToString();
             }
             amountInputField.text = "";
         });
@@ -924,7 +936,7 @@ public class PlayerUI : NetworkBehaviour
         Button confirmButton = panelRefs.confirmButton;
         TMP_Text paymentInfoText = panelRefs.paymentInfoText;
         List<string> options = new();
-        foreach (PlayerData.ExtendedMaterialData material in targetBuilding.NeededMaterials)
+        foreach (PricedExtendedMaterialData material in targetBuilding.NeededMaterials)
             if(material.Amount < material.MaxAmount)
                 options.Add(material.MaterialType.ToString());
 
@@ -971,7 +983,7 @@ public class PlayerUI : NetworkBehaviour
         foreach (PlayerData.ExtendedMaterialData material in playerData.OwnedMaterials)
             if (material.MaterialType == selectedMaterial)
                 playerMaterialAmount = material.Amount;
-        foreach (PlayerData.ExtendedMaterialData material in targetBuilding.NeededMaterials)
+        foreach (PricedExtendedMaterialData material in targetBuilding.NeededMaterials)
             if (material.MaterialType == selectedMaterial)
                 unbuiltBuildingNeededMaterialAmount = material.MaxAmount - material.Amount;
         int maximumAmount = Mathf.Min(playerMaterialAmount, unbuiltBuildingNeededMaterialAmount);

@@ -95,7 +95,7 @@ public class BuildModeController : NetworkBehaviour
         }
 
         if (IsBuildModeActive.Value && buildInput.WasPressedThisFrame() && isPlacedCorrectly)
-            PlaceObjectServerRpc(NetworkManager.Singleton.LocalClientId, objectPosition, objectRotation, CurrentBuildingType, CurrentBuildingSubtype);
+            PlaceObjectServerRpc(objectPosition, objectRotation, CurrentBuildingType, CurrentBuildingSubtype);
     }
     private void Update() 
     {
@@ -114,7 +114,7 @@ public class BuildModeController : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server)]
-    void PlaceObjectServerRpc(ulong playerId, Vector3 objectPosition, Quaternion objectRotation, BuildingData.BuildingType building, int currentBuildingSubtype)
+    void PlaceObjectServerRpc(Vector3 objectPosition, Quaternion objectRotation, BuildingData.BuildingType building, int currentBuildingSubtype, RpcParams rpcParams = default)
     {
         //TO DO: Make validation so player cannot cheat by building very far away
         //MAKE VALIDATION SO PLAYER CANNOT BUILD INSIDE OTHER Structures!
@@ -138,7 +138,7 @@ public class BuildModeController : NetworkBehaviour
 
         if (spawnedObject.GetComponent<UnbuiltBuilding>() == null)
             return;
-        spawnedObject.GetComponent<UnbuiltBuilding>().OwnerId.Value = playerId;
+        spawnedObject.GetComponent<UnbuiltBuilding>().OwnerId.Value = rpcParams.Receive.SenderClientId;
         spawnedObject.GetComponent<UnbuiltBuilding>().ObjectStringDescription.Value = $"{buildingData.GetDataOfBuildingType(building).subtypeNames[currentBuildingSubtype]} {building}";
     }
 

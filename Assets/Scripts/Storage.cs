@@ -60,7 +60,7 @@ public class Storage : NetworkBehaviour
     [SerializeField] List<PlayerData.ExtendedMaterialData> _storedMaterialData;
     [HideInInspector] public NetworkList<PlayerData.ExtendedMaterialData> StoredMaterialData = new();
 
-    Dictionary<RawMaterial, int> initialDroppedMaterials = new();
+    readonly Dictionary<RawMaterial, int> initialDroppedMaterials = new();
 
     //MAJOR TO DO: make prices different for different materials!!!
     public NetworkVariable<float> SellingPrice { get; private set; } = new(1);
@@ -258,10 +258,20 @@ public class Storage : NetworkBehaviour
         }
     }
 
-    //For now below functions use id of gameObjects which are players, and not id of clients (except owner which uses NetworkClientId, as it is easier to test) TODO: MAKE THIS UNIFORM
     //[TODO: also make validation f.e. if client is near storage]
+    /// <summary>
+    /// Processes the sale of raw materials to storage, considering money, storage capacity etc
+    /// </summary>
+    /// <param name="amountOfMaterials">The quantity of raw materials to sell.</param>
+    /// <param name="material">The type of raw material being sold.</param>
+    /// <param name="playerId">The ID of the player initiating the sale, only works when function is called from server. Otherwise ID is specified in rpcParams.</param>
+    /// <param name="rpcParams">Do not modify! Used to get playerId when called by a client.</param>
+    /// <exception cref="Exception">Thrown when the specified player or the owner of the storage cannot be found.</exception>
     [Rpc(SendTo.Server)]
-    public void SellMaterialsServerRpc(ulong playerId, int amountOfMaterials, RawMaterial material) {
+    public void SellMaterialsServerRpc(int amountOfMaterials, RawMaterial material, ulong playerId = 0, RpcParams rpcParams = default) {
+        if (rpcParams.Receive.SenderClientId != NetworkManager.ServerClientId)
+            playerId = rpcParams.Receive.SenderClientId;
+
         bool isSellerOwner = OwnerId.Value == playerId;
         if (NetworkManager.Singleton.ConnectedClients.TryGetValue(OwnerId.Value, out NetworkClient ownerClient) && NetworkManager.Singleton.ConnectedClients.TryGetValue(playerId, out NetworkClient sellerClient))
         {
@@ -294,8 +304,9 @@ public class Storage : NetworkBehaviour
         }
     }
     [Rpc(SendTo.Server)]
-    public void BuyMaterialsServerRpc(ulong playerId, int amountOfMaterials, RawMaterial material)
+    public void BuyMaterialsServerRpc(int amountOfMaterials, RawMaterial material, RpcParams rpcParams = default)
     {
+        ulong playerId = rpcParams.Receive.SenderClientId;
         bool isBuyerOwner = OwnerId.Value == playerId; //Check if buyer is owner of this client, so we can use OwnerId.Value
         if (NetworkManager.Singleton.ConnectedClients.TryGetValue(OwnerId.Value, out NetworkClient ownerClient) && NetworkManager.Singleton.ConnectedClients.TryGetValue(playerId, out NetworkClient buyerClient))
         {

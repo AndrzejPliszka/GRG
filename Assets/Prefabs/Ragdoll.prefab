@@ -1557,6 +1557,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   appearanceData: {fileID: 11400000, guid: 6df11b824dcebd248a696cc22df72688, type: 2}
+  playerHead: {fileID: 5466136666810230795}
   hatId:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
@@ -1589,6 +1590,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 186cd387ca33aaa4c802a3536d2c0d14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RagdollData
+--- !u!1 &5466136666810230795 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: -1111143674124028409, guid: 012565850a6c42f4c82630f75044ff6a, type: 3}
+  m_PrefabInstance: {fileID: 4273901620780867084}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &8821236915258648257 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -4529311854793459507, guid: 012565850a6c42f4c82630f75044ff6a, type: 3}

@@ -7691,13 +7691,17 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   _neededMaterials:
   - BaseData:
-      MaterialType: 1
-      Amount: 0
-    MaxAmount: 10
+      BaseData:
+        MaterialType: 1
+        Amount: 0
+      MaxAmount: 5
+    Price: 0
   - BaseData:
-      MaterialType: 2
-      Amount: 0
-    MaxAmount: 10
+      BaseData:
+        MaterialType: 0
+        Amount: 0
+      MaxAmount: 5
+    Price: 0
   NeededMaterials:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0

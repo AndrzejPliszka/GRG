@@ -31,9 +31,8 @@ public class BreakableStructure : NetworkBehaviour
 
         if (Health.Value <= 0)
         {
-            gameObject.GetComponent<NetworkObject>().Despawn();
+            gameObject.GetComponent<NetworkObject>().Despawn(true);
             SpawnDroppedItems();
-            Destroy(gameObject);
         }
             
 

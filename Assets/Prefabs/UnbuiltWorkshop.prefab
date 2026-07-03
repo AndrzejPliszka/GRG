@@ -6834,7 +6834,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 154545853
+  GlobalObjectIdHash: 29391908
   InScenePlacedSourceGlobalObjectIdHash: 920950511
   DeferredDespawnTick: 0
   Ownership: 1
@@ -6862,9 +6862,11 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   _neededMaterials:
   - BaseData:
-      MaterialType: 1
-      Amount: 0
-    MaxAmount: 10
+      BaseData:
+        MaterialType: 1
+        Amount: 0
+      MaxAmount: 10
+    Price: 0
   NeededMaterials:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0

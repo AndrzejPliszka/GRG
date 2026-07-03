@@ -89,23 +89,20 @@ public class Workshop : NetworkBehaviour
         List<PlayerData.MaterialData> neededMaterials = GetNeededMaterialsForAnItem(workshop.ItemType, workshop.ItemTier);
 
         building.NeededMaterials.Clear();
-        building.MaterialPrices.Clear();
         foreach (PlayerData.MaterialData material in neededMaterials)
         {
-            building.NeededMaterials.Add(new PlayerData.ExtendedMaterialData()
+            building.NeededMaterials.Add(new PricedExtendedMaterialData()
             {
                 MaterialType = material.MaterialType,
                 MaxAmount = material.Amount,
-                Amount = Math.Clamp(oldStorage.GetMaterialDataOfRawMaterial(material.MaterialType).Amount, 0, material.Amount)
+                Amount = Math.Clamp(oldStorage.GetMaterialDataOfRawMaterial(material.MaterialType).Amount, 0, material.Amount),
+                Price = 0  //Reset material prices on upgrade, temp measure until menu update, when workshop owner will be able to set up price of delivering materials
             });
-
-            //Reset material prices on upgrade, temp measure until MaterialPrices is not merged with neededMaterials
-            building.MaterialPrices.Add(0);
         }
 
         building.TryBuildBuilding();
 
-        Destroy(gameObject);
+        GetComponent<NetworkObject>().Despawn(true);
     }
 
     public List<PlayerData.MaterialData> GetNeededMaterialsForAnItem(ItemData.ItemType itemType, ItemData.ItemTier itemTier)
