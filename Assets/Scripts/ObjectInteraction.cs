@@ -421,13 +421,15 @@ public class ObjectInteraction : NetworkBehaviour
         {
             case "Player":
                 if (heldItem.itemType == ItemData.ItemType.Sword)
+                {
                     baseAttack = Convert.ToInt16(baseAttack * itemTierValueMultiplier);
-                else if(heldItem.itemType == ItemData.ItemType.Null)
-                    baseAttack = Convert.ToInt16(baseAttack * (1f/2f)); //when punching someone with fist, deal half of damage of weakest sword 
+                    playerData.ChangeDurabilityOfHeldItem(-10);
+                }
+                else if (heldItem.itemType == ItemData.ItemType.Null)
+                    baseAttack = Convert.ToInt16(baseAttack * (1f / 2f)); //when punching someone with fist, deal half of damage of weakest sword 
                 else
                     break;
 
-                playerData.ChangeDurabilityOfHeldItem(-10);
                 targetObject.GetComponent<PlayerData>().ChangeHealth(baseAttack);
                 OnHittingSomething.Invoke(targetObject);
                 break;

@@ -77,12 +77,12 @@ public class BuildModeController : NetworkBehaviour
         if (IsBuildModeActive.Value && rotateInput.IsPressed())
             RotateGhostObject(true);
 
-        if (IsBuildModeActive.Value && changeTypeInput.ReadValue<float>() > 0)
+        if (IsBuildModeActive.Value && changeTypeInput.ReadValue<float>() < 0)
         {
             ChangeBuildingType(true);
             SpawnGhostObject();
         }
-        else if (IsBuildModeActive.Value && changeTypeInput.ReadValue<float>() < 0)
+        else if (IsBuildModeActive.Value && changeTypeInput.ReadValue<float>() > 0)
         {
             ChangeBuildingType(false);
             SpawnGhostObject();
