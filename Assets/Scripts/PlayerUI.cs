@@ -9,6 +9,7 @@ using Unity.Netcode;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static ItemData;
 [RequireComponent(typeof(PlayerData))]
@@ -35,6 +36,8 @@ public class PlayerUI : NetworkBehaviour
     [SerializeField] GameObject workshopUpgradePanel;
 
     [SerializeField] GameObject errorTextObject;
+
+    [SerializeField] GameObject intermissionUI;
 
     GameObject currentlyDisplayedErrorText;
     Coroutine errorTextCoroutine;
@@ -76,6 +79,20 @@ public class PlayerUI : NetworkBehaviour
             playerData.JailCooldown.OnValueChanged += DisplayInPrisonText;
             playerData.OwnedMaterials.OnListChanged += DisplayMaterialText;
             buildMode.IsBuildModeActive.OnValueChanged += SetUpBuildMenu;
+
+            if(SceneManager.GetActiveScene().name == GameManager.intermissionSceneName)
+            {
+                GameObject intermissionUIObject = Instantiate(intermissionUI, GameManager.Instance.Canvas.transform);
+                IntermissionUIReferences uiRefs = intermissionUIObject.GetComponent<IntermissionUIReferences>();
+                if (!IsHost && !IsServer)
+                    Destroy(uiRefs.forceStartButton.gameObject);
+                else {
+                    uiRefs.forceStartButton.onClick.AddListener(() =>
+                    {
+                        GameManager.Instance.StartGame();
+                    });
+                }
+            }
         }
 
         if (IsServer)

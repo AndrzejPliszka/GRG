@@ -38,7 +38,7 @@ public class MainMenu : MonoBehaviour
         nicknameField.onValueChanged.RemoveAllListeners();
         serverButton.onClick.AddListener(() => {
             NetworkManager.Singleton.StartServer();
-            NetworkManager.Singleton.SceneManager.LoadScene("MainScene", LoadSceneMode.Single);
+            NetworkManager.Singleton.SceneManager.LoadScene(GameManager.intermissionSceneName, LoadSceneMode.Single);
         });
         clientButton.onClick.AddListener(() => {
 
@@ -47,7 +47,7 @@ public class MainMenu : MonoBehaviour
         });
         hostButton.onClick.AddListener(() => {
             NetworkManager.Singleton.StartHost();
-            NetworkManager.Singleton.SceneManager.LoadScene("MainScene", LoadSceneMode.Single);
+            NetworkManager.Singleton.SceneManager.LoadScene(GameManager.intermissionSceneName, LoadSceneMode.Single);
         });
         if (PlayerPrefs.GetString("ServerIP") != null) //changing unity transport if there is server IP saved in PlayerPrefs
         {

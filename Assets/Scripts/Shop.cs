@@ -53,8 +53,6 @@ public class Shop : NetworkBehaviour
             isShopOpen.Value = noWorkerRequiredOnEmptyTown;
             if (noWorkerRequiredOnEmptyTown)
                 GameManager.Instance.OnPlayerTownChange += UpdateIsShopOpen;
-            if (isPriceChangable)
-                GameManager.Instance.TownData[TownId].shopsControlledByLeader.Add(this);
 
             OnShopChange += ChangeCurrentItemTextRpc;
         }

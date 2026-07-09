@@ -75,7 +75,7 @@ public class Workshop : NetworkBehaviour
         Storage oldStorage = GetComponent<Storage>();
 
         GameObject newWorkshop = Instantiate(unbuiltWorkshop, transform.position, transform.rotation);
-        newWorkshop.GetComponent<NetworkObject>().Spawn();
+        newWorkshop.GetComponent<NetworkObject>().Spawn(true);
 
         Workshop workshop = newWorkshop.GetComponent<Workshop>();
         workshop.ItemType = ItemType;
@@ -244,7 +244,7 @@ public class Workshop : NetworkBehaviour
 
         GameObject itemPrefab = itemTypeData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
         GameObject newItem = Instantiate(itemPrefab, transform.position + new Vector3(0, 1.5f), transform.rotation);
-        newItem.GetComponent<NetworkObject>().Spawn();
+        newItem.GetComponent<NetworkObject>().Spawn(true);
         newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;
     }
 }

@@ -50,7 +50,7 @@ public class MenuManager : NetworkBehaviour
         NetworkManager.Singleton.Shutdown();
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        SceneManager.LoadScene("MenuScene", LoadSceneMode.Single); //change if different scene for menu
+        SceneManager.LoadScene(GameManager.mainMenuSceneName, LoadSceneMode.Single); //change if different scene for menu
     }
 
     //set hidePauseMenu == true, when you want to close pause menu and not other menu

@@ -728,6 +728,7 @@ MonoBehaviour:
   workshopWorkPanel: {fileID: 4845570847851934181, guid: 7540b2cec6e29254180d3634de466924, type: 3}
   workshopUpgradePanel: {fileID: 4845570847851934181, guid: 50d385fa0487b414ca8a7c1b8b6c7938, type: 3}
   errorTextObject: {fileID: 6093123005942858976, guid: 549d02a5ff411074996d8e4304c99f08, type: 3}
+  intermissionUI: {fileID: 5582976541385822144, guid: 7c3113e020f7dda4badc96fa90355125, type: 3}
 --- !u!114 &4720389694948923985
 MonoBehaviour:
   m_ObjectHideFlags: 0

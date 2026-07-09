@@ -1564,6 +1564,7 @@ MonoBehaviour:
   <ItemTierData>k__BackingField: {fileID: 11400000, guid: e6c211ddcaf602045b55cbfd0c77ed64, type: 2}
   <BuildingData>k__BackingField: {fileID: 11400000, guid: 7cb970432d820b549934d170b85a1dcb, type: 2}
   <RawMaterialData>k__BackingField: {fileID: 11400000, guid: 18e85f7aab5a41d4f9eeb5d0d8cbe1db, type: 2}
+  currentlyLoadedScene: {}
 --- !u!1 &266895530
 GameObject:
   m_ObjectHideFlags: 0

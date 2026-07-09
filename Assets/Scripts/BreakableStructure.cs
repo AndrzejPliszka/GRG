@@ -67,7 +67,7 @@ public class BreakableStructure : NetworkBehaviour
                     Quaternion.identity
                 );
                 if (spawnedObject.GetComponent<NetworkObject>() != null)
-                    spawnedObject.GetComponent<NetworkObject>().Spawn();
+                    spawnedObject.GetComponent<NetworkObject>().Spawn(true);
             }
         }
     }

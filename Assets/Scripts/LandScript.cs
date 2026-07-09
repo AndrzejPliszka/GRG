@@ -65,7 +65,7 @@ public class LandScript : NetworkBehaviour
         }
 
         GameObject shop = Instantiate(shopAsset, transform.position, transform.rotation);
-        shop.GetComponent<NetworkObject>().Spawn();
+        shop.GetComponent<NetworkObject>().Spawn(true);
         Shop shopScript = shop.GetComponent<Shop>();
         shopScript.SetUpShop(itemSoldByShop);
         BuildingOnLand = shop;
@@ -85,7 +85,7 @@ public class LandScript : NetworkBehaviour
         }
 
         GameObject house = Instantiate(houseAsset, transform.position, transform.rotation);
-        house.GetComponent<NetworkObject>().Spawn();
+        house.GetComponent<NetworkObject>().Spawn(true);
         BuildingOnLand = house;
         if (house.TryGetComponent<BreakableStructure>(out var breakableStructure))
             breakableStructure.land = this;

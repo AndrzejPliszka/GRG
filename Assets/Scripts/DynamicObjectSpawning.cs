@@ -7,6 +7,9 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
+/// <summary>
+/// Used for spawning objectToSpawn on the surface of gameObject
+/// </summary>
 public class DynamicObjectSpawning : NetworkBehaviour
 {
     [System.Serializable]
@@ -63,7 +66,7 @@ public class DynamicObjectSpawning : NetworkBehaviour
                     return; //This function can be called when server is shutting down, so we need to check if we are still in the game
 
                 GameObject spawnedObject = Instantiate(spawnData.objectToSpawn, hit.point, Quaternion.Euler(new Vector3(0, Random.Range(0, 360), 0)));
-                spawnedObject.GetComponent<NetworkObject>().Spawn();
+                spawnedObject.GetComponent<NetworkObject>().Spawn(true);
 
                 spawnedObject.TryGetComponent<BreakableStructure>(out BreakableStructure spawnedObjectBreakableScript); //setting up refrence to this script for communication
                 if (spawnedObjectBreakableScript != null)

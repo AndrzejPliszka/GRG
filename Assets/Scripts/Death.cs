@@ -55,7 +55,7 @@ public class Death : NetworkBehaviour
             //maybe encapsulate into function, currently same code is used in objectInteraction
             GameObject itemPrefab = itemData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
             GameObject newItem = Instantiate(itemPrefab, transform.position + transform.forward, new Quaternion());
-            newItem.GetComponent<NetworkObject>().Spawn();
+            newItem.GetComponent<NetworkObject>().Spawn(true);
             newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;
         }
 
@@ -72,7 +72,7 @@ public class Death : NetworkBehaviour
         if(playerData.Money.Value > 0)
         {
             GameObject spawnedMoneyObject = Instantiate(moneyObject, transform.position + transform.forward, new Quaternion());
-            spawnedMoneyObject.GetComponent<NetworkObject>().Spawn();
+            spawnedMoneyObject.GetComponent<NetworkObject>().Spawn(true);
             spawnedMoneyObject.GetComponent<MoneyObject>().moneyAmount.Value = playerData.Money.Value;
         }
         
@@ -82,7 +82,7 @@ public class Death : NetworkBehaviour
         ragdollObject.GetComponent<RagdollData>().Role.Value = playerData.Role.Value;
         PlayerAppearance ragdollAppearance = ragdollObject.GetComponent<PlayerAppearance>();
         PlayerAppearance playerAppearance = GetComponent<PlayerAppearance>();
-        ragdollObject.GetComponent<NetworkObject>().Spawn();
+        ragdollObject.GetComponent<NetworkObject>().Spawn(true);
         ragdollAppearance.hatId.Value = playerAppearance.hatId.Value;
         ragdollAppearance.inprintId.Value = playerAppearance.inprintId.Value;
         ragdollAppearance.skinId.Value = playerAppearance.skinId.Value;

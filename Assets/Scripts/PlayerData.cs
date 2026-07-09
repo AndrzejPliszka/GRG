@@ -151,7 +151,7 @@ public class PlayerData : NetworkBehaviour
             if (TryGetComponent<ObjectInteraction>(out var objectInteraction))
                 objectInteraction.OnHittingSomething += CheckIfHitIsIllegal;
 
-            StartCoroutine(CheckTownPlayerIsIn());
+            //StartCoroutine(CheckTownPlayerIsIn());
             TownPlayerIsIn.OnValueChanged += CheckIfPlayerIsIllegalInTown;
             IsCriminal.OnValueChanged += (oldValue, isCriminal) =>
             {

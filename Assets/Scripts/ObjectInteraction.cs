@@ -560,7 +560,7 @@ public class ObjectInteraction : NetworkBehaviour
 
         GameObject itemPrefab = GameManager.Instance.ItemTypeData.GetDataOfItemType(itemProperties.itemType).droppedItemPrefab;
         GameObject newItem = Instantiate(itemPrefab, transform.position + transform.forward, transform.rotation);
-        newItem.GetComponent<NetworkObject>().Spawn();
+        newItem.GetComponent<NetworkObject>().Spawn(true);
         newItem.GetComponent<ItemData>().itemProperties.Value = itemProperties;
     }
 

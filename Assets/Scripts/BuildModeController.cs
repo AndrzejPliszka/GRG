@@ -124,7 +124,7 @@ public class BuildModeController : NetworkBehaviour
         BuildingData.Building buildingToSpawn = buildingData.GetDataOfBuildingType(building);
         GameObject spawnedObject = Instantiate(buildingToSpawn.baseObjects[currentBuildingSubtype], objectPosition, objectRotation);
 
-        spawnedObject.GetComponent<NetworkObject>().Spawn();
+        spawnedObject.GetComponent<NetworkObject>().Spawn(true);
         if (buildingToSpawn.needToModifyBuildingsInCode)
         {
             if(buildingToSpawn.type == BuildingData.BuildingType.Workshop)

@@ -89,6 +89,12 @@ public class GameManager : NetworkBehaviour
     [field: SerializeField] public ItemTierData ItemTierData { get; private set; }
     [field: SerializeField] public BuildingData BuildingData { get; private set; }
     [field: SerializeField] public RawMaterialData RawMaterialData { get; private set; }
+
+    public const string mainMenuSceneName = "MainMenu";
+    public const string intermissionSceneName = "Intermission";
+    public const string arenaSceneName = "Arena";
+
+    [HideInInspector] public Scene currentlyLoadedScene;
     private void Awake()
     {
         if (Instance == null)
@@ -102,23 +108,18 @@ public class GameManager : NetworkBehaviour
 
         for (int i = 0; i < 1; i++)
         {
-            List<PlayerData.ExtendedMaterialData> townMaterials = new();
-            foreach (PlayerData.RawMaterial material in Enum.GetValues(typeof(PlayerData.RawMaterial)))
-            {
-                townMaterials.Add(new PlayerData.ExtendedMaterialData { MaterialType = material, Amount = 0, MaxAmount = 20 });
-            }
-            TownData.Add(new TownProperties() { townMaterialSupply = townMaterials, townBase = GameObject.Find("Town" + i).transform.Find("Pavement") }); //Pavement cos it has approperiate size (at least for now)
+            TownData.Add(new TownProperties());
         }
     }
 
     override public void OnNetworkSpawn()
     {
         if (!IsServer) { return; }
+        currentlyLoadedScene = SceneManager.GetActiveScene();
         NetworkManager.Singleton.OnClientConnectedCallback += SpawnNewPlayer;
         if(IsHost)
             SpawnNewPlayer(NetworkManager.Singleton.LocalClientId);
 
-        GenerateTownLand(0, 10, 5, -5);
         OnPlayerTownChange += ChangeLeader;
 
         //Spawn all items in the game for testing purposes
@@ -131,11 +132,24 @@ public class GameManager : NetworkBehaviour
             foreach (ItemTier itemTier in Enum.GetValues(typeof(ItemTier)))
             {
                 GameObject item = Instantiate(ItemTypeData.GetDataOfItemType(itemType).droppedItemPrefab, new Vector3(10, 5, itemSpawnZPos), new Quaternion());
-                item.GetComponent<NetworkObject>().Spawn();
+                item.GetComponent<NetworkObject>().Spawn(true);
                 item.GetComponent<ItemData>().itemProperties.Value = new ItemProperties(itemType, itemTier, ItemTierData.GetDataOfItemTier(itemTier).maximumDurability);
                 itemSpawnZPos += 2;
             }
         }
+    }
+
+    public void StartGame()
+    {
+        if(!IsServer) { throw new Exception("Game cannot be started by client lol"); }
+    
+        NetworkManager.Singleton.SceneManager.LoadScene(GameManager.arenaSceneName, LoadSceneMode.Single);
+        foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
+        {
+            if (clientId != 0)
+                SpawnNewPlayer(clientId);
+        }
+
     }
 
     void GenerateTownLand(int townId, int width, int length, int startingOffset)
@@ -149,7 +163,7 @@ public class GameManager : NetworkBehaviour
             for(int j = 0; j < length; j++)
             {
                 GameObject landTile = Instantiate(landObject, landContainer.position + landContainer.rotation * new Vector3(j * offsetBetweenTiles, 0, i * offsetBetweenTiles), new Quaternion());
-                landTile.GetComponent<NetworkObject>().Spawn();
+                landTile.GetComponent<NetworkObject>().Spawn(true);
                 LandScript landScript = landTile.GetComponent<LandScript>();
                 TownData[townId].landInTown.Add(landScript);
                 landScript.menuXPos.Value = i;
@@ -303,7 +317,7 @@ public class GameManager : NetworkBehaviour
     {
         if (!IsServer) throw new Exception("Client cannot spawn new players lololol");
         GameObject player = Instantiate(playerPrefab);
-        player.GetComponent<NetworkObject>().SpawnAsPlayerObject(playerId);
+        player.GetComponent<NetworkObject>().SpawnAsPlayerObject(playerId, true);
     }
 
     public override void OnNetworkDespawn()

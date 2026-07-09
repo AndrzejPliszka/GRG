@@ -24,7 +24,7 @@ public class CouncilorMenu : NetworkBehaviour
     float topOffset = -100; //used in displaying law queue
     bool menuJustOpened = false; //used as closing and opening menu is under the same button
 
-    InputAction interactInput;
+    InputAction interactionInput;
     public override void OnNetworkSpawn()
     {
         playerData = GetComponent<PlayerData>();
@@ -48,7 +48,7 @@ public class CouncilorMenu : NetworkBehaviour
         playerData.TownId.OnValueChanged += SetUpButtons;
         councilorMenu.SetActive(false);
 
-        InputAction interactInput = InputSystem.actions.FindAction("Interact", true);;
+        interactionInput = InputSystem.actions.FindAction("Interact", true);;
     }
     private void Update()
     {
@@ -56,13 +56,13 @@ public class CouncilorMenu : NetworkBehaviour
         //Used to ignore initial E press when menu is opened
         if (menuJustOpened)
         {
-            if (!interactInput.IsPressed())
+            if (!interactionInput.IsPressed())
                 menuJustOpened = false;
             return;
         }
 
 
-        if (councilorMenu.activeSelf && interactInput.IsPressed())
+        if (councilorMenu.activeSelf && interactionInput.IsPressed())
         {
             councilorMenu.SetActive(false);
             GetComponent<Movement>().blockRotation = false;
